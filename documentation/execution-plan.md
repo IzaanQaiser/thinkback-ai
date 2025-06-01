@@ -3,25 +3,24 @@
 ## ✅ **Phase 0 — Setup + Planning + Foundation + Branding (June 1)**
 
 ### 🧠 Ideation & Final Planning
-~- Finalize agent list (5 total: classification, nlp, search, conversation, context)~
-~- Finalize 3 core use case scenarios~
-~- Finalize MVP feature list (for June 1–23)~
-~- Finalize execution-plan (build phases + goal for each)~
+~- Finalize agent list (5 total: classification, nlp, search, conversation, context)~ <br>
+~- Finalize 3 core use case scenarios~<br>
+~- Finalize MVP feature list (for June 1–23)~<br>
+~- Finalize execution-plan (build phases + goal for each)~<br>
 ~- Make a file called `execution-plan.md` and push it to GitHub~
 
 <br>
 
 ### 🛠️ Repo + Project Setup
 
-~- Create GitHub repo (`thinkback-ai`)~
-~- Initialize with README + MIT License~
--~ [ ] Add folders:
-
-  - `/documentation`
-  - `/agents`
-  - `/frontend`
-  - `/backend`
-- [ ] Create `.gitignore`, `.env.example`, and initial commit~
+~- Create GitHub repo (`thinkback-ai`)~<br>
+~- Initialize with README + MIT License~<br>
+~- Add folders:~<br>
+  ~- `/documentation`~<br>
+  ~- `/agents`~<br>
+  ~- `/frontend`~<br>
+  ~- `/backend`~<br>
+~- Create `.gitignore`, `.env.example`, and initial commit~
 
 <br>
 
