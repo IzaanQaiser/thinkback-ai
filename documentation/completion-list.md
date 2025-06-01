@@ -6,3 +6,5 @@
 ~- Finalize MVP feature list (for June 1–23)~
 ~- Finalize execution-plan (build phases + goal for each)~
 ~- Make a file called `execution-plan.md` and push it to GitHub~
+~- Create GitHub repo (`thinkback-ai`)~
+~- Initialize with README + MIT License~

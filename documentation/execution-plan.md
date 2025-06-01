@@ -14,14 +14,14 @@
 ### 🛠️ Repo + Project Setup
 
 ~- Create GitHub repo (`thinkback-ai`)~
-- Initialize with README + MIT License
-* [ ] Add folders:
+~- Initialize with README + MIT License~
+- [ ] Add folders:
 
-  * `/documentation`
-  * `/agents`
-  * `/frontend`
-  * `/backend`
-* [ ] Create `.gitignore`, `.env.example`, and initial commit
+  - `/documentation`
+  - `/agents`
+  - `/frontend`
+  - `/backend`
+- [ ] Create `.gitignore`, `.env.example`, and initial commit
 
 <br>
 
