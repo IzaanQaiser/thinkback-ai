@@ -8,3 +8,10 @@
 ~- Make a file called `execution-plan.md` and push it to GitHub~
 ~- Create GitHub repo (`thinkback-ai`)~
 ~- Initialize with README + MIT License~
+-~ [ ] Add folders:
+
+  - `/documentation`
+  - `/agents`
+  - `/frontend`
+  - `/backend`
+- [ ] Create `.gitignore`, `.env.example`, and initial commit~

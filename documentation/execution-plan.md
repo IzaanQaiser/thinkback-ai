@@ -15,13 +15,13 @@
 
 ~- Create GitHub repo (`thinkback-ai`)~
 ~- Initialize with README + MIT License~
-- [ ] Add folders:
+-~ [ ] Add folders:
 
   - `/documentation`
   - `/agents`
   - `/frontend`
   - `/backend`
-- [ ] Create `.gitignore`, `.env.example`, and initial commit
+- [ ] Create `.gitignore`, `.env.example`, and initial commit~
 
 <br>
 
