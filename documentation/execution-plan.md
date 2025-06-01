@@ -26,7 +26,7 @@
 
 ### 📚 Learn the Tech & Platform (Google ADK)
 
-* [ ] [Read Google Hackathon Resources](https://googlecloudmultiagents.devpost.com/resources)
+~- [Read Google Hackathon Resources](https://googlecloudmultiagents.devpost.com/resources)~
 
 <br>
 
