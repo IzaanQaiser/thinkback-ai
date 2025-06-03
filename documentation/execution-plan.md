@@ -26,20 +26,20 @@
 
 ### 📚 Learn the Tech & Platform (Google ADK)
 
-~- [Read Google Hackathon Resources](https://googlecloudmultiagents.devpost.com/resources)~
+~- [Read Google Hackathon Resources](https://googlecloudmultiagents.devpost.com/resources)~<br>
 
 <br>
 
 ### ☁️ Google Cloud Setup
 
-~- Go to [Google Cloud Console](https://console.cloud.google.com/)~
-~- Create project called `thinkback-ai`~
-~- Enable **Cloud Run**~
-~- Enable **Firestore**~
-~- Enable **Firebase Authentication**~
-~- Enable **Gemini API (Generative AI)**~
-~- Create service account + download credentials JSON~
-~- Store in `/infra/credentials/service-account.json`~
+~- Go to [Google Cloud Console](https://console.cloud.google.com/)~<br>
+~- Create project called `thinkback-ai`~<br>
+~- Enable **Cloud Run**~<br>
+~- Enable **Firestore**~<br>
+~- Enable **Firebase Authentication**~<br>
+~- Enable **Gemini API (Generative AI)**~<br>
+~- Create service account + download credentials JSON~<br>
+~- Store in `/infra/credentials/service-account.json`~<br>
 
 <br>
 
