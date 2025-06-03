@@ -1,6 +1,6 @@
-### everything from the execution-plan that i have completed:
+## everything from the execution-plan that i have completed:
 ---
-#### **phase-0:**
+### **phase-0:**
 - Finalize agent list (5 total: classification, nlp, search, conversation, context) <br>
 - Finalize 3 core use case scenarios<br>
 - Finalize MVP feature list (for June 1–23)<br>
