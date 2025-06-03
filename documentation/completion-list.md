@@ -1,16 +1,24 @@
 ### everything from the execution-plan that i have completed:
 ---
 #### **phase-0:**
-~- Finalize agent list (5 total: classification, nlp, search, conversation, context)~ <br>
-~- Finalize 3 core use case scenarios~<br>
-~- Finalize MVP feature list (for June 1–23)~<br>
-~- Finalize execution-plan (build phases + goal for each)~<br>
-~- Make a file called `execution-plan.md` and push it to GitHub~<br>
-~- Create GitHub repo (`thinkback-ai`)~<br>
-~- Initialize with README + MIT License~<br>
-~- Add folders:~<br>
-  ~- `/documentation`~<br>
-  ~- `/agents`~<br>
-  ~- `/frontend`~<br>
-  ~- `/backend`~<br>
-~- Create `.gitignore`, `.env.example`, and initial commit~<br>
+- Finalize agent list (5 total: classification, nlp, search, conversation, context) <br>
+- Finalize 3 core use case scenarios<br>
+- Finalize MVP feature list (for June 1–23)<br>
+- Finalize execution-plan (build phases + goal for each)<br>
+- Make a file called `execution-plan.md` and push it to GitHub<br>
+- Create GitHub repo (`thinkback-ai`)<br>
+- Initialize with README + MIT License<br>
+- Add folders:<br>
+  - `/documentation`<br>
+  - `/agents`<br>
+  - `/frontend`<br>
+  - `/backend`<br>
+- Create `.gitignore`, `.env.example`, and initial commit<br>
+- Go to [Google Cloud Console](https://console.cloud.google.com/)
+- Create project called `thinkback-ai`
+- Enable **Cloud Run**
+- Enable **Firestore**
+- Enable **Firebase Authentication**
+- Enable **Gemini API (Generative AI)**
+- Create service account + download credentials JSON
+- Store in `/infra/credentials/service-account.json`

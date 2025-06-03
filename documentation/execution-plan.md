@@ -32,14 +32,14 @@
 
 ### ☁️ Google Cloud Setup
 
-* [ ] Go to [Google Cloud Console](https://console.cloud.google.com/)
-* [ ] Create project called `thinkback-ai`
-* [ ] Enable **Cloud Run**
-* [ ] Enable **Firestore**
-* [ ] Enable **Firebase Authentication**
-* [ ] Enable **Gemini API (Generative AI)**
-* [ ] Create service account + download credentials JSON
-* [ ] Store in `/infra/credentials/service-account.json`
+~- Go to [Google Cloud Console](https://console.cloud.google.com/)~
+~- Create project called `thinkback-ai`~
+~- Enable **Cloud Run**~
+~- Enable **Firestore**~
+~- Enable **Firebase Authentication**~
+~- Enable **Gemini API (Generative AI)**~
+~- Create service account + download credentials JSON~
+~- Store in `/infra/credentials/service-account.json`~
 
 <br>
 
