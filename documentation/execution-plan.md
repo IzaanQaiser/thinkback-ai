@@ -47,7 +47,7 @@
 
 ~- Install Node.js (via nvm or directly)~
 ~- Install Python 3.11+~
-* [ ] Install Firebase CLI (`npm i -g firebase-tools`)
+~- Install Firebase CLI (`npm i -g firebase-tools`)~
 * [ ] Install Google Cloud CLI
 * [ ] Install ADK CLI (`pip install agentkit` or follow GitHub)
 * [ ] Clone ADK sample repo and run it locally

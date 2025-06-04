@@ -23,3 +23,4 @@
 - Store in `/infra/credentials/service-account.json`
 - Install Node.js (via nvm or directly)
 - Install Python 3.11+
+- Install Firebase CLI (`npm i -g firebase-tools`)
