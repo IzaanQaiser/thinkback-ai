@@ -21,3 +21,5 @@
 - Enable **Gemini API (Generative AI)**
 - Create service account + download credentials JSON
 - Store in `/infra/credentials/service-account.json`
+- Install Node.js (via nvm or directly)
+- Install Python 3.11+
