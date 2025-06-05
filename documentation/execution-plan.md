@@ -52,6 +52,39 @@
 ~- Install ADK CLI (`pip install agentkit` or follow GitHub)~
 ~- Clone ADK sample repo and run it locally~
 ~- Confirm it works (i.e. run example with 2 agents)~
+- [ ] set up unit tests
+- [ ] test scaffolding (FastAPI, Gemini, agents, firestone)
+* [ ] **Install Postman or cURL** (for testing HTTP endpoints locally)
+* [ ] **Create `.env.example`** file (document required env vars like API keys)
+* [ ] **Add `.gitignore`** if not done (exclude `.venv`, `.env`, `__pycache__`, etc.)
+* [ ] **Create `requirements.txt`** and run `pip freeze > requirements.txt` (so others can install dependencies easily)
+* [ ] **Setup pre-commit hooks** (optional but pro — for formatting, linting)
+
+#### 🧱 Project Scaffolding Checks
+
+* [ ] Confirm **FastAPI runs at `localhost:8000`**
+* [ ] Create `/backend/tests/` folder for unit tests
+* [ ] Create 1 dummy test file like `test_main.py` to validate testing works
+* [ ] Write `README.md` setup instructions for local dev (clone, install, run)
+* [ ] Confirm Firestore emulator works (or real Firestore is reachable)
+
+#### 📂 Folder Structure Verification
+
+* [ ] Make sure `backend/`, `docs/`, `branding/`, etc. exist and are committed
+* [ ] Save one test `.http` request file for VSCode users to test endpoints
+
+---
+
+### ✅ Optional (Pro Level)
+
+* [ ] Add `pytest` to project + confirm `pytest` runs
+* [ ] Set up basic `logging` in your app (even just `logging.info(...)`)
+* [ ] Make your `router.py` return a simple health check route like `GET /ping`
+
+---
+
+Let me know if you want me to write out `test_main.py`, `README.md`, or `.gitignore` templates for you.
+
 
 <br>
 
