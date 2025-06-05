@@ -56,8 +56,8 @@
 ~- test scaffolding (FastAPI, Gemini, agents, firestone)~
 ~- **Install Postman or cURL** (for testing HTTP endpoints locally)~
 ~- **Create `.env.example`** file (document required env vars like API keys)~
-* [ ] **Add `.gitignore`** if not done (exclude `.venv`, `.env`, `__pycache__`, etc.)
-* [ ] **Create `requirements.txt`** and run `pip freeze > requirements.txt` (so others can install dependencies easily)
+~- **Add `.gitignore`** if not done (exclude `.venv`, `.env`, `__pycache__`, etc.)~
+~- **Create `requirements.txt`** and run `pip freeze > requirements.txt` (so others can install dependencies easily)~
 * [ ] **Setup pre-commit hooks** (optional but pro — for formatting, linting)
 
 #### 🧱 Project Scaffolding Checks
@@ -1322,7 +1322,7 @@ def call_gemini(prompt: str) -> str:
 
 ## ✅ **Phase 10 – June 12: Global Context Agent + Contextual Retrieval**
 
-**Goal:** 
+**Goal:**
 - Make Thinkback truly *aware* of real-world context — news, events, seasons, trends — and use that to suggest relevant saved content.
 - Implement the **Global Context Agent**, and pipe its context into the smart feed + suggestion workflows.
 
@@ -1441,7 +1441,7 @@ async def analyze_journal(req: Request):
     summary = summarization_agent.run({"content": content})
 
     matching = search_agent.run({"query": result["keywords"]})
-    
+
     return {
         "summary": summary,
         "emotion": result["emotion"],
@@ -2680,20 +2680,3 @@ Go to your [Devpost submission page](https://googlecloudmultiagents.devpost.com/
 
 💡 *Optional: Celebrate with a post on X, LinkedIn, or Dev.to sharing what you built.*
 Let me know if you want a social post template.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

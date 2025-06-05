@@ -32,6 +32,7 @@ networkkit==0.0.2
 openai==1.84.0
 packaging==25.0
 pluggy==1.6.0
+pre-commit==4.2.0
 propcache==0.3.1
 pydantic==2.11.5
 pydantic_core==2.33.2

@@ -26,30 +26,30 @@ we live in the era of media and information. it's great, but there is so much th
 
 ---
 
-2. **pain point deep-dive**  
-people currently save content by bookmarking it, saving it to a collection or to a playlist. how often do we actually access these things to find what we remember seeing? what about the things we forgot about? it's too much effort, it's too hard to find the things you are looking for, and it does nothing to help you locate the things you forgot about.  
+2. **pain point deep-dive**
+people currently save content by bookmarking it, saving it to a collection or to a playlist. how often do we actually access these things to find what we remember seeing? what about the things we forgot about? it's too much effort, it's too hard to find the things you are looking for, and it does nothing to help you locate the things you forgot about.
 
-- “I saved it... but where is it?”  
-- “I forgot I even had that video.”  
-- “I don’t know what to search for, I just feel overwhelmed.”  
-- “I waste 30 minutes trying to find that *one* TikTok I saw last week.”  
-- “When I actually need advice, I can’t think of anything I saved before.”  
+- “I saved it... but where is it?”
+- “I forgot I even had that video.”
+- “I don’t know what to search for, I just feel overwhelmed.”
+- “I waste 30 minutes trying to find that *one* TikTok I saw last week.”
+- “When I actually need advice, I can’t think of anything I saved before.”
 
 ---
 
 3. **target users**  <br>
-anybody who gets information from the internet. be it youtube, x, instagram, reddit, or even inspiration that you see online, anyone who wants to remember something they found on the internet can find benefit in the services provided by thinkback.ai  
+anybody who gets information from the internet. be it youtube, x, instagram, reddit, or even inspiration that you see online, anyone who wants to remember something they found on the internet can find benefit in the services provided by thinkback.ai
 
-- **Students** (e.g., saves study tips, lectures, career advice)  
-- **Professionals** (e.g., financial tips, motivation, productivity hacks)  
-- **Content creators** (e.g., idea inspiration, reference material)  
-- **Self-improvement junkies** (e.g., philosophy, workouts, wellness)  
+- **Students** (e.g., saves study tips, lectures, career advice)
+- **Professionals** (e.g., financial tips, motivation, productivity hacks)
+- **Content creators** (e.g., idea inspiration, reference material)
+- **Self-improvement junkies** (e.g., philosophy, workouts, wellness)
 - **General users** (e.g., TikTok life hacks, Reddit posts, Twitter threads)
 
 ---
 
 4. **what does it do?**  <br>
-thinkback.ai provides users with a personalised dashboard where they can store and collect the content and media they find on the internet. the application accepts their submission and uses AI to categorise it into various genres within their collection. when they feel they are ready to access it, they can return to the application and retrieve it through a multitude of different AI-powered processes.  
+thinkback.ai provides users with a personalised dashboard where they can store and collect the content and media they find on the internet. the application accepts their submission and uses AI to categorise it into various genres within their collection. when they feel they are ready to access it, they can return to the application and retrieve it through a multitude of different AI-powered processes.
 
 They can talk to the AI in a conversation (much like how we talk to chat-gpt) and describe the video to the model, after which the model will match their description to the appropriate entry in the collection and retrieve said entry. The AI can also stay up to date with current world affairs (politics, stock market, breaking events, time of year) and automatically suggest related content from the user's collection based on that.
 
@@ -65,15 +65,15 @@ Summary of capabilities:
 ---
 
 5. **why is it valuable / why is it better than the alternatives?**  <br>
-there is so much information that if we just applied at the right time can change our lives. the problem is that a lot of the times, we are consuming this information on platforms like YouTube Shorts, X, Instagram, and Reddit. these platforms are engineered to be addictive and to keep users on them for as long as possible. additionally, the saving and library system that many of these apps offer are static and oftentimes useless.  
+there is so much information that if we just applied at the right time can change our lives. the problem is that a lot of the times, we are consuming this information on platforms like YouTube Shorts, X, Instagram, and Reddit. these platforms are engineered to be addictive and to keep users on them for as long as possible. additionally, the saving and library system that many of these apps offer are static and oftentimes useless.
 
-it's easy to save a cool instagram reel that you found but how often do you actually go back and look for it when you want it? what if you forget about it? what if you saved it a long time ago and there are hundreds of other reels and posts above it?  
+it's easy to save a cool instagram reel that you found but how often do you actually go back and look for it when you want it? what if you forget about it? what if you saved it a long time ago and there are hundreds of other reels and posts above it?
 
 Given the capabilities and advancements of modern day technologies, this is an analog and outdated process that needs to be revised. thinkback.ai offers to retrieve content for users when they need it, in a fast and efficient manner. It can retrieve content that the user has forgotten about and it can suggest content to the user when they didn't think that's what they would need.
 
-- **Traditional saving tools (Instagram saves, YouTube watch later, bookmarks)** are static and poorly organized.  
-- People forget what they saved or don’t bother searching for it later.  
-- **Thinkback.ai** turns passive saving into **active, smart retrieval**, powered by agents that understand emotion, time, and personal context.  
+- **Traditional saving tools (Instagram saves, YouTube watch later, bookmarks)** are static and poorly organized.
+- People forget what they saved or don’t bother searching for it later.
+- **Thinkback.ai** turns passive saving into **active, smart retrieval**, powered by agents that understand emotion, time, and personal context.
 - It transforms your saved content into an **on-demand guidance system**, with zero friction and maximum relevance.
 
 ---
@@ -85,19 +85,19 @@ thinkback.ai is your personal AI-powered media brain — helping you **store**, 
 
 7. **user personas**
 
-**🎓 Ali — The Overwhelmed Student (21 y/o)**  
-- Consumes tons of study tips, motivational videos, and lectures on TikTok, Reddit, and YouTube.  
-- Has a "saved" folder on every platform but never revisits it.  
-- Needs a way to capture and actually use helpful content for finals and motivation slumps.  
+**🎓 Ali — The Overwhelmed Student (21 y/o)**
+- Consumes tons of study tips, motivational videos, and lectures on TikTok, Reddit, and YouTube.
+- Has a "saved" folder on every platform but never revisits it.
+- Needs a way to capture and actually use helpful content for finals and motivation slumps.
 
-**💼 Sarah — The Burnt-Out Professional (29 y/o)**  
-- Watches productivity reels and financial advice during work breaks.  
-- Saves stuff but forgets it exists when burnout hits.  
-- Needs personalized suggestions from her past saves when she’s mentally drained.  
+**💼 Sarah — The Burnt-Out Professional (29 y/o)**
+- Watches productivity reels and financial advice during work breaks.
+- Saves stuff but forgets it exists when burnout hits.
+- Needs personalized suggestions from her past saves when she’s mentally drained.
 
-**📱 Ayaan — The Idea Collector (17 y/o)**  
-- Always watching self-help clips, interviews, startup ideas.  
-- Wants to organize content by theme but hates tagging manually.  
+**📱 Ayaan — The Idea Collector (17 y/o)**
+- Always watching self-help clips, interviews, startup ideas.
+- Wants to organize content by theme but hates tagging manually.
 - Needs a tool that turns his chaotic brain-dump into an actionable library.
 
 ---
@@ -136,7 +136,7 @@ thinkback.ai is your personal AI-powered media brain — helping you **store**, 
     - Reflective Habit Formation <br>
       Over time, the system notices recurring moods or topics in the user’s journaling and saved content. It nudges them toward healthier patterns, habits, or inspirational themes based on their own digital history.
 
- 
+
 
 ---
 
@@ -154,51 +154,51 @@ thinkback.ai is your personal AI-powered media brain — helping you **store**, 
 
 11. **MVP scope (hackathon)**
 
-✅ MVP includes:  
-- Save content via link (YouTube, TikTok, etc.) + notes 
-- Auto-classify via AI (main tag + secondary tag + metadata + notes)  
-- Retrieve via conversational interface using:  
-  - Direct query (“I saved X”)  
+✅ MVP includes:
+- Save content via link (YouTube, TikTok, etc.) + notes
+- Auto-classify via AI (main tag + secondary tag + metadata + notes)
+- Retrieve via conversational interface using:
+  - Direct query (“I saved X”)
   - Emotional query (“I feel Y” → show saved Z)
-  - Global-context ("X is happening in the world so you should do Y")  
+  - Global-context ("X is happening in the world so you should do Y")
 - Store and display collection in a simple dashboard
-- Web application  
+- Web application
 
 🚫 Not in MVP:
-- Multi-user/shared collections  
-- Push notifications  
+- Multi-user/shared collections
+- Push notifications
 - Browser extension
 - Mobile application
-- Share button integration in apps  
+- Share button integration in apps
 
 ---
 
 12. **supported input methods**
 
-- Link pasting (YouTube, TikTok, Twitter, Reddit, Instagram)  
-- “Share to” from mobile  
-- Browser extension (future)  
-- Manual upload (image, video, audio)  
+- Link pasting (YouTube, TikTok, Twitter, Reddit, Instagram)
+- “Share to” from mobile
+- Browser extension (future)
+- Manual upload (image, video, audio)
 - Screenshot parsing (planned)
 
 ---
 
 13. **privacy & trust**
 
-- Users control their saved content.  
-- Data stored securely and can be exported anytime.  
-- AI learns on-device when possible (future goal).  
+- Users control their saved content.
+- Data stored securely and can be exported anytime.
+- AI learns on-device when possible (future goal).
 - Emotional data is never shared or sold.
 
 ---
 
 14. **future opportunities**
 
-- Social layer: share themed collections (e.g. “Burnout Kit”)  
-- Scheduled reminders: “You saved this 1 month ago. Want to revisit?”  
-- Coaching mode: chatbot that walks user through a 7-day plan from saved content  
-- B2B version for creators, educators, therapists, and mental health coaches  
-- Spotify Wrapped-style annual/monthly content reflections  
+- Social layer: share themed collections (e.g. “Burnout Kit”)
+- Scheduled reminders: “You saved this 1 month ago. Want to revisit?”
+- Coaching mode: chatbot that walks user through a 7-day plan from saved content
+- B2B version for creators, educators, therapists, and mental health coaches
+- Spotify Wrapped-style annual/monthly content reflections
 
 ---
 
