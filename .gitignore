@@ -1,2 +1,4 @@
 hidden.md
 infrastructure/credentials/service-account.json
+.venv/
+.pytest_cache/
