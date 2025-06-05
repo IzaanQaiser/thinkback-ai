@@ -34,3 +34,4 @@
 - **Create `.env.example`** file (document required env vars like API keys)
 - **Add `.gitignore`** if not done (exclude `.venv`, `.env`, `__pycache__`, etc.)
 - **Create `requirements.txt`** and run `pip freeze > requirements.txt` (so others can install dependencies easily)
+- **Setup pre-commit hooks** (optional but pro — for formatting, linting)
