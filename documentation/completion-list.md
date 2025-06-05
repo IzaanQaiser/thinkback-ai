@@ -28,3 +28,6 @@
 - Install ADK CLI (`pip install agentkit` or follow GitHub)
 - Clone ADK sample repo and run it locally
 - Confirm it works (i.e. run example with 2 agents)
+- set up unit tests
+- test scaffolding (FastAPI, Gemini, agents, firestone)
+- **Install Postman or cURL** (for testing HTTP endpoints locally)
