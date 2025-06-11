@@ -101,7 +101,7 @@ Instead of scrolling through folders and bookmarks:
 5. **Emotion-Aware Journaling Feedback**
 6. **Reflective Habit Loop**
 
-## 10. 🧠 Core Workflows (NEW)
+## 10. 🧠 Core Workflows
 
 Thinkback.ai is powered by a modular system of AI agents, Firestore for structured data, and a vector database (like Pinecone or Weaviate) for deep semantic search. All user interactions — from saving content to emotional retrieval — revolve around a central dashboard interface that functions as the user’s content brain. <br>
 
