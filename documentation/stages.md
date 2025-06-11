@@ -1,6 +1,8 @@
 ## Stages of thinkback.ai
 ---
 ### v0.1 (Core MVP Agents & Workflows)
+##### v0.1 Features:
+1.
 - Collection Agent – Accepts user-submitted media (links/uploads)
 - Classification Agent – Tags content with main/secondary labels
 - Conversational Save Flow – save conversation → store entry

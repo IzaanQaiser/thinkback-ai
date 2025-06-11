@@ -75,31 +75,143 @@ Instead of scrolling through folders and bookmarks:
 **📱 Ayaan — The Idea Collector (17 y/o)**
 > Wants to organize a chaotic flood of life-hack and startup content.
 
-## 8. 🧩 Feature Breakdown
-### Saving
-- Paste link or upload content
-- Add optional notes
-- AI auto-classifies content (main tag, sub-tags, metadata)
+## 8. 🧩 feature-breakdown
 
-### Retrieval
-- **Direct Search** (description → match)
-- **Emotion-Based Search** (e.g. “I feel anxious…” → related media)
-- **Global-Aware Suggestions** (e.g. market crash → financial advice resurface)
+### 🔹 Content Ingestion (Saving)
 
-### AI Agents
-- **Classification Agent** — categorizes saved content
-- **NLP Agent** — extracts emotion, meaning, themes
-- **Search Agent** — fetches content matching intent
-- **Conversational Agent** — handles user interaction (search + suggest)
-- **Global Context Agent** — adds relevance from news, time of year, etc.
+- **Link Pasting**: User pastes a URL (YouTube, TikTok, Reddit, Instagram, Twitter/X) into the dashboard.
+- **File Uploads**: User can upload a video, audio file, image, or PDF.
+- **Text Capture**: User can paste copied text or write original notes.
+- **Optional Annotations**: Users may optionally add personal notes, tags, or reflections at time of saving.
+- **Automatic Transcript Generation**: For videos or audio, transcript is auto-generated using AI where possible.
+- **AI Auto-Classification**:
+  - Assigns a **main category** (e.g. Motivation, Finance, Academic, Wellness, Inspiration).
+  - Extracts **sub-topics** (e.g. “stocks”, “David Goggins”, “workflow automation”).
+  - Extracts **emotional tone** (e.g. “hopeful”, “urgent”, “anxious”).
+  - Stores **metadata** (platform, link, title, duration, timestamp).
+- **Embedding & Indexing**:
+  - Content is embedded semantically using Gemini or similar model.
+  - Stored in **Vector DB** for intelligent retrieval.
+  - Metadata is stored in **Firestore** for fast querying and structured access.
 
-## 9. 🌍 Real-World Usage Scenarios
-1. **Direct Retrieval**
-2. **Emotional Support**
-3. **Current Context Suggestions**
-4. **Passive Resurfacing**
-5. **Emotion-Aware Journaling Feedback**
-6. **Reflective Habit Loop**
+
+### 🔹 Retrieval (AI-Powered Recall)
+
+#### 🔸 1. Direct Retrieval
+
+- User queries: “Find the TikTok I saved on how to fall asleep faster.”
+- Conversational Agent detects *direct intent*.
+- Search Agent uses the **query embedding** to fetch best match from **Vector DB**.
+- Matched content is returned with title, source, summary, and user notes.
+
+#### 🔸 2. Emotion-Based Retrieval
+
+- User queries: “I feel stuck, give me something that helps.”
+- NLP Agent extracts mood (“stuck”, “unmotivated”).
+- NLP Agent generates counter-mood target (“focused”, “energized”).
+- Combined emotion + time context is embedded and sent to Search Agent.
+- Best-fit saved content is retrieved and returned with an **AI-generated action plan**.
+
+#### 🔸 3. Global Context Retrieval
+
+- Prompt: “The market’s down. Any saved advice?”
+- Global Context Agent understands world/local events.
+- Injects context (e.g. market crash, exam week, Ramadan) into query flow.
+- Matching saved entries are retrieved based on *external relevance*.
+
+#### 🔸 4. Reflective Retrieval from Journal
+
+- User writes a journal entry or uploads a voice log.
+- NLP Agent parses for sentiment, recurring ideas, pain points.
+- Journaling is indexed into Vector DB and linked to saved content.
+- AI retrieves emotionally resonant or helpful content based on journal tone.
+- AI gives gentle reflection and a suggestion.
+
+#### 🔸 5. Manual Dashboard Search
+
+- User browses dashboard manually via filters:
+  - By platform (YouTube, TikTok, etc.)
+  - By tag or emotion
+  - By date saved
+  - By type (video, article, upload, journal)
+- **Search bar** supports keyword + semantic search (via vector fallback).
+- Users can preview, reclassify, or archive saved entries.
+
+
+
+### 🔹 AI Agent Roles (Orchestration)
+
+- **🧠 Classification Agent**: Handles all tagging, structuring, and metadata generation during content ingestion.
+- **💬 Conversational Agent**: Main interface between user and AI. Classifies user input type, routes queries, delivers results, generates messages.
+- **🔍 Search Agent**: Responsible for intelligent semantic matching of queries (description, emotion, or context) to saved content using the **Vector DB**.
+- **🧠 NLP Agent**: Handles emotion detection, mood reversal synthesis, journaling sentiment parsing, topic clustering, and text abstraction.
+- **🌐 Global Context Agent**: Pulls or interprets real-world events and injects external relevance into retrieval logic.
+
+
+### 🔹 Dashboard Features
+
+- **Inbox-style Collection View**:
+  - Timeline of saved entries
+  - Grouped by tag, emotion, date, or platform
+- **Entry Cards**:
+  - Thumbnail, title, platform icon, summary, personal notes
+  - “Open”, “Reflect”, “Edit Tags”, “Delete”, “Send to AI”
+- **Smart Feed Section**:
+  - Proactive AI suggestions (resurfaced forgotten content)
+  - Context-aware recommendations (“You usually need this on Mondays…”)
+- **Journal Tab**:
+  - Write or record journal entries
+  - See past journals with AI feedback
+  - Connected content recommendations
+- **Chat Window**:
+  - Natural chat interface with AI (retrieval, reflection, journaling support)
+  - Inline content previews + embedded actions (e.g., “Watch Now”, “Reflect on This”)
+
+
+
+### 🔹 System & Tooling
+
+- **Firestore**: Primary database for user info, content metadata, journals, preferences.
+- **Vector DB (e.g. Pinecone/Weaviate)**: Embedding store for semantic retrieval across all saved content and user journaling.
+- **Gemini API**: Used for agent logic, summarization, tone detection, conversation flow, and journal reflections.
+- **FastAPI Backend**: Handles agent orchestration, auth, storage logic, and API gateway for frontend.
+- **Google Cloud Run**: Containerized deployment of services.
+- **Firebase Auth**: User authentication, session security, basic auth flows.
+- **Postman / cURL / Unit Tests**: Local testing infrastructure.
+
+
+
+## 9. 🌍 real-world usage scenarios
+
+### 📌 1. Direct Retrieval
+> “Find me that David Goggins podcast I saved last month.”
+Semantic + keyword search returns exact match.
+
+### 🧠 2. Emotional Search / Support
+> “I feel stuck and burnt out.”
+Emotion parsed, uplifting saved media + plan surfaced.
+
+### 🌐 3. Global Context Suggestion
+> “Hey, it’s exam season — here’s what you saved before midterms last year.”
+Automatically pulls relevant motivational study content.
+
+### 💡 4. Passive Resurfacing (Memory Nudges)
+> “30 days ago you saved this… want to revisit it?”
+AI re-surfaces based on time, emotion, and usage patterns.
+
+### 📓 5. Emotionally-Aware Journaling Feedback
+> “I’m drained. Life feels repetitive.”
+Thinkback returns saved content + reflection:
+“You’ve written this 3x before. Here’s a clip you found helpful last time.”
+
+### 🔁 6. Reflective Habit Loop
+Thinkback detects journaling about anxiety every Monday morning.
+Suggests saved relaxing content each Sunday night as a preemptive nudge.
+
+### 📂 7. Manual Browsing
+User opens dashboard, filters by “Productivity” tag + “Sad” emotion.
+Finds relevant videos, reflections, and past journal connections.
+
 
 ## 10. 🧠 Core Workflows
 
