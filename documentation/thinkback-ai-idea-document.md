@@ -184,24 +184,24 @@ Instead of scrolling through folders and bookmarks:
 ## 9. 🌍 real-world usage scenarios
 
 ### 📌 1. Direct Retrieval
-> “Find me that David Goggins podcast I saved last month.”
+> “Find me that David Goggins podcast I saved last month.”<br>
 Semantic + keyword search returns exact match.
 
 ### 🧠 2. Emotional Search / Support
-> “I feel stuck and burnt out.”
+> “I feel stuck and burnt out.”<br>
 Emotion parsed, uplifting saved media + plan surfaced.
 
 ### 🌐 3. Global Context Suggestion
-> “Hey, it’s exam season — here’s what you saved before midterms last year.”
+> “Hey, it’s exam season — here’s what you saved before midterms last year.”<br>
 Automatically pulls relevant motivational study content.
 
 ### 💡 4. Passive Resurfacing (Memory Nudges)
-> “30 days ago you saved this… want to revisit it?”
+> “30 days ago you saved this… want to revisit it?”<br>
 AI re-surfaces based on time, emotion, and usage patterns.
 
 ### 📓 5. Emotionally-Aware Journaling Feedback
-> “I’m drained. Life feels repetitive.”
-Thinkback returns saved content + reflection:
+> “I’m drained. Life feels repetitive.”<br>
+Thinkback returns saved content + reflection:<br>
 “You’ve written this 3x before. Here’s a clip you found helpful last time.”
 
 ### 🔁 6. Reflective Habit Loop
