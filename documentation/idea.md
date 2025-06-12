@@ -77,152 +77,176 @@ Instead of scrolling through folders and bookmarks:
 
 ## 8. features-list
 
+---
+
 ### content-saving
+
 - [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X)
-- [ ] Upload files (video, audio, image, PDF)
-- [ ] Paste or write plain text (e.g., notes, ideas, quotes)
-- [ ] Add optional personal annotations (notes, tags, reflections)
-- [ ] Auto-fetch metadata (title, platform, timestamp, etc.)
 - [ ] Auto-generate transcript (for audio/video, where possible)
+- [ ] Auto-fetch metadata (title, platform, timestamp, etc.)
+- [ ] Paste or write plain text (e.g., notes, ideas, quotes)
+- [ ] Upload files (video, audio, image, PDF)
+- [ ] Add optional personal annotations (notes, tags, reflections)
 
 ### content-classification
+
+- [ ] Store metadata (platform, link, title, timestamp, duration)
 - [ ] Assign main category (e.g., Finance, Wellness, Motivation, Academic)
 - [ ] Extract sub-topics (e.g., "David Goggins", "deep work", "crypto")
 - [ ] Detect emotional tone (e.g., “hopeful”, “urgent”, “relaxed”)
-- [ ] Store metadata (platform, link, title, timestamp, duration)
-- [ ] Flag duplicate or near-duplicate entries (optional)
 - [ ] Automatically tag journal entries with emotion + themes
+- [ ] Flag duplicate or near-duplicate entries
 
 ### content-embedding-and-indexing
+
 - [ ] Generate semantic embedding of content using Gemini or similar
 - [ ] Store embeddings in a Vector DB (e.g., Pinecone, Weaviate)
 - [ ] Store metadata + structured data in Firestore
 - [ ] Link vector entries with Firestore documents
 - [ ] Timestamp each entry (save time, accessed time, resurfaced time)
 
+---
 
 ### direct-content-retrieval
+
 - [ ] User describes the content they want
 - [ ] Conversational Agent parses and classifies input
 - [ ] Search Agent embeds query and matches in Vector DB
 - [ ] Return most relevant match with preview, notes, and metadata
 
+---
+
 ### conversational-content-retrieval
 
-- [ ] User types a natural query into the chat interface (e.g., “Find that video on sleeping better”)
-- [ ] Conversational Agent receives the input and determines it's a content retrieval request
-- [ ] Query is semantically embedded (e.g., using Gemini)
-- [ ] Search Agent queries the Vector DB using the embedded intent
-- [ ] Firestore enriches the result with metadata (title, platform, user notes)
-- [ ] Conversational Agent returns top result(s) in a human-like reply with preview + options (e.g., “Watch”, “Reflect”, “Save”)
-- [ ] Agent begins basic classification of user query type (direct retrieval vs. emotional query vs. journaling prompt)
-- [ ] For ambiguous queries, AI requests clarification (“Are you looking for something you saved, or how you’re feeling?”)
-- [ ] NLP Agent parses user’s message for emotional tone (e.g., unmotivated, anxious, excited)
-- [ ] NLP Agent generates counter-emotion (target mood like “focused” or “calm”)
-- [ ] Combines emotional state + current time/context into a refined semantic vector
-- [ ] Refined vector used to search the Vector DB for emotionally relevant past content
-- [ ] Returns content along with an AI-generated reflection or micro-action plan
-- [ ] Checks recent journal entries or past emotional queries for recurring themes (e.g., “You’ve mentioned burnout 3 times on Mondays”)
-- [ ] Proactively recommends content that was previously helpful during similar emotional states
-- [ ] Reflects patterns back to user conversationally: “You often feel this way at the start of the week — here’s something that helped last time.”
-- [ ] Integrates global context signals (exam season, market crash, holidays) to refine recommendations
-- [ ] Combines all signals — user mood, time patterns, saved history, and global context — into intelligent, layered suggestions
-- [ ] User can rate helpfulness of responses, allowing future personalization
+- [ ] User types natural query into chat (e.g., “Find that video on sleeping better”)
+- [ ] Conversational Agent detects content search intent
+- [ ] Query is semantically embedded using Gemini
+- [ ] Search Agent queries Vector DB
+- [ ] Firestore enriches result with metadata
+- [ ] Conversational Agent replies naturally with preview + actions
+- [ ] Agent detects ambiguous input and asks clarifying question
+- [ ] NLP Agent parses emotional tone of message
+- [ ] NLP Agent synthesizes counter-emotion
+- [ ] Build refined semantic vector with emotion + time context
+- [ ] Retrieve emotionally relevant past content
+- [ ] AI returns reflection or micro-action plan
+- [ ] Agent checks journals for recurring emotional patterns
+- [ ] Suggests content helpful in similar states
+- [ ] Reflects back patterns to user conversationally
+- [ ] Injects global context signals (exam week, market crash, etc.)
+- [ ] Combines all layers into intelligent, personalized suggestions
+- [ ] User can rate response for feedback loop
+
+---
 
 ### global-context-retrieval
-- [ ] Detect global/local events (e.g. market crash, exam week)
-- [ ] Pull real-world context from APIs or time-based heuristics
-- [ ] Inject context into query or proactively trigger suggestion
-- [ ] Return content linked to situation (e.g. “investing tips during downturn”)
+
+- [ ] Detect global/local events (e.g., market crash, exam season)
+- [ ] Pull real-world context from APIs or local time-based rules
+- [ ] Inject context into ongoing queries
+- [ ] Proactively recommend content based on world situation
+
+---
 
 ### reflective-content-retrieval
+
 - [ ] User writes or records a journal entry
-- [ ] NLP Agent parses journal sentiment, themes, and pain points
-- [ ] Journal is embedded into Vector DB
-- [ ] Retrieve emotionally-aligned content
-- [ ] AI provides reflection and related advice/content surfaced
+- [ ] NLP Agent parses journal sentiment, themes, pain points
+- [ ] Journal is embedded and stored in Vector DB
+- [ ] AI fetches relevant saved content that matches emotional tone
+- [ ] AI delivers reflection or coping/action guidance
+
+---
 
 ### dashboard
-- [ ] Filter content by:
-  - [ ] Platform
-  - [ ] Date saved
-  - [ ] Tag
-  - [ ] Emotion
-  - [ ] Content type (video, article, journal, upload)
-- [ ] Use search bar with keyword + vector fallback
-- [ ] Reclassify, edit, delete, archive, or resurface content manually
+
+- [ ] Filter content by platform, date, tag, emotion, type
+- [ ] Keyword + semantic search via search bar
+- [ ] Manually reclassify, edit, delete, archive entries
+- [ ] Resurface content directly from dashboard filters
+
+---
 
 ### passive-resurfacing
-- [ ] Time-based resurfacing (e.g. “You saved this 30 days ago”)
-- [ ] Pattern-based resurfacing (e.g. “You tend to feel anxious Monday AM”)
-- [ ] Triggered resurfacing (based on mood, time, usage)
+
+- [ ] Resurface content based on elapsed time (e.g., “Saved 30 days ago”)
+- [ ] Resurface based on usage or emotional pattern (e.g., “anxious Mondays”)
+- [ ] Trigger content resurfacing based on current mood or time
+
+---
 
 ### smart-feed-suggestions
-- [ ] Show context-aware recommendations on dashboard (e.g. “Based on how you felt last Thursday…”)
-- [ ] “You usually revisit this on Sundays...” style prompts
-- [ ] Smart nudges from AI based on journaling history or emotional streaks
 
+- [ ] Display context-aware dashboard suggestions
+- [ ] Use historical emotional patterns to recommend content (e.g., “You usually revisit this on Sundays...”)
+- [ ] Trigger nudges based on journaling history or AI-inferred emotional trends
+
+---
 
 ### journaling-features
-- [ ] Write a journal entry (rich text editor)
-- [ ] Voice-record a journal entry (speech-to-text transcription)
-- [ ] Parse sentiment and emotional state from entry
-- [ ] Suggest reflective prompts or action plans
+
+- [ ] Write journal entries using rich text editor
+- [ ] Record voice logs (with automatic transcription)
+- [ ] NLP parses tone and themes of journal
+- [ ] AI generates reflection prompts or small action plans
 - [ ] Link journal entries to saved content
-- [ ] Display past journals in timeline with tone badges
-- [ ] Optional tagging, archiving, or deleting of journal logs
+- [ ] Show timeline view of journal history with tone badges
+- [ ] Archive, tag, or delete journal logs
+
+---
 
 ### inbox-style-dashboard
-- [ ] Show timeline of all saved entries
-- [ ] Group entries by:
-  - [ ] Date
-  - [ ] Emotion
-  - [ ] Tag
-  - [ ] Platform
+
+- [ ] Display chronological feed of saved content
+- [ ] Group entries by date, tag, platform, or emotion
+
+---
 
 ### dashboard-entry-cards
-- [ ] Display thumbnail, title, source platform, summary
-- [ ] Quick actions: “Open”, “Reflect”, “Edit Tags”, “Delete”, “Send to AI”
+
+- [ ] Show thumbnail, title, platform icon, summary
+- [ ] Inline actions: Open, Reflect, Edit Tags, Delete, Send to AI
+
+---
 
 ### journal-tab
-- [ ] Access past journal entries
-- [ ] Write or record new journal entries
-- [ ] View AI-generated feedback/reflections
-- [ ] See connected content linked by AI
+
+- [ ] View timeline of journal entries
+- [ ] Add new entries (text or voice)
+- [ ] View AI feedback, reflections, and linked content
+
+---
 
 ### chat-interface
-- [ ] Natural chat with AI (retrieval, emotional support, journal feedback)
-- [ ] Inline previews of results
-- [ ] Buttons: “Watch Now”, “Reflect on This”, “Resurface Similar”
 
+- [ ] Chat with AI for content retrieval
+- [ ] Get AI-generated reflections, journaling prompts, and support
+- [ ] Inline previews of relevant content
+- [ ] Embedded buttons: Watch Now, Reflect, Resurface Similar
+
+---
 
 ### agent-systems
 
-- [ ] **🧠 Classification Agent** — Categorizes all incoming content
-- [ ] **💬 Conversational Agent** — Handles all user queries, chat, message routing
-- [ ] **🔍 Search Agent** — Finds best semantic matches in Vector DB
-- [ ] **🧠 NLP Agent** — Detects emotion, synthesizes mood, parses journal input
-- [ ] **🌐 Global Context Agent** — Maps real-world events to content relevance
-- [ ] Agents work together in workflows (e.g., journal → NLP → Search → Response)
+- [ ] Classification Agent — Categorizes content during ingestion
+- [ ] Conversational Agent — Main chat interface, input router, response generator
+- [ ] Search Agent — Matches semantic queries with saved content in Vector DB
+- [ ] NLP Agent — Emotion analysis, journal parsing, mood detection, theme abstraction
+- [ ] Global Context Agent — Maps real-world triggers (e.g. news, calendar events) to relevance
+- [ ] Agent chaining workflows (e.g. journal → NLP → Search → Conversational)
 
+---
 
-## 🔹 backend-and-system-tooling
+### backend-and-system-tooling
 
-- [ ] **Firestore** for metadata, user data, and journal storage
-- [ ] **Vector DB** for embedding storage and similarity search
-- [ ] **Gemini API** for summarization, conversation, tone analysis, embedding
-- [ ] **FastAPI** backend for:
-  - [ ] Orchestrating agents
-  - [ ] Routing frontend → agent flows
-  - [ ] Managing user auth
-  - [ ] Running search & classification services
-- [ ] **Google Cloud Run** for containerized backend deployment
-- [ ] **Firebase Auth** for secure login + session handling
-- [ ] **Postman / cURL** for API testing
-- [ ] **Unit Testing suite** for:
-  - [ ] Backend routes
-  - [ ] Agent logic
-  - [ ] API integrations
+- [ ] Firestore — Metadata, journal storage, user data
+- [ ] Vector DB — Embedding and semantic similarity search
+- [ ] Gemini API — Summarization, tone detection, conversation modeling, embedding
+- [ ] FastAPI — Agent orchestration, auth, query routing, REST endpoints
+- [ ] Cloud Run — Container deployment for backend services
+- [ ] Firebase Auth — User authentication + session handling
+- [ ] Postman / cURL — API testing and validation
+- [ ] Unit Testing Suite — Agent logic, API routes, backend validation
 
 
 ## 9. 🌍 real-world usage scenarios
