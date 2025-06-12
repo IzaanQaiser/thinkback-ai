@@ -79,19 +79,33 @@ Instead of scrolling through folders and bookmarks:
 
 ### content-saving
 - [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X)
-- [ ] Auto-generate transcript (for audio/video, where possible)
 - [ ] Auto-fetch metadata (title, platform, timestamp, etc.)
 - [ ] Paste or write plain text (e.g., notes, ideas, quotes)
 - [ ] Upload files (video, audio, image, PDF)
 - [ ] Add optional personal annotations (notes, tags, reflections)
 
 ### content-classification
-- [ ] Store metadata (platform, link, title, timestamp, duration)
+- [ ] Store metadata (platform, link, title, timestamp, duration, transcript)
 - [ ] Assign main category (e.g., Finance, Wellness, Motivation, Academic)
 - [ ] Extract sub-topics (e.g., "David Goggins", "deep work", "crypto")
 - [ ] Detect emotional tone (e.g., “hopeful”, “urgent”, “relaxed”)
 - [ ] Automatically tag journal entries with emotion + themes
 - [ ] Flag duplicate or near-duplicate entries
+
+### content-storage
+- [ ] Save raw user input (URL, text, upload) to Firestore or Cloud Storage (depending on type)
+- [ ] Store structured metadata (title, tags, category, platform, notes) in Firestore
+- [ ] Ensure all content entries have creation, last-accessed, and resurfaced timestamps
+- [ ] Delete user content (remove from Firestore, Vector DB, and Cloud Storage if applicable)
+- [ ] Enable access control (per-user content isolation via UID)
+- [ ] Store journaling entries (raw + parsed) with timestamp and user ID
+- [ ] Link Firestore metadata with vector database entry ID for unified lookup
+- [ ] Connect saved content with associated journal entries via Firestore references
+- [ ] Store transcripts and annotations linked to parent content entries
+- [ ] Store emotional profile per entry (for mood-aware retrieval)
+- [ ] Handle large file uploads (videos, PDFs) via Cloud Storage and store references in Firestore
+- [ ] Automatically archive unused or old entries for future passive resurfacing
+- [ ] Ensure versioning or change tracking for edited content (user notes, tags, etc.)
 
 ### content-embedding-and-indexing
 - [ ] Generate semantic embedding of content using Gemini or similar
