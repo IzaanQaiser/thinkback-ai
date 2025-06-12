@@ -77,27 +77,28 @@ Instead of scrolling through folders and bookmarks:
 
 ## 8. 🧩 feature-breakdown
 
-### 🔹 Content Ingestion (Saving)
+### Content Ingestion (Saving)
 
 - **Link Pasting**: User pastes a URL (YouTube, TikTok, Reddit, Instagram, Twitter/X) into the dashboard.
 - **File Uploads**: User can upload a video, audio file, image, or PDF.
 - **Text Capture**: User can paste copied text or write original notes.
 - **Optional Annotations**: Users may optionally add personal notes, tags, or reflections at time of saving.
-- **Automatic Transcript Generation**: For videos or audio, transcript is auto-generated using AI where possible.
-- **AI Auto-Classification**:
-  - Assigns a **main category** (e.g. Motivation, Finance, Academic, Wellness, Inspiration).
-  - Extracts **sub-topics** (e.g. “stocks”, “David Goggins”, “workflow automation”).
-  - Extracts **emotional tone** (e.g. “hopeful”, “urgent”, “anxious”).
-  - Stores **metadata** (platform, link, title, duration, timestamp).
-- **Embedding & Indexing**:
-  - Content is embedded semantically using Gemini or similar model.
-  - Stored in **Vector DB** for intelligent retrieval.
-  - Metadata is stored in **Firestore** for fast querying and structured access.
+
+### AI Auto-Classification
+- Assigns a **main category** (e.g. Motivation, Finance, Academic, Wellness, Inspiration).
+- Extracts **sub-topics** (e.g. “stocks”, “David Goggins”, “workflow automation”).
+- Extracts **emotional tone** (e.g. “hopeful”, “urgent”, “anxious”).
+- Stores **metadata** (platform, link, title, duration, timestamp).
+
+###Embedding & Indexing
+- Content is embedded semantically using Gemini or similar model.
+- Stored in **Vector DB** for intelligent retrieval.
+- Metadata is stored in **Firestore** for fast querying and structured access.
 
 
-### 🔹 Retrieval (AI-Powered Recall)
+### Retrieval (AI-Powered Recall)
 
-#### 🔸 1. Direct Retrieval
+- **Direct Retrieval**
 
 - User queries: “Find the TikTok I saved on how to fall asleep faster.”
 - Conversational Agent detects *direct intent*.
