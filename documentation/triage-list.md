@@ -1,6 +1,11 @@
 # thinkback.ai triage
 ### stage-one (v0.1)
 ##### content-ingestion
+- **link pasting:** User can paste a URL (YouTube, TikTok, Reddit, Instagram, Twitter/X) into the dashboard.
+
+##### content-classification
+
+##### embedding-and-indexing
 
 ##### content-retrieval
 
@@ -13,6 +18,10 @@
 ### stage-two (v0.2)
 ##### content-ingestion
 
+##### content-classification
+
+##### embedding-and-indexing
+
 ##### content-retrieval
 
 ##### agents
@@ -23,6 +32,10 @@
 
 ### stage-three (v0.3)
 ##### content-ingestion
+
+##### content-classification
+
+##### embedding-and-indexing
 
 ##### content-retrieval
 
@@ -36,6 +49,10 @@
 ### stage-four (v0.4)
 ##### content-ingestion
 
+##### content-classification
+
+##### embedding-and-indexing
+
 ##### content-retrieval
 
 ##### agents
@@ -47,6 +64,10 @@
 
 ### stage-five (v0.5)
 ##### content-ingestion
+
+##### content-classification
+
+##### embedding-and-indexing
 
 ##### content-retrieval
 
@@ -60,6 +81,10 @@
 ### stage-six (v0.6)
 ##### content-ingestion
 
+##### content-classification
+
+##### embedding-and-indexing
+
 ##### content-retrieval
 
 ##### agents
@@ -71,6 +96,10 @@
 
 ### stage-seven (v0.7)
 ##### content-ingestion
+
+##### content-classification
+
+##### embedding-and-indexing
 
 ##### content-retrieval
 
@@ -84,6 +113,10 @@
 ### stage-eight (v0.8)
 ##### content-ingestion
 
+##### content-classification
+
+##### embedding-and-indexing
+
 ##### content-retrieval
 
 ##### agents
@@ -96,6 +129,10 @@
 ### stage-nine (v0.9)
 ##### content-ingestion
 
+##### content-classification
+
+##### embedding-and-indexing
+
 ##### content-retrieval
 
 ##### agents
@@ -107,6 +144,10 @@
 
 ### stage-ten (v1.0)
 ##### content-ingestion
+
+##### content-classification
+
+##### embedding-and-indexing
 
 ##### content-retrieval
 
