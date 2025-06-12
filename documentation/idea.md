@@ -75,111 +75,154 @@ Instead of scrolling through folders and bookmarks:
 **📱 Ayaan — The Idea Collector (17 y/o)**
 > Wants to organize a chaotic flood of life-hack and startup content.
 
-## 8. 🧩 feature-breakdown
+## 8. features-list
 
-### Content Ingestion (Saving)
+### content-saving
+- [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X)
+- [ ] Upload files (video, audio, image, PDF)
+- [ ] Paste or write plain text (e.g., notes, ideas, quotes)
+- [ ] Add optional personal annotations (notes, tags, reflections)
+- [ ] Auto-fetch metadata (title, platform, timestamp, etc.)
+- [ ] Auto-generate transcript (for audio/video, where possible)
 
-- **Link Pasting**: User pastes a URL (YouTube, TikTok, Reddit, Instagram, Twitter/X) into the dashboard.
-- **File Uploads**: User can upload a video, audio file, image, or PDF.
-- **Text Capture**: User can paste copied text or write original notes.
-- **Optional Annotations**: Users may optionally add personal notes, tags, or reflections at time of saving.
+### content-classification
+- [ ] Assign main category (e.g., Finance, Wellness, Motivation, Academic)
+- [ ] Extract sub-topics (e.g., "David Goggins", "deep work", "crypto")
+- [ ] Detect emotional tone (e.g., “hopeful”, “urgent”, “relaxed”)
+- [ ] Store metadata (platform, link, title, timestamp, duration)
+- [ ] Flag duplicate or near-duplicate entries (optional)
+- [ ] Automatically tag journal entries with emotion + themes
 
-### AI Auto-Classification
-- Assigns a **main category** (e.g. Motivation, Finance, Academic, Wellness, Inspiration).
-- Extracts **sub-topics** (e.g. “stocks”, “David Goggins”, “workflow automation”).
-- Extracts **emotional tone** (e.g. “hopeful”, “urgent”, “anxious”).
-- Stores **metadata** (platform, link, title, duration, timestamp).
-
-###Embedding & Indexing
-- Content is embedded semantically using Gemini or similar model.
-- Stored in **Vector DB** for intelligent retrieval.
-- Metadata is stored in **Firestore** for fast querying and structured access.
-
-
-### Retrieval (AI-Powered Recall)
-
-- **Direct Retrieval**
-
-- User queries: “Find the TikTok I saved on how to fall asleep faster.”
-- Conversational Agent detects *direct intent*.
-- Search Agent uses the **query embedding** to fetch best match from **Vector DB**.
-- Matched content is returned with title, source, summary, and user notes.
-
-#### 🔸 2. Emotion-Based Retrieval
-
-- User queries: “I feel stuck, give me something that helps.”
-- NLP Agent extracts mood (“stuck”, “unmotivated”).
-- NLP Agent generates counter-mood target (“focused”, “energized”).
-- Combined emotion + time context is embedded and sent to Search Agent.
-- Best-fit saved content is retrieved and returned with an **AI-generated action plan**.
-
-#### 🔸 3. Global Context Retrieval
-
-- Prompt: “The market’s down. Any saved advice?”
-- Global Context Agent understands world/local events.
-- Injects context (e.g. market crash, exam week, Ramadan) into query flow.
-- Matching saved entries are retrieved based on *external relevance*.
-
-#### 🔸 4. Reflective Retrieval from Journal
-
-- User writes a journal entry or uploads a voice log.
-- NLP Agent parses for sentiment, recurring ideas, pain points.
-- Journaling is indexed into Vector DB and linked to saved content.
-- AI retrieves emotionally resonant or helpful content based on journal tone.
-- AI gives gentle reflection and a suggestion.
-
-#### 🔸 5. Manual Dashboard Search
-
-- User browses dashboard manually via filters:
-  - By platform (YouTube, TikTok, etc.)
-  - By tag or emotion
-  - By date saved
-  - By type (video, article, upload, journal)
-- **Search bar** supports keyword + semantic search (via vector fallback).
-- Users can preview, reclassify, or archive saved entries.
+### content-embedding-and-indexing
+- [ ] Generate semantic embedding of content using Gemini or similar
+- [ ] Store embeddings in a Vector DB (e.g., Pinecone, Weaviate)
+- [ ] Store metadata + structured data in Firestore
+- [ ] Link vector entries with Firestore documents
+- [ ] Timestamp each entry (save time, accessed time, resurfaced time)
 
 
+### direct-content-retrieval
+- [ ] User describes the content they want
+- [ ] Conversational Agent parses and classifies input
+- [ ] Search Agent embeds query and matches in Vector DB
+- [ ] Return most relevant match with preview, notes, and metadata
 
-### 🔹 AI Agent Roles (Orchestration)
+### conversational-content-retrieval
 
-- **🧠 Classification Agent**: Handles all tagging, structuring, and metadata generation during content ingestion.
-- **💬 Conversational Agent**: Main interface between user and AI. Classifies user input type, routes queries, delivers results, generates messages.
-- **🔍 Search Agent**: Responsible for intelligent semantic matching of queries (description, emotion, or context) to saved content using the **Vector DB**.
-- **🧠 NLP Agent**: Handles emotion detection, mood reversal synthesis, journaling sentiment parsing, topic clustering, and text abstraction.
-- **🌐 Global Context Agent**: Pulls or interprets real-world events and injects external relevance into retrieval logic.
+- [ ] User types a natural query into the chat interface (e.g., “Find that video on sleeping better”)
+- [ ] Conversational Agent receives the input and determines it's a content retrieval request
+- [ ] Query is semantically embedded (e.g., using Gemini)
+- [ ] Search Agent queries the Vector DB using the embedded intent
+- [ ] Firestore enriches the result with metadata (title, platform, user notes)
+- [ ] Conversational Agent returns top result(s) in a human-like reply with preview + options (e.g., “Watch”, “Reflect”, “Save”)
+- [ ] Agent begins basic classification of user query type (direct retrieval vs. emotional query vs. journaling prompt)
+- [ ] For ambiguous queries, AI requests clarification (“Are you looking for something you saved, or how you’re feeling?”)
+- [ ] NLP Agent parses user’s message for emotional tone (e.g., unmotivated, anxious, excited)
+- [ ] NLP Agent generates counter-emotion (target mood like “focused” or “calm”)
+- [ ] Combines emotional state + current time/context into a refined semantic vector
+- [ ] Refined vector used to search the Vector DB for emotionally relevant past content
+- [ ] Returns content along with an AI-generated reflection or micro-action plan
+- [ ] Checks recent journal entries or past emotional queries for recurring themes (e.g., “You’ve mentioned burnout 3 times on Mondays”)
+- [ ] Proactively recommends content that was previously helpful during similar emotional states
+- [ ] Reflects patterns back to user conversationally: “You often feel this way at the start of the week — here’s something that helped last time.”
+- [ ] Integrates global context signals (exam season, market crash, holidays) to refine recommendations
+- [ ] Combines all signals — user mood, time patterns, saved history, and global context — into intelligent, layered suggestions
+- [ ] User can rate helpfulness of responses, allowing future personalization
+
+### global-context-retrieval
+- [ ] Detect global/local events (e.g. market crash, exam week)
+- [ ] Pull real-world context from APIs or time-based heuristics
+- [ ] Inject context into query or proactively trigger suggestion
+- [ ] Return content linked to situation (e.g. “investing tips during downturn”)
+
+### reflective-content-retrieval
+- [ ] User writes or records a journal entry
+- [ ] NLP Agent parses journal sentiment, themes, and pain points
+- [ ] Journal is embedded into Vector DB
+- [ ] Retrieve emotionally-aligned content
+- [ ] AI provides reflection and related advice/content surfaced
+
+### dashboard
+- [ ] Filter content by:
+  - [ ] Platform
+  - [ ] Date saved
+  - [ ] Tag
+  - [ ] Emotion
+  - [ ] Content type (video, article, journal, upload)
+- [ ] Use search bar with keyword + vector fallback
+- [ ] Reclassify, edit, delete, archive, or resurface content manually
+
+### passive-resurfacing
+- [ ] Time-based resurfacing (e.g. “You saved this 30 days ago”)
+- [ ] Pattern-based resurfacing (e.g. “You tend to feel anxious Monday AM”)
+- [ ] Triggered resurfacing (based on mood, time, usage)
+
+### smart-feed-suggestions
+- [ ] Show context-aware recommendations on dashboard (e.g. “Based on how you felt last Thursday…”)
+- [ ] “You usually revisit this on Sundays...” style prompts
+- [ ] Smart nudges from AI based on journaling history or emotional streaks
 
 
-### 🔹 Dashboard Features
+### journaling-features
+- [ ] Write a journal entry (rich text editor)
+- [ ] Voice-record a journal entry (speech-to-text transcription)
+- [ ] Parse sentiment and emotional state from entry
+- [ ] Suggest reflective prompts or action plans
+- [ ] Link journal entries to saved content
+- [ ] Display past journals in timeline with tone badges
+- [ ] Optional tagging, archiving, or deleting of journal logs
 
-- **Inbox-style Collection View**:
-  - Timeline of saved entries
-  - Grouped by tag, emotion, date, or platform
-- **Entry Cards**:
-  - Thumbnail, title, platform icon, summary, personal notes
-  - “Open”, “Reflect”, “Edit Tags”, “Delete”, “Send to AI”
-- **Smart Feed Section**:
-  - Proactive AI suggestions (resurfaced forgotten content)
-  - Context-aware recommendations (“You usually need this on Mondays…”)
-- **Journal Tab**:
-  - Write or record journal entries
-  - See past journals with AI feedback
-  - Connected content recommendations
-- **Chat Window**:
-  - Natural chat interface with AI (retrieval, reflection, journaling support)
-  - Inline content previews + embedded actions (e.g., “Watch Now”, “Reflect on This”)
+### inbox-style-dashboard
+- [ ] Show timeline of all saved entries
+- [ ] Group entries by:
+  - [ ] Date
+  - [ ] Emotion
+  - [ ] Tag
+  - [ ] Platform
+
+### dashboard-entry-cards
+- [ ] Display thumbnail, title, source platform, summary
+- [ ] Quick actions: “Open”, “Reflect”, “Edit Tags”, “Delete”, “Send to AI”
+
+### journal-tab
+- [ ] Access past journal entries
+- [ ] Write or record new journal entries
+- [ ] View AI-generated feedback/reflections
+- [ ] See connected content linked by AI
+
+### chat-interface
+- [ ] Natural chat with AI (retrieval, emotional support, journal feedback)
+- [ ] Inline previews of results
+- [ ] Buttons: “Watch Now”, “Reflect on This”, “Resurface Similar”
 
 
+### agent-systems
 
-### 🔹 System & Tooling
+- [ ] **🧠 Classification Agent** — Categorizes all incoming content
+- [ ] **💬 Conversational Agent** — Handles all user queries, chat, message routing
+- [ ] **🔍 Search Agent** — Finds best semantic matches in Vector DB
+- [ ] **🧠 NLP Agent** — Detects emotion, synthesizes mood, parses journal input
+- [ ] **🌐 Global Context Agent** — Maps real-world events to content relevance
+- [ ] Agents work together in workflows (e.g., journal → NLP → Search → Response)
 
-- **Firestore**: Primary database for user info, content metadata, journals, preferences.
-- **Vector DB (e.g. Pinecone/Weaviate)**: Embedding store for semantic retrieval across all saved content and user journaling.
-- **Gemini API**: Used for agent logic, summarization, tone detection, conversation flow, and journal reflections.
-- **FastAPI Backend**: Handles agent orchestration, auth, storage logic, and API gateway for frontend.
-- **Google Cloud Run**: Containerized deployment of services.
-- **Firebase Auth**: User authentication, session security, basic auth flows.
-- **Postman / cURL / Unit Tests**: Local testing infrastructure.
 
+## 🔹 backend-and-system-tooling
+
+- [ ] **Firestore** for metadata, user data, and journal storage
+- [ ] **Vector DB** for embedding storage and similarity search
+- [ ] **Gemini API** for summarization, conversation, tone analysis, embedding
+- [ ] **FastAPI** backend for:
+  - [ ] Orchestrating agents
+  - [ ] Routing frontend → agent flows
+  - [ ] Managing user auth
+  - [ ] Running search & classification services
+- [ ] **Google Cloud Run** for containerized backend deployment
+- [ ] **Firebase Auth** for secure login + session handling
+- [ ] **Postman / cURL** for API testing
+- [ ] **Unit Testing suite** for:
+  - [ ] Backend routes
+  - [ ] Agent logic
+  - [ ] API integrations
 
 
 ## 9. 🌍 real-world usage scenarios
