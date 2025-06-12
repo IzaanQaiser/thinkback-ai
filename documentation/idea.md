@@ -78,7 +78,6 @@ Instead of scrolling through folders and bookmarks:
 ## 8. features-list
 
 ### content-saving
-
 - [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X)
 - [ ] Auto-generate transcript (for audio/video, where possible)
 - [ ] Auto-fetch metadata (title, platform, timestamp, etc.)
@@ -87,7 +86,6 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Add optional personal annotations (notes, tags, reflections)
 
 ### content-classification
-
 - [ ] Store metadata (platform, link, title, timestamp, duration)
 - [ ] Assign main category (e.g., Finance, Wellness, Motivation, Academic)
 - [ ] Extract sub-topics (e.g., "David Goggins", "deep work", "crypto")
@@ -96,7 +94,6 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Flag duplicate or near-duplicate entries
 
 ### content-embedding-and-indexing
-
 - [ ] Generate semantic embedding of content using Gemini or similar
 - [ ] Store embeddings in a Vector DB (e.g., Pinecone, Weaviate)
 - [ ] Store metadata + structured data in Firestore
@@ -104,14 +101,12 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Timestamp each entry (save time, accessed time, resurfaced time)
 
 ### direct-content-retrieval
-
 - [ ] User describes the content they want
 - [ ] Conversational Agent parses and classifies input
 - [ ] Search Agent embeds query and matches in Vector DB
 - [ ] Return most relevant match with preview, notes, and metadata
 
 ### conversational-content-retrieval
-
 - [ ] User types natural query into chat (e.g., “Find that video on sleeping better”)
 - [ ] Conversational Agent detects content search intent
 - [ ] Query is semantically embedded using Gemini
@@ -132,14 +127,12 @@ Instead of scrolling through folders and bookmarks:
 - [ ] User can rate response for feedback loop
 
 ### global-context-retrieval
-
 - [ ] Detect global/local events (e.g., market crash, exam season)
 - [ ] Pull real-world context from APIs or local time-based rules
 - [ ] Inject context into ongoing queries
 - [ ] Proactively recommend content based on world situation
 
 ### reflective-content-retrieval
-
 - [ ] User writes or records a journal entry
 - [ ] NLP Agent parses journal sentiment, themes, pain points
 - [ ] Journal is embedded and stored in Vector DB
@@ -147,26 +140,22 @@ Instead of scrolling through folders and bookmarks:
 - [ ] AI delivers reflection or coping/action guidance
 
 ### dashboard
-
 - [ ] Filter content by platform, date, tag, emotion, type
 - [ ] Keyword + semantic search via search bar
 - [ ] Manually reclassify, edit, delete, archive entries
 - [ ] Resurface content directly from dashboard filters
 
 ### passive-resurfacing
-
 - [ ] Resurface content based on elapsed time (e.g., “Saved 30 days ago”)
 - [ ] Resurface based on usage or emotional pattern (e.g., “anxious Mondays”)
 - [ ] Trigger content resurfacing based on current mood or time
 
 ### smart-feed-suggestions
-
 - [ ] Display context-aware dashboard suggestions
 - [ ] Use historical emotional patterns to recommend content (e.g., “You usually revisit this on Sundays...”)
 - [ ] Trigger nudges based on journaling history or AI-inferred emotional trends
 
 ### journaling-features
-
 - [ ] Write journal entries using rich text editor
 - [ ] Record voice logs (with automatic transcription)
 - [ ] NLP parses tone and themes of journal
@@ -176,30 +165,25 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Archive, tag, or delete journal logs
 
 ### inbox-style-dashboard
-
 - [ ] Display chronological feed of saved content
 - [ ] Group entries by date, tag, platform, or emotion
 
 ### dashboard-entry-cards
-
 - [ ] Show thumbnail, title, platform icon, summary
 - [ ] Inline actions: Open, Reflect, Edit Tags, Delete, Send to AI
 
 ### journal-tab
-
 - [ ] View timeline of journal entries
 - [ ] Add new entries (text or voice)
 - [ ] View AI feedback, reflections, and linked content
 
 ### chat-interface
-
 - [ ] Chat with AI for content retrieval
 - [ ] Get AI-generated reflections, journaling prompts, and support
 - [ ] Inline previews of relevant content
 - [ ] Embedded buttons: Watch Now, Reflect, Resurface Similar
 
 ### agent-systems
-
 - [ ] Classification Agent — Categorizes content during ingestion
 - [ ] Conversational Agent — Main chat interface, input router, response generator
 - [ ] Search Agent — Matches semantic queries with saved content in Vector DB
@@ -208,7 +192,6 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Agent chaining workflows (e.g. journal → NLP → Search → Conversational)
 
 ### backend-and-system-tooling
-
 - [ ] Firestore — Metadata, journal storage, user data
 - [ ] Vector DB — Embedding and semantic similarity search
 - [ ] Gemini API — Summarization, tone detection, conversation modeling, embedding
