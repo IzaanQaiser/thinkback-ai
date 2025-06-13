@@ -77,6 +77,37 @@ Instead of scrolling through folders and bookmarks:
 
 ## 8. features-list
 
+### auth
+- [ ] Sign up and login with **email/password**
+- [ ] Sign in with **Google**
+- [ ] Sign in with **GitHub**
+- [ ] Sign in with **Apple**
+- [ ] Sign in with **TikTok**
+- [ ] Sign in with **Facebook**
+- [ ] Store and track **auth provider info** (e.g., Google UID, provider ID)
+- [ ] Manage **session persistence** (local vs session)
+- [ ] Auto-refresh and maintain session with Firebase Auth
+- [ ] Handle **sign-out**
+- [ ] Handle **password reset** (for email/password logins)
+- [ ] Protect all user interactions behind **auth state guard** in frontend
+- [ ] Redirect unauthenticated users to login page
+- [ ] Store `uid` securely client-side for scoped database access
+- [ ] Integrate with Firestore Security Rules to validate logged-in identity
+
+### access
+- [ ] Each user has their own Firestore document: `users/{uid}`
+- [ ] Store content in user-specific subcollections: `users/{uid}/savedContent`
+- [ ] Store journal entries under: `users/{uid}/journals`
+- [ ] Apply **Firestore Security Rules** to restrict access:
+  - [ ] Users can only `read/write` their own `users/{uid}` document
+  - [ ] Users can only access `savedContent` and `journals` where `uid == request.auth.uid`
+- [ ] Ensure Cloud Storage access is scoped via Firebase rules (only upload to own bucket folders)
+- [ ] Design backend endpoints (if any) to require and validate `uid` from Firebase JWT
+- [ ] Prevent any backend agent/API access to data from other users
+- [ ] Log access attempts and errors for audit/debugging
+- [ ] Set up automatic cleanup of a user’s data upon account deletion
+- [ ] Prevent duplicate entries from being saved across user boundaries (no global deduplication leakage)
+
 ### content-saving
 - [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X)
 - [ ] Auto-fetch metadata (title, platform, timestamp, etc.)
