@@ -78,7 +78,7 @@ Instead of scrolling through folders and bookmarks:
 ## 8. features-list
 
 ### auth
-- [ ] Sign up and login with **email/password**
+- [ ] Sign up and login with **email/password** - triaged
 - [ ] Sign in with **Google**
 - [ ] Sign in with **GitHub**
 - [ ] Sign in with **Apple**
@@ -87,12 +87,12 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Store and track **auth provider info** (e.g., Google UID, provider ID)
 - [ ] Manage **session persistence** (local vs session)
 - [ ] Auto-refresh and maintain session with Firebase Auth
-- [ ] Handle **sign-out**
+- [ ] Handle **sign-out** - triaged
 - [ ] Handle **password reset** (for email/password logins)
-- [ ] Protect all user interactions behind **auth state guard** in frontend
-- [ ] Redirect unauthenticated users to login page
-- [ ] Store `uid` securely client-side for scoped database access
-- [ ] Integrate with Firestore Security Rules to validate logged-in identity
+- [ ] Protect all user interactions behind **auth state guard** in frontend - triaged
+- [ ] Redirect unauthenticated users to login page - triaged
+- [ ] Store `uid` securely client-side for scoped database access - triaged
+- [ ] Integrate with Firestore Security Rules to validate logged-in identity - triaged
 
 ### access
 - [ ] Each user has their own Firestore document: `users/{uid}`
