@@ -95,13 +95,13 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Integrate with Firestore Security Rules to validate logged-in identity - triaged
 
 ### access
-- [ ] Each user has their own Firestore document: `users/{uid}`
-- [ ] Store content in user-specific subcollections: `users/{uid}/savedContent`
+- [ ] Each user has their own Firestore document: `users/{uid}` - triaged
+- [ ] Store content in user-specific subcollections: `users/{uid}/savedContent` - triaged
 - [ ] Store journal entries under: `users/{uid}/journals`
-- [ ] Apply **Firestore Security Rules** to restrict access:
-  - [ ] Users can only `read/write` their own `users/{uid}` document
-  - [ ] Users can only access `savedContent` and `journals` where `uid == request.auth.uid`
-- [ ] Ensure Cloud Storage access is scoped via Firebase rules (only upload to own bucket folders)
+- [ ] Apply **Firestore Security Rules** to restrict access: - triaged
+  - [ ] Users can only `read/write` their own `users/{uid}` document - triaged
+  - [ ] Users can only access `savedContent` and `journals` where `uid == request.auth.uid` - triaged
+- [ ] Ensure Cloud Storage access is scoped via Firebase rules (only upload to own bucket folders) - triaged
 - [ ] Design backend endpoints (if any) to require and validate `uid` from Firebase JWT
 - [ ] Prevent any backend agent/API access to data from other users
 - [ ] Log access attempts and errors for audit/debugging
