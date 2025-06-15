@@ -109,9 +109,9 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Prevent duplicate entries from being saved across user boundaries (no global deduplication leakage)
 
 ### content-saving
-- [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X)
-- [ ] Auto-fetch metadata (title, platform, timestamp, etc.)
-- [ ] Paste or write plain text (e.g., notes, ideas, quotes)
+- [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X) - triaged
+- [ ] Auto-fetch metadata (title, platform, timestamp, etc.) - triaged
+- [ ] Paste or write plain text (e.g., notes, ideas, quotes) - triaged
 - [ ] Upload files (video, audio, image, PDF)
 - [ ] Add optional personal annotations (notes, tags, reflections)
 
