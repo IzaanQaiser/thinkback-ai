@@ -1,7 +1,12 @@
-1. I will give you the version header
+**triage-aspect-intro**
+alright, here is the access aspect. give me the features to include for v0.1. remember: lean, usable, secure, CORE: <br>
 
-2. then one by one i will one-by-one give you each aspect unti
+... <br>
+---
+**triage-aspect-confirmation**<br>
 
-3. then for each aspect you will tell me the features we want to have in that release
+here is my final list for the content-saving aspect of v0.1. what do you think? <br>
 
-4. we will repeat step 2 and 3 until all the aspects have been covered
+... <br>
+
+remember, i am one-by-one giving you the aspect and then you are picking the features to include in the lean, CORE, v0.1 release
