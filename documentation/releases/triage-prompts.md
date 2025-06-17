@@ -1,12 +1,19 @@
-**triage-aspect-intro**
-alright, here is the access aspect. give me the features to include for v0.1. remember: lean, usable, secure, CORE: <br>
+**triage-aspect-intro** <br>
 
-... <br>
+
+
+
+alright, here is the xxxxx aspect. give me the features to include for xxxxx. remember: lean, usable, secure, CORE:
+
+to help you, this is what we have triaged for xxxxx so far:
 ---
 **triage-aspect-confirmation**<br>
 
-here is my final list for the content-saving aspect of v0.1. what do you think? <br>
+
+
+
+here is my final list for the **...** aspect of **...**, what do you think? <br>
 
 ... <br>
 
-remember, i am one-by-one giving you the aspect and then you are picking the features to include in the lean, CORE, v0.1 release
+remember, i am one-by-one giving you the aspect and then you are picking the features to include in the lean, CORE, **...** release
