@@ -1,3 +1,0 @@
-questions that I have along the way <br>
-1. why do i get caught up so hard on the little things? like I want to ship my first iteration ASAP but I;m constantly getting caught up on the small things and the little intricacies. it feels like I am in a nver ending cylce: ship fast -> need a plan -> need requirements -> need xyz -> wont know what works until i have feedback -> need feedback -> need to build to get feedback. is there not a better way to do this?
-2. we ahve established that yes this is going to make me feel stupid and I have felt like that many times along the way, but what do I do to bounce back from that? right now I feel like im getting hit with a set back then I just kind of sit with it
