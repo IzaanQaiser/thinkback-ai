@@ -78,7 +78,7 @@ Instead of scrolling through folders and bookmarks:
 ## 8. features-list
 
 ### auth
-- [ ] Sign up and login with **email/password** - triaged
+- [ ] Sign up and login with **email/password** - **v0.1**
 - [ ] Sign in with **Google**
 - [ ] Sign in with **GitHub**
 - [ ] Sign in with **Apple**
@@ -87,21 +87,21 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Store and track **auth provider info** (e.g., Google UID, provider ID)
 - [ ] Manage **session persistence** (local vs session)
 - [ ] Auto-refresh and maintain session with Firebase Auth
-- [ ] Handle **sign-out** - triaged
+- [ ] Handle **sign-out** - **v0.1**
 - [ ] Handle **password reset** (for email/password logins)
-- [ ] Protect all user interactions behind **auth state guard** in frontend - triaged
-- [ ] Redirect unauthenticated users to login page - triaged
-- [ ] Store `uid` securely client-side for scoped database access - triaged
-- [ ] Integrate with Firestore Security Rules to validate logged-in identity - triaged
+- [ ] Protect all user interactions behind **auth state guard** in frontend - **v0.1**
+- [ ] Redirect unauthenticated users to login page - **v0.1**
+- [ ] Store `uid` securely client-side for scoped database access - **v0.1**
+- [ ] Integrate with Firestore Security Rules to validate logged-in identity - **v0.1**
 
 ### access
-- [ ] Each user has their own Firestore document: `users/{uid}` - triaged
-- [ ] Store content in user-specific subcollections: `users/{uid}/savedContent` - triaged
+- [ ] Each user has their own Firestore document: `users/{uid}` - **v0.1**
+- [ ] Store content in user-specific subcollections: `users/{uid}/savedContent` - **v0.1**
 - [ ] Store journal entries under: `users/{uid}/journals`
-- [ ] Apply **Firestore Security Rules** to restrict access: - triaged
-  - [ ] Users can only `read/write` their own `users/{uid}` document - triaged
-  - [ ] Users can only access `savedContent` and `journals` where `uid == request.auth.uid` - triaged
-- [ ] Ensure Cloud Storage access is scoped via Firebase rules (only upload to own bucket folders) - triaged
+- [ ] Apply **Firestore Security Rules** to restrict access: - **v0.1**
+  - [ ] Users can only `read/write` their own `users/{uid}` document - **v0.1**
+  - [ ] Users can only access `savedContent` and `journals` where `uid == request.auth.uid` - **v0.1**
+- [ ] Ensure Cloud Storage access is scoped via Firebase rules (only upload to own bucket folders) - **v0.1**
 - [ ] Design backend endpoints (if any) to require and validate `uid` from Firebase JWT
 - [ ] Prevent any backend agent/API access to data from other users
 - [ ] Log access attempts and errors for audit/debugging
@@ -109,26 +109,26 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Prevent duplicate entries from being saved across user boundaries (no global deduplication leakage)
 
 ### content-saving
-- [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X) - triaged
-- [ ] Auto-fetch metadata (title, platform, timestamp, etc.) - triaged
-- [ ] Paste or write plain text (e.g., notes, ideas, quotes) - triaged
+- [ ] Paste URL from supported platforms (YouTube, TikTok, Reddit, Instagram, Twitter/X) - **v0.1**
+- [ ] Auto-fetch metadata (title, platform, timestamp, etc.) - **v0.1**
+- [ ] Paste or write plain text (e.g., notes, ideas, quotes) - **v0.1**
 - [ ] Upload files (video, audio, image, PDF)
 - [ ] Add optional personal annotations (notes, tags, reflections)
 
 ### content-classification
-- [ ] Store metadata (platform, link, title, timestamp, duration, transcript)
-- [ ] Assign main category (e.g., Finance, Wellness, Motivation, Academic)
+- [ ] Store metadata (platform, link, title, timestamp, duration, transcript) - **v0.1**
+- [ ] Assign main category (e.g., Finance, Wellness, Motivation, Academic) - **v0.1**
 - [ ] Extract sub-topics (e.g., "David Goggins", "deep work", "crypto")
 - [ ] Detect emotional tone (e.g., “hopeful”, “urgent”, “relaxed”)
 - [ ] Automatically tag journal entries with emotion + themes
 - [ ] Flag duplicate or near-duplicate entries
 
 ### content-storage
-- [ ] Save raw user input (URL, text, upload) to Firestore or Cloud Storage (depending on type)
-- [ ] Store structured metadata (title, tags, category, platform, notes) in Firestore
-- [ ] Ensure all content entries have creation, last-accessed, and resurfaced timestamps
+- [ ] Save raw user input (URL, text, upload) to Firestore or Cloud Storage (depending on type) - **v0.1**
+- [ ] Store structured metadata (title, tags, category, platform, notes) in Firestore - **v0.1**
+- [ ] Ensure all content entries have creation, last-accessed, and resurfaced timestamps - **v0.1**
 - [ ] Delete user content (remove from Firestore, Vector DB, and Cloud Storage if applicable)
-- [ ] Enable access control (per-user content isolation via UID)
+- [ ] Enable access control (per-user content isolation via UID) - **v0.1**
 - [ ] Store journaling entries (raw + parsed) with timestamp and user ID
 - [ ] Link Firestore metadata with vector database entry ID for unified lookup
 - [ ] Connect saved content with associated journal entries via Firestore references
@@ -141,9 +141,9 @@ Instead of scrolling through folders and bookmarks:
 ### content-embedding-and-indexing
 - [ ] Generate semantic embedding of content using Gemini or similar
 - [ ] Store embeddings in a Vector DB (e.g., Pinecone, Weaviate)
-- [ ] Store metadata + structured data in Firestore
+- [ ] Store metadata + structured data in Firestore - **v0.1**
 - [ ] Link vector entries with Firestore documents
-- [ ] Timestamp each entry (save time, accessed time, resurfaced time)
+- [ ] Timestamp each entry (save time, accessed time, resurfaced time) - **v0.1**
 
 ### direct-content-retrieval
 - [ ] User describes the content they want
@@ -170,6 +170,10 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Injects global context signals (exam week, market crash, etc.)
 - [ ] Combines all layers into intelligent, personalized suggestions
 - [ ] User can rate response for feedback loop
+- [ ] Chat with AI for content retrieval
+- [ ] Get AI-generated reflections, journaling prompts, and support
+- [ ] Inline previews of relevant content
+- [ ] Embedded buttons: Watch Now, Reflect, Resurface Similar
 
 ### global-context-retrieval
 - [ ] Detect global/local events (e.g., market crash, exam season)
@@ -185,10 +189,14 @@ Instead of scrolling through folders and bookmarks:
 - [ ] AI delivers reflection or coping/action guidance
 
 ### dashboard
-- [ ] Filter content by platform, date, tag, emotion, type
+- [ ] Filter content by platform, date, tag, emotion, type - **v0.1**
 - [ ] Keyword + semantic search via search bar
 - [ ] Manually reclassify, edit, delete, archive entries
 - [ ] Resurface content directly from dashboard filters
+- [ ] Display chronological feed of saved content - **v0.1**
+- [ ] Group entries by date, tag, platform, or emotion
+- [ ] Show thumbnail, title, platform icon, summary - **v0.1**
+- [ ] Inline actions: Open, Reflect, Edit Tags, Delete, Send to AI
 
 ### passive-resurfacing
 - [ ] Resurface content based on elapsed time (e.g., “Saved 30 days ago”)
@@ -208,28 +216,12 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Link journal entries to saved content
 - [ ] Show timeline view of journal history with tone badges
 - [ ] Archive, tag, or delete journal logs
-
-### inbox-style-dashboard
-- [ ] Display chronological feed of saved content
-- [ ] Group entries by date, tag, platform, or emotion
-
-### dashboard-entry-cards
-- [ ] Show thumbnail, title, platform icon, summary
-- [ ] Inline actions: Open, Reflect, Edit Tags, Delete, Send to AI
-
-### journal-tab
 - [ ] View timeline of journal entries
 - [ ] Add new entries (text or voice)
 - [ ] View AI feedback, reflections, and linked content
 
-### chat-interface
-- [ ] Chat with AI for content retrieval
-- [ ] Get AI-generated reflections, journaling prompts, and support
-- [ ] Inline previews of relevant content
-- [ ] Embedded buttons: Watch Now, Reflect, Resurface Similar
-
 ### agent-systems
-- [ ] Classification Agent — Categorizes content during ingestion
+- [ ] Classification Agent — Categorizes content during ingestion - **v0.1**
 - [ ] Conversational Agent — Main chat interface, input router, response generator
 - [ ] Search Agent — Matches semantic queries with saved content in Vector DB
 - [ ] NLP Agent — Emotion analysis, journal parsing, mood detection, theme abstraction
