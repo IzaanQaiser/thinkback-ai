@@ -137,6 +137,10 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Handle large file uploads (videos, PDFs) via Cloud Storage and store references in Firestore
 - [ ] Automatically archive unused or old entries for future passive resurfacing
 - [ ] Ensure versioning or change tracking for edited content (user notes, tags, etc.)
+- [ ] Allow user to delete saved entries from dashboard - **v0.1**
+- [ ] Update `lastAccessedAt` timestamp when user opens content - **v0.1**
+- [ ] file/data schema - **v0.1**
+
 
 ### content-embedding-and-indexing
 - [ ] Generate semantic embedding of content using Gemini or similar
