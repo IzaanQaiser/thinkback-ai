@@ -149,6 +149,23 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Link vector entries with Firestore documents
 - [ ] Timestamp each entry (save time, accessed time, resurfaced time) - **v0.1**
 
+### summary-generation
+- [ ] Generate concise 2–3 sentence summary for each entry (URL, text, upload)
+- [ ] Use transcript, metadata, title, and classification tags as input
+- [ ] Chain with Classification Agent output before summary generation
+- [ ] Store summaries in Firestore alongside content doc
+- [ ] Highlight emotional tone, key themes, and user-relevant context
+- [ ] Tailor summaries to feel human, empathetic, and reflective (not generic)
+- [ ] Regenerate/edit summaries manually from dashboard
+- [ ] Detect "empty" or low-quality inputs and fall back to metadata-only summary
+- [ ] Index summaries for semantic search and retrieval
+- [ ] Auto-link to timestamp or section when applicable (e.g., highlight 02:43 clip in video)
+- [ ] Detect and mention unique angles (e.g., “This video is about deep work—but with a spiritual framing.”)
+- [ ] Flag inappropriate or low-quality summaries for review
+- [ ] Support journal-specific summarization style: introspective and personalized
+- [ ] Support multi-language summarization
+- [ ] Optimize prompt via prompt-tuning or fine-tuned model
+
 ### direct-content-retrieval
 - [ ] User describes the content they want
 - [ ] Conversational Agent parses and classifies input
@@ -201,6 +218,8 @@ Instead of scrolling through folders and bookmarks:
 - [ ] Group entries by date, tag, platform, or emotion
 - [ ] Show thumbnail, title, platform icon, summary - **v0.1**
 - [ ] Inline actions: Open, Reflect, Edit Tags, Delete, Send to AI
+- [ ] Show AI-generated summary in each content card - v0.1
+- [ ] Use summary in semantic search weighting (future)
 
 ### passive-resurfacing
 - [ ] Resurface content based on elapsed time (e.g., “Saved 30 days ago”)
@@ -231,6 +250,7 @@ Instead of scrolling through folders and bookmarks:
 - [ ] NLP Agent — Emotion analysis, journal parsing, mood detection, theme abstraction
 - [ ] Global Context Agent — Maps real-world triggers (e.g. news, calendar events) to relevance
 - [ ] Agent chaining workflows (e.g. journal → NLP → Search → Conversational)
+- [ ] Summary Generator Agent — Synthesizes short summaries from transcript + metadata + classification
 
 ### backend-and-system-tooling
 - [ ] Firestore — Metadata, journal storage, user data
