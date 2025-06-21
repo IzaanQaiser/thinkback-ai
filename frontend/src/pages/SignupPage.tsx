@@ -4,6 +4,8 @@ import Logo from '../components/Logo';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 import { verifyUserToken } from '../services/api';
 import { mapFirebaseAuthError } from '../utils/errors';
 
@@ -14,6 +16,7 @@ const SignupPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup, getIdToken } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,9 +52,18 @@ const SignupPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-white dark:bg-dark-950">
+      <div className="absolute top-4 right-4 z-20">
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-primary-400" />}
+        </button>
+      </div>
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-dark-900 via-dark-950 to-dark-900 p-12 flex-col justify-center items-center relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-dark-100/50 dark:bg-gradient-to-br from-dark-900 via-dark-950 to-dark-900 p-12 flex-col justify-center items-center relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl animate-pulse-subtle"></div>
@@ -60,31 +72,31 @@ const SignupPage: React.FC = () => {
         </div>
 
         <div
-          className={`absolute inset-0 bg-[url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23334155' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")] opacity-50`}
+          className={`absolute inset-0 bg-[url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2394a3b8' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")] dark:bg-[url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23334155' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")] opacity-50`}
         ></div>
 
         <div className="relative z-10 text-center max-w-md">
           <Logo size="lg" className="justify-center mb-8 animate-fade-in" />
 
-          <h1 className="text-4xl font-bold text-white mb-6 animate-slide-up">
+          <h1 className="text-4xl font-bold text-dark-900 dark:text-white mb-6 animate-slide-up">
             Start your journey.
           </h1>
 
-          <p className="text-xl text-dark-300 leading-relaxed animate-slide-up">
+          <p className="text-xl text-dark-600 dark:text-dark-300 leading-relaxed animate-slide-up">
             Join thousands who are building their personal knowledge vault with AI.
           </p>
 
-          <div className="mt-12 p-6 bg-dark-800/30 backdrop-blur-xl rounded-2xl border border-dark-700/30 animate-slide-up transform hover:scale-105 transition-all duration-500">
-            <p className="text-dark-200 italic">
+          <div className="mt-12 p-6 bg-white/30 dark:bg-dark-800/30 backdrop-blur-xl rounded-2xl border border-dark-200/30 dark:border-dark-700/30 animate-slide-up transform hover:scale-105 transition-all duration-500">
+            <p className="text-dark-700 dark:text-dark-200 italic">
               "We are what we repeatedly do. Excellence, then, is not an act, but a habit."
             </p>
-            <p className="text-sm text-dark-400 mt-2">— Aristotle</p>
+            <p className="text-sm text-dark-500 dark:text-dark-400 mt-2">— Aristotle</p>
           </div>
         </div>
       </div>
 
       {/* Right Side - Signup Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary-500/5 rounded-full blur-2xl animate-pulse-subtle"></div>
@@ -97,11 +109,11 @@ const SignupPage: React.FC = () => {
           </div>
 
           <div className="text-center mb-8 animate-slide-up">
-            <h2 className="text-3xl font-bold text-white mb-2">Create account</h2>
-            <p className="text-dark-400">Start building your knowledge vault</p>
+            <h2 className="text-3xl font-bold text-dark-900 dark:text-white mb-2">Create account</h2>
+            <p className="text-dark-600 dark:text-dark-400">Start building your knowledge vault</p>
           </div>
 
-          {error && <div className="bg-red-900/30 border border-red-700/50 text-red-300 p-3 rounded-lg mb-6 text-center text-sm flex items-center justify-center space-x-2">{error}</div>}
+          {error && <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:bg-red-900/30 dark:border-red-700/50 dark:text-red-300 p-3 rounded-lg mb-6 text-center text-sm flex items-center justify-center space-x-2">{error}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <Input
@@ -137,11 +149,11 @@ const SignupPage: React.FC = () => {
           </form>
 
           <div className="mt-8 text-center animate-slide-up" style={{ animationDelay: '0.4s' }}>
-            <p className="text-dark-400">
+            <p className="text-dark-600 dark:text-dark-400">
               Already have an account?{' '}
               <Link
                 to="/auth"
-                className="text-primary-400 hover:text-primary-300 font-medium transition-colors duration-200 hover:underline"
+                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors duration-200 hover:underline"
               >
                 Log in
               </Link>

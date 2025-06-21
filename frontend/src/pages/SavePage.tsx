@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText } from 'lucide-react';
+import { FaYoutube, FaTiktok, FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
 import Textarea from '../components/Textarea';
@@ -40,7 +41,7 @@ const SavePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden text-dark-900 dark:text-white">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/5 rounded-full blur-3xl animate-pulse-subtle"></div>
@@ -49,14 +50,14 @@ const SavePage: React.FC = () => {
       </div>
 
       {/* Header */}
-      <div className="relative z-10 bg-dark-900/30 backdrop-blur-xl border-b border-dark-800/50">
+      <div className="relative z-10 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/dashboard" className="flex items-center space-x-2 text-dark-300 hover:text-white transition-colors">
+            <Link to="/dashboard" className="flex items-center space-x-2 text-dark-500 dark:text-dark-300 hover:text-dark-900 dark:hover:text-white transition-colors">
                 <Logo size="sm" />
             </Link>
-            <Link to="/dashboard" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
-                <span className="font-medium text-sm text-white">Back to Vault</span>
+            <Link to="/dashboard" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
+                <span className="font-medium text-sm">Back to Vault</span>
                 <Kbd>esc</Kbd>
             </Link>
           </div>
@@ -66,21 +67,21 @@ const SavePage: React.FC = () => {
       {/* Main Content */}
       <main className="relative z-10 max-w-2xl mx-auto px-6 py-12">
         <div className="text-center mb-10">
-          <h1 className="text-5xl font-bold text-white mb-2" style={{ textShadow: '0 0 15px rgba(14, 165, 233, 0.4)' }}>Save to Vault</h1>
-          <p className="text-lg text-dark-400">Capture content that matters to you</p>
+          <h1 className="text-5xl font-bold text-dark-900 dark:text-white mb-2" style={{ textShadow: '0 0 25px rgba(14, 165, 233, 0.5)' }}>Save to Vault</h1>
+          <p className="text-lg text-dark-500 dark:text-dark-400">Capture content that matters to you</p>
         </div>
 
-        <div className="bg-dark-800/50 border border-dark-700/60 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-dark-100/30 dark:bg-dark-800/50 border border-dark-200/50 dark:border-dark-700/60 rounded-2xl p-8 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Content Type Toggle */}
-            <div className="flex bg-dark-800/60 rounded-full p-1 border border-dark-700/60">
+            <div className="flex bg-dark-200/50 dark:bg-dark-800/60 rounded-full p-1 border border-dark-300/60 dark:border-dark-700/60">
               <button
                 type="button"
                 onClick={() => setContentType('link')}
                 className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-full transition-all duration-300 transform hover:opacity-90 ${
                   contentType === 'link'
-                    ? 'bg-primary-600 shadow-md text-white'
-                    : 'text-dark-300 hover:text-white'
+                    ? 'bg-primary-500 dark:bg-primary-600 shadow-md text-white'
+                    : 'text-dark-600 dark:text-dark-300 hover:text-dark-900 dark:hover:text-white'
                 }`}
               >
                 <LinkIcon size={16} />
@@ -91,8 +92,8 @@ const SavePage: React.FC = () => {
                 onClick={() => setContentType('text')}
                 className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-full transition-all duration-300 transform hover:opacity-90 ${
                   contentType === 'text'
-                    ? 'bg-primary-600 shadow-md text-white'
-                    : 'text-dark-300 hover:text-white'
+                    ? 'bg-primary-500 dark:bg-primary-600 shadow-md text-white'
+                    : 'text-dark-600 dark:text-dark-300 hover:text-dark-900 dark:hover:text-white'
                 }`}
               >
                 <FileText size={16} />
@@ -154,8 +155,8 @@ const SavePage: React.FC = () => {
 
           {/* Success Message */}
           {saved && (
-            <div className="mt-6 p-4 bg-green-900/20 border border-green-700/30 rounded-xl backdrop-blur-sm">
-              <div className="flex items-center space-x-2 text-green-400">
+            <div className="mt-6 p-4 bg-green-500/10 dark:bg-green-900/20 border border-green-500/20 dark:border-green-700/30 rounded-xl backdrop-blur-sm">
+              <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
                 <CheckCircle size={20} />
                 <span className="font-medium">Successfully saved to your vault!</span>
               </div>
@@ -164,20 +165,29 @@ const SavePage: React.FC = () => {
         </div>
 
         {/* Quick Tips */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-dark-500 mb-2">Supported platforms</p>
-          <div className="flex justify-center space-x-4 text-xs text-dark-600">
-            <span className="hover:text-dark-400 transition-colors duration-200">YouTube</span>
-            <span>•</span>
-            <span className="hover:text-dark-400 transition-colors duration-200">TikTok</span>
-            <span>•</span>
-            <span className="hover:text-dark-400 transition-colors duration-200">Reddit</span>
-            <span>•</span>
-            <span className="hover:text-dark-400 transition-colors duration-200">Instagram</span>
-            <span>•</span>
-            <span className="hover:text-dark-400 transition-colors duration-200">Twitter</span>
+        {contentType === 'link' && (
+          <div className="mt-12 text-center">
+            <p className="text-sm text-dark-500 dark:text-dark-400 font-medium mb-4">Supported platforms</p>
+            <div className="flex justify-center items-center gap-4">
+              {[
+                { Icon: FaYoutube, name: 'YouTube' },
+                { Icon: FaTiktok, name: 'TikTok' },
+                { Icon: FaReddit, name: 'Reddit' },
+                { Icon: FaInstagram, name: 'Instagram' },
+                { Icon: FaTwitter, name: 'Twitter' },
+              ].map(({ Icon, name }) => (
+                <div
+                  key={name}
+                  className="group flex flex-col items-center gap-2 cursor-pointer"
+                >
+                  <div className="flex items-center justify-center w-12 h-12 bg-dark-100/50 dark:bg-dark-800/60 rounded-full border border-dark-200/80 dark:border-dark-700/60 group-hover:bg-dark-200/70 dark:group-hover:bg-dark-700/80 group-hover:border-dark-300 dark:group-hover:border-dark-600 transition-all duration-300">
+                    <Icon className="w-6 h-6 text-dark-800 dark:text-white transition-colors" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
