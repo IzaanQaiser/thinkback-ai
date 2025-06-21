@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Edit3, Trash2, RotateCcw, MessageSquare, Calendar, Tag, Youtube, MessageCircle, Instagram, Twitter } from 'lucide-react';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
-import Card from '../components/Card';
 import Textarea from '../components/Textarea';
 
 // Mock data - in real app this would come from API
@@ -57,6 +56,16 @@ const ViewPage: React.FC = () => {
     console.log('Add to resurface queue');
   };
 
+  // A simple styled container to replace the old Card component
+  const InfoCard: React.FC<{ children: React.ReactNode; className?: string, style?: React.CSSProperties }> = ({ children, className = '', style }) => (
+    <div
+      style={style}
+      className={`bg-dark-800/50 border border-dark-700/60 rounded-xl p-6 transition-all duration-300 ${className}`}
+    >
+      {children}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden">
       {/* Animated Background Elements */}
@@ -100,8 +109,8 @@ const ViewPage: React.FC = () => {
           {/* Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Media Preview */}
-            <Card className="overflow-hidden animate-slide-up transform hover:scale-[1.01] transition-all duration-300">
-              <div className="aspect-video bg-dark-800 relative overflow-hidden">
+            <div className="animate-slide-up overflow-hidden rounded-xl border border-dark-700/60">
+              <div className="aspect-video bg-dark-800 relative">
                 <img
                   src={mockEntry.thumbnail}
                   alt={mockEntry.title}
@@ -120,10 +129,10 @@ const ViewPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
 
             {/* Title & Description */}
-            <Card className="p-6 animate-slide-up transform hover:scale-[1.01] transition-all duration-300" style={{ animationDelay: '0.1s' }}>
+            <InfoCard className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <h1 className="text-2xl font-bold text-white mb-4">
                 {mockEntry.title}
               </h1>
@@ -157,10 +166,10 @@ const ViewPage: React.FC = () => {
                   </span>
                 ))}
               </div>
-            </Card>
+            </InfoCard>
 
             {/* Personal Notes */}
-            <Card className="p-6 animate-slide-up transform hover:scale-[1.01] transition-all duration-300" style={{ animationDelay: '0.2s' }}>
+            <InfoCard className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-white">Personal Notes</h2>
                 <Button
@@ -197,13 +206,13 @@ const ViewPage: React.FC = () => {
                   )}
                 </div>
               )}
-            </Card>
+            </InfoCard>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Actions */}
-            <Card className="p-6 animate-slide-up transform hover:scale-[1.01] transition-all duration-300" style={{ animationDelay: '0.3s' }}>
+            <InfoCard className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
               <h3 className="font-semibold text-white mb-4">Actions</h3>
               <div className="space-y-3">
                 <Button
@@ -233,10 +242,10 @@ const ViewPage: React.FC = () => {
                   <span>Delete</span>
                 </Button>
               </div>
-            </Card>
+            </InfoCard>
 
             {/* Metadata */}
-            <Card className="p-6 animate-slide-up transform hover:scale-[1.01] transition-all duration-300" style={{ animationDelay: '0.4s' }}>
+            <InfoCard className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
               <h3 className="font-semibold text-white mb-4">Details</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -264,7 +273,7 @@ const ViewPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            </Card>
+            </InfoCard>
           </div>
         </div>
       </div>
@@ -272,7 +281,7 @@ const ViewPage: React.FC = () => {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <Card className="w-full max-w-md p-6 animate-slide-up transform scale-105">
+          <InfoCard className="w-full max-w-md p-6 animate-slide-up transform scale-105">
             <h3 className="text-lg font-semibold text-white mb-2">Delete Entry</h3>
             <p className="text-dark-400 mb-6">
               Are you sure you want to delete this entry? This action cannot be undone.
@@ -292,7 +301,7 @@ const ViewPage: React.FC = () => {
                 Delete
               </Button>
             </div>
-          </Card>
+          </InfoCard>
         </div>
       )}
     </div>

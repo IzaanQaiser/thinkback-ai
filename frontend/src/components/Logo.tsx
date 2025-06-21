@@ -21,10 +21,10 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', className = '' }) => {
 
   return (
     <div className={`flex items-center space-x-3 ${className}`}>
-      <div className="bg-primary-500 rounded-xl p-2 shadow-lg animate-pulse-subtle">
-        <Brain className="text-white" size={iconSizes[size]} />
+      <div className="bg-primary-500/10 rounded-lg p-2">
+        <Brain className="text-dark-300" size={iconSizes[size]} />
       </div>
-      <span className={`font-bold text-gray-100 ${sizeClasses[size]} animate-fade-in`}>
+      <span className={`font-bold text-gray-100 ${sizeClasses[size]}`}>
         thinkback.ai
       </span>
     </div>
