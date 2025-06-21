@@ -7,3 +7,5 @@ changes needed in the frontend:
 5. restructure view page
 6. add glow to header/main text
 7. edit save page (bottom)
+8. search bar suggestions
+9. trello/jira style veritcal categories
