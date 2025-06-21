@@ -89,3 +89,15 @@ def get_user_by_uid(uid: str):
         return {"success": False, "error": "User not found"}
     except Exception as e:
         return {"success": False, "error": f"Failed to get user: {str(e)}"}
+
+
+# Change user password
+async def change_password(uid: str, new_password: str):
+    """Change user's password in Firebase Auth"""
+    try:
+        auth.update_user(uid, password=new_password)
+        return {"success": True, "message": "Password updated successfully"}
+    except auth.UserNotFoundError:
+        return {"success": False, "error": "User not found"}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to update password: {str(e)}"}

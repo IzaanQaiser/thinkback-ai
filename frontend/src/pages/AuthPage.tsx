@@ -5,6 +5,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { verifyUserToken } from '../services/api';
+import { mapFirebaseAuthError } from '../utils/errors';
 
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -37,7 +38,7 @@ const AuthPage: React.FC = () => {
 
     } catch (err: any) {
       console.error("Login failed:", err);
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      setError(mapFirebaseAuthError(err.message));
     } finally {
       setLoading(false);
     }
@@ -96,7 +97,7 @@ const AuthPage: React.FC = () => {
             <p className="text-dark-400">Sign in to your account</p>
           </div>
 
-          {error && <div className="bg-red-500/10 border border-red-500/30 text-red-300 p-3 rounded-md mb-4 text-center animate-fade-in">{error}</div>}
+          {error && <div className="bg-red-900/30 border border-red-700/50 text-red-300 p-3 rounded-lg mb-6 text-center text-sm flex items-center justify-center space-x-2">{error}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <Input

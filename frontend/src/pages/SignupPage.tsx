@@ -5,6 +5,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { verifyUserToken } from '../services/api';
+import { mapFirebaseAuthError } from '../utils/errors';
 
 const SignupPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -41,7 +42,7 @@ const SignupPage: React.FC = () => {
 
     } catch (err: any) {
       console.error("Signup failed:", err);
-      setError(err.message || 'Failed to create an account. Please try again.');
+      setError(mapFirebaseAuthError(err.message));
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ const SignupPage: React.FC = () => {
             <p className="text-dark-400">Start building your knowledge vault</p>
           </div>
 
-          {error && <div className="bg-red-500/10 border border-red-500/30 text-red-300 p-3 rounded-md mb-4 text-center animate-fade-in">{error}</div>}
+          {error && <div className="bg-red-900/30 border border-red-700/50 text-red-300 p-3 rounded-lg mb-6 text-center text-sm flex items-center justify-center space-x-2">{error}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <Input

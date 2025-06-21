@@ -5,7 +5,6 @@ import Logo from '../components/Logo';
 import Input from '../components/Input';
 import Textarea from '../components/Textarea';
 import Button from '../components/Button';
-import Card from '../components/Card';
 
 const SavePage: React.FC = () => {
   const [contentType, setContentType] = useState<'link' | 'text'>('link');
@@ -37,7 +36,7 @@ const SavePage: React.FC = () => {
 
       {/* Header */}
       <div className="relative z-10 bg-dark-900/30 backdrop-blur-xl border-b border-dark-800/50">
-        <div className="max-w-4xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link
@@ -59,13 +58,13 @@ const SavePage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 max-w-2xl mx-auto px-6 py-12">
-        <div className="text-center mb-8 animate-slide-up">
-          <h1 className="text-3xl font-bold text-white mb-3">Save to Vault</h1>
-          <p className="text-dark-400">Capture content that matters to you</p>
+      <main className="relative z-10 max-w-2xl mx-auto px-6 py-12">
+        <div className="text-center mb-10">
+          <h1 className="text-5xl font-bold text-white mb-2" style={{ textShadow: '0 0 15px rgba(14, 165, 233, 0.4)' }}>Save to Vault</h1>
+          <p className="text-lg text-dark-400">Capture content that matters to you</p>
         </div>
 
-        <Card className="p-8 animate-slide-up transform hover:scale-[1.01] transition-all duration-300" style={{ animationDelay: '0.2s' }}>
+        <div className="bg-dark-800/50 border border-dark-700/60 rounded-xl p-8 transform hover:scale-[1.01] transition-all duration-300 shadow-2xl shadow-dark-950/50">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Content Type Toggle */}
             <div className="flex bg-dark-800/30 rounded-xl p-1 border border-dark-700/30 backdrop-blur-sm">
@@ -148,17 +147,17 @@ const SavePage: React.FC = () => {
 
           {/* Success Message */}
           {saved && (
-            <div className="mt-6 p-4 bg-green-900/20 border border-green-700/30 rounded-xl animate-slide-up backdrop-blur-sm">
+            <div className="mt-6 p-4 bg-green-900/20 border border-green-700/30 rounded-xl backdrop-blur-sm">
               <div className="flex items-center space-x-2 text-green-400">
                 <CheckCircle size={20} />
                 <span className="font-medium">Successfully saved to your vault!</span>
               </div>
             </div>
           )}
-        </Card>
+        </div>
 
         {/* Quick Tips */}
-        <div className="mt-8 text-center animate-slide-up" style={{ animationDelay: '0.4s' }}>
+        <div className="mt-12 text-center">
           <p className="text-sm text-dark-500 mb-2">Supported platforms</p>
           <div className="flex justify-center space-x-4 text-xs text-dark-600">
             <span className="hover:text-dark-400 transition-colors duration-200">YouTube</span>
@@ -172,7 +171,7 @@ const SavePage: React.FC = () => {
             <span className="hover:text-dark-400 transition-colors duration-200">Twitter</span>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

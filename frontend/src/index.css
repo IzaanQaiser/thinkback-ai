@@ -1,3 +1,8 @@
+html, body {
+  overscroll-behavior: none;
+  scroll-behavior: smooth;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
