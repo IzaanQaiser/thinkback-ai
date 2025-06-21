@@ -1,6 +1,22 @@
-hidden.md
-infrastructure/credentials/service-account.json
+# General
+.DS_Store
+.env*
+
+# Python
 .venv/
-.pytest_cache/
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Firebase
+# IMPORTANT: This file contains sensitive credentials.
+# Make sure it is NEVER committed to version control.
+infrastructure/credentials/service-account.json
+
+# Documentation
+hidden.md
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.vite

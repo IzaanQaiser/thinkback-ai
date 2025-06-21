@@ -11,6 +11,7 @@ click==8.2.1
 distro==1.9.0
 fastapi==0.115.12
 filelock==3.18.0
+firebase-admin==6.6.0
 frozenlist==1.6.2
 fsspec==2025.5.1
 h11==0.16.0
