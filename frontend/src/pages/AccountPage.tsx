@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
 import { User, LogOut, GitBranch, ChevronLeft, KeyRound, ShieldCheck } from 'lucide-react';
 import Input from '../components/Input';
 import { changePassword } from '../services/api';
+import Kbd from '../components/Kbd';
 
 const AccountPage: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -13,6 +14,29 @@ const AccountPage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        navigate('/dashboard');
+      }
+
+      const isModifier = isMac ? e.metaKey : e.ctrlKey;
+      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        handleLogout();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [navigate, isMac]);
 
   const handleLogout = async () => {
     try {
@@ -57,14 +81,10 @@ const AccountPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Logo size="sm" />
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center space-x-2"
-            >
-              <ChevronLeft size={18} />
-              <span>Back to Dashboard</span>
-            </Button>
+            <Link to="/dashboard" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
+                <span className="font-medium text-sm text-white">Back to Vault</span>
+                <Kbd>esc</Kbd>
+            </Link>
           </div>
         </div>
       </div>
@@ -132,11 +152,16 @@ const AccountPage: React.FC = () => {
                     <LogOut size={22} className="text-red-400" />
                     <span>Actions</span>
                   </h2>
-                  <div className="pl-9">
-                    <Button onClick={handleLogout} variant="danger" className="max-w-xs">
-                      Log Out
+                  <div className="pl-9 space-y-4">
+                    <Button
+                      onClick={handleLogout}
+                      variant="secondary"
+                      className="w-full !rounded-full flex items-center justify-between px-4 py-2 bg-dark-800/50 !border-red-500/30 !text-red-400 hover:!bg-red-500/10 hover:!border-red-500/50"
+                    >
+                      <span className="font-medium text-sm">Log Out</span>
+                      <Kbd>{isMac ? '⌘' : 'Ctrl'}+Shift+L</Kbd>
                     </Button>
-                    <p className="text-dark-400 text-sm mt-2">This will end your current session.</p>
+                    <p className="text-dark-400 text-sm">This will end your current session.</p>
                   </div>
                 </div>
 

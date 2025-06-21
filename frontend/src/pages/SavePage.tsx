@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText } from 'lucide-react';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
 import Textarea from '../components/Textarea';
 import Button from '../components/Button';
+import Kbd from '../components/Kbd';
 
 const SavePage: React.FC = () => {
   const [contentType, setContentType] = useState<'link' | 'text'>('link');
@@ -12,6 +13,19 @@ const SavePage: React.FC = () => {
   const [text, setText] = useState('');
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        navigate('/dashboard');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,20 +52,12 @@ const SavePage: React.FC = () => {
       <div className="relative z-10 bg-dark-900/30 backdrop-blur-xl border-b border-dark-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link
-                to="/dashboard"
-                className="p-2 hover:bg-dark-800/50 rounded-lg transition-all duration-200 transform hover:scale-110"
-              >
-                <ArrowLeft size={20} className="text-dark-400" />
-              </Link>
-              <Logo size="sm" />
-            </div>
-            <Link
-              to="/dashboard"
-              className="text-sm text-dark-400 hover:text-dark-200 transition-colors duration-200 hover:underline"
-            >
-              View Vault
+            <Link to="/dashboard" className="flex items-center space-x-2 text-dark-300 hover:text-white transition-colors">
+                <Logo size="sm" />
+            </Link>
+            <Link to="/dashboard" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
+                <span className="font-medium text-sm text-white">Back to Vault</span>
+                <Kbd>esc</Kbd>
             </Link>
           </div>
         </div>
@@ -64,33 +70,33 @@ const SavePage: React.FC = () => {
           <p className="text-lg text-dark-400">Capture content that matters to you</p>
         </div>
 
-        <div className="bg-dark-800/50 border border-dark-700/60 rounded-xl p-8 transform hover:scale-[1.01] transition-all duration-300 shadow-2xl shadow-dark-950/50">
+        <div className="bg-dark-800/50 border border-dark-700/60 rounded-2xl p-8 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Content Type Toggle */}
-            <div className="flex bg-dark-800/30 rounded-xl p-1 border border-dark-700/30 backdrop-blur-sm">
+            <div className="flex bg-dark-800/60 rounded-full p-1 border border-dark-700/60">
               <button
                 type="button"
                 onClick={() => setContentType('link')}
-                className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-full transition-all duration-300 transform hover:opacity-90 ${
                   contentType === 'link'
-                    ? 'bg-primary-600 shadow-lg text-white'
-                    : 'text-dark-400 hover:text-dark-200'
+                    ? 'bg-primary-600 shadow-md text-white'
+                    : 'text-dark-300 hover:text-white'
                 }`}
               >
-                <LinkIcon size={18} />
-                <span className="font-medium">Link</span>
+                <LinkIcon size={16} />
+                <span className="font-medium text-sm">Link</span>
               </button>
               <button
                 type="button"
                 onClick={() => setContentType('text')}
-                className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-full transition-all duration-300 transform hover:opacity-90 ${
                   contentType === 'text'
-                    ? 'bg-primary-600 shadow-lg text-white'
-                    : 'text-dark-400 hover:text-dark-200'
+                    ? 'bg-primary-600 shadow-md text-white'
+                    : 'text-dark-300 hover:text-white'
                 }`}
               >
-                <FileText size={18} />
-                <span className="font-medium">Text</span>
+                <FileText size={16} />
+                <span className="font-medium text-sm">Text</span>
               </button>
             </div>
 
@@ -127,9 +133,10 @@ const SavePage: React.FC = () => {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full flex items-center justify-center space-x-2 transform hover:scale-105 transition-all duration-200"
               size="lg"
               disabled={saved}
+              className="w-full !py-3 !text-base"
+              variant={saved ? 'secondary' : 'primary'}
             >
               {saved ? (
                 <>
