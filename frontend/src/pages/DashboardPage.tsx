@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, ChevronDown, ChevronRight, Calendar, ExternalLink, Youtube, MessageCircle, Instagram, Twitter, TrendingUp, Heart, Cpu, DollarSign } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Plus, ChevronDown, ChevronRight, Calendar, ExternalLink, Youtube,
+  MessageCircle, Instagram, Twitter, TrendingUp, Heart, Cpu, DollarSign,
+  User as UserIcon, LogOut
+} from 'lucide-react';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import { useAuth } from '../contexts/AuthContext';
 
 // Mock data organized by categories
 const mockData = {
@@ -159,6 +164,18 @@ const categoryColors = {
 
 const DashboardPage: React.FC = () => {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Failed to log out', error);
+      // Optionally show an error message to the user
+    }
+  };
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev =>
@@ -181,13 +198,30 @@ const DashboardPage: React.FC = () => {
       <div className="relative z-10 bg-dark-900/30 backdrop-blur-xl border-b border-dark-800/50">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Logo size="sm" />
-            <Link to="/save">
-              <Button className="flex items-center space-x-2 transform hover:scale-105 transition-all duration-200">
-                <Plus size={18} />
-                <span>Save Content</span>
-              </Button>
+            <Link to="/dashboard">
+              <Logo size="sm" />
             </Link>
+
+            <div className="flex items-center space-x-4">
+              <Link to="/save">
+                <Button className="flex items-center space-x-2 transform hover:scale-105 transition-all duration-200">
+                  <Plus size={18} />
+                  <span>Save Content</span>
+                </Button>
+              </Link>
+
+              {/* Profile Link */}
+              <Link
+                to="/account"
+                className="flex items-center space-x-2 pl-3 pr-2 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200"
+              >
+                <UserIcon size={20} className="text-dark-300" />
+                <span className="text-white font-medium text-sm hidden sm:block">
+                  {currentUser?.email}
+                </span>
+                <ChevronRight size={16} className="text-dark-300" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>
