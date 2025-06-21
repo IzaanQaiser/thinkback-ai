@@ -1,11 +1,9 @@
 ### website-changes
 changes needed in the frontend:
-1. make animations smoother & faster (maybe framer motion) OR dont have them at all
-2. search bar colours/stylling
-3. add entry main tag in entry tile (youtube, instagram, personal note, etc)
-4. make 'save content' button look better
-5. restructure view page
-6. add glow to header/main text
-7. edit save page (bottom)
-8. search bar suggestions
-9. trello/jira style veritcal categories
+- [ ] make animations smoother & faster (maybe framer motion) OR dont have them at all
+- [ ] add entry main tag in entry tile (youtube, instagram, personal note, etc)
+- [ ] restructure content-view page
+- [ ] add glow to header/main text
+- [ ] edit save page (bottom)
+- [ ] search bar suggestions
+- [ ] trello/jira style veritcal categories
