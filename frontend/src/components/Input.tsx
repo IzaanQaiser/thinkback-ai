@@ -33,7 +33,7 @@ const Input: React.FC<InputProps> = ({
         value={value}
         onChange={onChange}
         required={required}
-        className="w-full px-4 py-3 border border-dark-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-dark-800/50 backdrop-blur-sm shadow-sm text-dark-100 placeholder-dark-400"
+        className="w-full px-4 py-3 border border-dark-700/60 rounded-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-dark-800/60 backdrop-blur-sm shadow-sm text-dark-100 placeholder-dark-500"
       />
     </div>
   );

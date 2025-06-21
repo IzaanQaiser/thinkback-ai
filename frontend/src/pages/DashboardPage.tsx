@@ -1,46 +1,150 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Plus, Search, User as UserIcon, Sun, Moon, Zap, Clock, Star, LayoutGrid, Folder, Check, X, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import Logo from '../components/Logo';
-import Button from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import ContentCard from '../components/ContentCard';
+import Kbd from '../components/Kbd';
 
-// Flatten and sort mock data to simulate a chronological feed
+// --- Mock Data ---
 const mockData = [
-  { id: '1', title: 'The Science of Building Better Habits', platform: 'youtube', url: 'https://youtube.com/watch?v=example', savedDate: '2024-07-22', notes: 'Excellent breakdown of habit formation psychology', category: 'productivity' },
-  { id: '5', title: 'Investment Strategies for Beginners', platform: 'youtube', url: 'https://youtube.com/watch?v=example2', savedDate: '2024-07-22', notes: 'Comprehensive guide to getting started', category: 'finance' },
-  { id: '2', title: 'Deep Work: How to Focus in a Distracted World', platform: 'reddit', url: 'https://reddit.com/r/productivity/example', savedDate: '2024-07-21', notes: 'Great discussion on maintaining focus', category: 'productivity' },
-  { id: '8', title: 'The Science of Sleep and Recovery', platform: 'youtube', url: 'https://youtube.com/watch?v=example3', savedDate: '2024-07-20', notes: 'Evidence-based approach to better sleep', category: 'health' },
-  { id: '12', title: 'The Future of AI and Machine Learning', platform: 'youtube', url: 'https://youtube.com/watch?v=example4', savedDate: '2024-07-18', notes: 'Fascinating predictions about AI development', category: 'tech' },
-  { id: '3', title: 'Time Blocking Method for Maximum Productivity', platform: 'instagram', url: 'https://instagram.com/p/example', savedDate: '2024-07-15', notes: 'Visual guide to time management', category: 'productivity' },
-  { id: '9', title: 'Mindfulness and Mental Health', platform: 'reddit', url: 'https://reddit.com/r/meditation/example', savedDate: '2024-07-14', notes: 'Community discussion on meditation benefits', category: 'health' },
-  { id: '6', title: 'Understanding Cryptocurrency Markets', platform: 'reddit', url: 'https://reddit.com/r/investing/example2', savedDate: '2024-07-12', notes: 'Detailed analysis of crypto market trends', category: 'finance' },
+  { id: '1', title: 'The Science of Building Better Habits', platform: 'youtube', url: 'https://youtube.com/watch?v=example', savedDate: '2024-07-22', notes: 'Excellent breakdown of habit formation psychology', category: 'Productivity' },
+  { id: '5', title: 'Investment Strategies for Beginners', platform: 'youtube', url: 'https://youtube.com/watch?v=example2', savedDate: '2024-07-22', notes: 'Comprehensive guide to getting started', category: 'Finance' },
+  { id: '2', title: 'Deep Work: How to Focus in a Distracted World', platform: 'reddit', url: 'https://reddit.com/r/productivity/example', savedDate: '2024-07-21', notes: 'Great discussion on maintaining focus', category: 'Productivity' },
+  { id: '8', title: 'The Science of Sleep and Recovery', platform: 'youtube', url: 'https://youtube.com/watch?v=example3', savedDate: '2024-07-20', notes: 'Evidence-based approach to better sleep', category: 'Health' },
+  { id: '12', title: 'The Future of AI and Machine Learning', platform: 'youtube', url: 'https://youtube.com/watch?v=example4', savedDate: '2024-07-18', notes: 'Fascinating predictions about AI development', category: 'Tech' },
+  { id: '3', title: 'Time Blocking Method for Maximum Productivity', platform: 'instagram', url: 'https://instagram.com/p/example', savedDate: '2024-07-15', notes: 'Visual guide to time management', category: 'Productivity' },
+  { id: '9', title: 'Mindfulness and Mental Health', platform: 'reddit', url: 'https://reddit.com/r/meditation/example', savedDate: '2024-07-14', notes: 'Community discussion on meditation benefits', category: 'Health' },
+  { id: '6', title: 'Understanding Cryptocurrency Markets', platform: 'reddit', url: 'https://reddit.com/r/investing/example2', savedDate: '2024-07-12', notes: 'Detailed analysis of crypto market trends', category: 'Finance' },
 ];
 
-// Helper to group items by category
+const smartSuggestions = [
+  { title: "Feeling unproductive? You saved this a month ago.", icon: Clock, item: mockData[2] },
+  { title: "For your morning routine.", icon: Sun, item: mockData[0] },
+  { title: "Ready to wind down?", icon: Moon, item: mockData[7] },
+  { title: "A spark of inspiration for today.", icon: Zap, item: mockData[4] },
+];
+
+const categoryIcons: { [key: string]: React.ElementType } = {
+  Productivity: Zap,
+  Finance: Folder,
+  Health: Moon,
+  Tech: Star
+};
+
+// --- Helper Functions ---
 const groupContentByCategory = (items: typeof mockData) => {
-  const groups: { [key: string]: typeof mockData } = {};
+  const groups: { [key: string]: typeof mockData } = { All: items };
   items.forEach(item => {
     const key = item.category;
-    if (!groups[key]) {
-      groups[key] = [];
-    }
+    if (!groups[key]) groups[key] = [];
     groups[key].push(item);
   });
-
-  // Sort categories for consistent order
-  const sortedGroups: { [key:string]: typeof mockData } = {};
-  Object.keys(groups).sort().forEach(key => {
-    sortedGroups[key] = groups[key];
-  });
-
-  return sortedGroups;
+  return groups;
 };
 
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [ghostSuggestion, setGhostSuggestion] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const location = useLocation();
+  const [isMac, setIsMac] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('For You');
+
+  // State for categories and creation flow
+  const allContentGrouped = groupContentByCategory(mockData);
+  const initialCategories = ['For You', 'All', ...Object.keys(allContentGrouped).filter(c => c !== 'All').sort()];
+  const [categories, setCategories] = useState<string[]>(initialCategories);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // State for category context menu
+  const [openMenuCategory, setOpenMenuCategory] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // --- Effects ---
+  useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
+  useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
+  useEffect(() => {
+    if (searchQuery) {
+      const topSuggestion = mockData
+        .map(item => item.title)
+        .find(title => title.toLowerCase().startsWith(searchQuery.toLowerCase()) && title.toLowerCase() !== searchQuery.toLowerCase());
+      setGhostSuggestion(topSuggestion || '');
+    } else {
+      setGhostSuggestion('');
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuCategory(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // --- Handlers ---
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === 'Tab' || e.key === 'ArrowRight' || e.key === 'Enter') && ghostSuggestion) {
+      e.preventDefault();
+      setSearchQuery(ghostSuggestion);
+      setGhostSuggestion('');
+    }
+  };
+
+  const handleAddNewCategory = () => {
+    const trimmedName = newCategoryName.trim();
+    if (trimmedName && !categories.find(c => c.toLowerCase() === trimmedName.toLowerCase())) {
+      const mainCategories = [...categories.filter(c => c !== 'For You' && c !== 'All'), trimmedName].sort();
+      setCategories(['For You', 'All', ...mainCategories]);
+      setSelectedCategory(trimmedName);
+      setNewCategoryName('');
+      setIsCreatingCategory(false);
+    }
+  };
+
+  const handleMenuClick = (e: React.MouseEvent, category: string) => {
+    e.stopPropagation();
+    setOpenMenuCategory(openMenuCategory === category ? null : category);
+  };
+
+  const handleRename = (category: string) => {
+    setEditingCategory(category);
+    setEditingCategoryName(category);
+    setOpenMenuCategory(null);
+  };
+
+  const handleSaveRename = (oldName: string) => {
+    const newName = editingCategoryName.trim();
+    if (newName && newName !== oldName && !categories.find(c => c.toLowerCase() === newName.toLowerCase())) {
+      setCategories(prev => {
+        const newCategories = prev.map(c => c === oldName ? newName : c);
+        const mainCategories = newCategories.filter(c => c !== 'For You' && c !== 'All').sort();
+        return ['For You', 'All', ...mainCategories];
+      });
+      if (selectedCategory === oldName) {
+        setSelectedCategory(newName);
+      }
+    }
+    setEditingCategory(null);
+    setEditingCategoryName('');
+  };
+
+  const handleDelete = (categoryToDelete: string) => {
+    setOpenMenuCategory(null);
+    if (window.confirm(`Are you sure you want to delete the "${categoryToDelete}" category?`)) {
+      setCategories(prev => prev.filter(c => c !== categoryToDelete));
+      if (selectedCategory === categoryToDelete) {
+        setSelectedCategory('All');
+      }
+    }
+  };
 
   const filteredData = mockData.filter(item =>
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -49,25 +153,21 @@ const DashboardPage: React.FC = () => {
   );
 
   const groupedContent = groupContentByCategory(filteredData);
+  const contentToDisplay = selectedCategory === 'All' ? filteredData : groupedContent[selectedCategory] || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-white">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-dark-900/30 backdrop-blur-xl border-b border-dark-800/50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="sticky top-0 z-30 bg-dark-900/30 backdrop-blur-xl border-b border-dark-800/50">
+        <div className="max-w-screen-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/dashboard">
-              <Logo size="sm" />
-            </Link>
+            <Link to="/dashboard"><Logo size="sm" /></Link>
             <div className="flex items-center space-x-2">
-              <Link to="/save" className="flex items-center space-x-2 px-4 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
-                <Plus size={18} />
-                <span className="font-medium text-sm">Save Content</span>
+              <Link to="/save" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
+                <Plus size={16} /><span className="font-medium text-sm">Save</span><Kbd>{isMac ? '⌘' : 'Ctrl'}+I</Kbd>
               </Link>
-              <Link to="/account" className="flex items-center space-x-2 pl-3 pr-2 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
-                <UserIcon size={20} className="text-dark-300" />
-                <span className="text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span>
-                <ChevronRight size={16} className="text-dark-300" />
+              <Link to="/account" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
+                <UserIcon size={20} className="text-dark-300" /><span className="text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span><Kbd>{isMac ? '⌘' : 'Ctrl'}+M</Kbd>
               </Link>
             </div>
           </div>
@@ -75,52 +175,183 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        <div>
-          {/* Page Header */}
-          <div className="mb-10">
-            <h1 className="text-5xl font-bold mb-2" style={{ textShadow: '0 0 15px rgba(14, 165, 233, 0.4)' }}>Your Vault</h1>
-            <p className="text-dark-400 text-lg">Your saved knowledge, organized by topic.</p>
-          </div>
-
-          {/* Search Bar */}
-          <div className="mb-12">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-purple-600 rounded-full blur-md opacity-50 group-hover:opacity-75 transition duration-300"></div>
-              <div className="relative bg-dark-800/50 border border-dark-700/60 rounded-full shadow-lg">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search by keyword, topic, or platform..."
-                  className="w-full bg-transparent py-3 pl-14 pr-6 text-white placeholder-dark-400 focus:outline-none"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+      <div className="max-w-screen-2xl mx-auto px-6 py-10">
+        {/* Search Header */}
+        <div className="mb-8">
+          <div className="relative">
+            <div className="relative bg-dark-800/50 border border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-400" size={20} />
+              <div className="relative w-full">
+                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-white placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleKeyDown} autoComplete="off" />
+                <div className="absolute inset-y-0 left-0 w-full py-3 pl-14 pr-16 text-dark-500 pointer-events-none">
+                  {ghostSuggestion && (<span><span className="opacity-0">{searchQuery}</span><span>{ghostSuggestion.substring(searchQuery.length)}</span></span>)}
+                </div>
               </div>
+              <Kbd>{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
             </div>
           </div>
+        </div>
 
-          {/* Content Feed */}
-          <div className="space-y-16">
-            {Object.keys(groupedContent).length > 0 ? (
-              Object.entries(groupedContent).map(([category, items]) => (
-                <section key={category}>
-                  <h2 className="text-2xl font-bold text-white mb-6 capitalize">{category}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {items.map((item) => (
-                      <ContentCard key={item.id} item={item} />
-                    ))}
-                  </div>
-                </section>
-              ))
+        {/* Two-column Layout */}
+        <div className="flex space-x-8">
+          {/* Left Sidebar */}
+          <aside className="w-1/4 xl:w-1/5">
+            <div className="sticky top-32">
+              <h2 className="text-xs text-dark-400 font-semibold uppercase tracking-wider mb-3 px-3">Categories</h2>
+              <nav className="flex flex-col space-y-1">
+                {categories.map(category => {
+                  const isActive = selectedCategory === category;
+                  const isSpecialCategory = category === 'For You' || category === 'All';
+                  const isEditing = editingCategory === category;
+                  const Icon = category === 'For You' ? Star : category === 'All' ? LayoutGrid : categoryIcons[category] || Folder;
+
+                  return (
+                    <div key={category} className="relative px-3">
+                      <button
+                        onClick={() => !isEditing && setSelectedCategory(category)}
+                        className={`relative flex items-center w-full h-9 rounded-full px-4 transition-colors duration-200 ${isActive ? 'bg-primary-500/10 text-primary-400' : 'text-dark-200 hover:bg-dark-800/60 hover:text-white'} ${isEditing ? 'bg-dark-800/60' : ''}`}
+                      >
+                        <div className="flex items-center space-x-3 text-left w-full">
+                          <Icon size={18} className={`flex-shrink-0 ${isActive ? 'text-primary-400' : 'text-dark-400'}`} />
+                          {isEditing ? (
+                             <input
+                              type="text"
+                              value={editingCategoryName}
+                              onChange={(e) => setEditingCategoryName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveRename(category);
+                                if (e.key === 'Escape') setEditingCategory(null);
+                              }}
+                              onBlur={() => handleSaveRename(category)}
+                              className="w-full bg-transparent text-sm font-medium focus:outline-none"
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="font-medium text-sm flex-grow truncate">{category}</span>
+                          )}
+                        </div>
+
+                        {!isSpecialCategory && !isEditing && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <button onClick={(e) => handleMenuClick(e, category)} className="p-1 text-dark-400 hover:text-white transition-colors">
+                              <MoreHorizontal size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </button>
+
+                      {openMenuCategory === category && (
+                        <div
+                          ref={menuRef}
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-36 bg-dark-800/80 backdrop-blur-lg border border-dark-700 rounded-xl shadow-lg z-20 p-1"
+                        >
+                          <button
+                            onClick={() => handleRename(category)}
+                            className="flex items-center gap-2 w-full text-left p-2 rounded-md text-sm text-dark-200 hover:text-white hover:bg-dark-700 transition-colors"
+                          >
+                            <Edit size={14} className="text-dark-400" />
+                            <span>Rename</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(category)}
+                            className="flex items-center gap-2 w-full text-left p-2 rounded-md text-sm text-red-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* New Category Input */}
+                <div className="mt-1 px-3">
+                  {isCreatingCategory ? (
+                    <div className="flex items-center space-x-2 h-9">
+                      <input
+                        type="text"
+                        placeholder="New category..."
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleAddNewCategory() }}
+                        className="w-full h-full bg-dark-800 text-sm px-4 rounded-full focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
+                        autoFocus
+                        onBlur={() => { if(!newCategoryName) setIsCreatingCategory(false); }}
+                      />
+                      <button onClick={handleAddNewCategory} className="p-2 text-primary-400 hover:text-white rounded-full hover:bg-dark-700 transition-colors">
+                        <Check size={18} />
+                      </button>
+                      <button onClick={() => setIsCreatingCategory(false)} className="p-2 text-dark-400 hover:text-white rounded-full hover:bg-dark-700 transition-colors">
+                        <X size={18} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setIsCreatingCategory(true)}
+                      className="flex items-center w-full h-9 px-4 rounded-full text-dark-300 hover:bg-dark-800/60 hover:text-white transition-colors duration-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Plus size={18} className="text-dark-400" />
+                        <span className="font-medium text-sm">New Category</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </nav>
+            </div>
+          </aside>
+
+          {/* Right Content */}
+          <main className="w-3/4 xl:w-4/5">
+            {selectedCategory === 'For You' ? (
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6">For You</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {smartSuggestions.map((suggestion, index) => {
+                    const Icon = suggestion.icon;
+                    return (
+                      <Link to={`/view/${suggestion.item.id}`} key={index} className="bg-dark-800/50 p-4 rounded-xl flex items-center space-x-4 hover:bg-dark-700/70 transition-colors duration-200">
+                        <Icon className="text-primary-400 flex-shrink-0" size={20} />
+                        <div className="overflow-hidden">
+                          <p className="text-sm text-white truncate">{suggestion.title}</p>
+                          <p className="text-xs text-dark-400 truncate">{suggestion.item.title}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="border-b border-dark-800 my-8"></div>
+                <h2 className="text-2xl font-bold text-white mb-6">All Content</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filteredData.map(item => <ContentCard key={item.id} item={item} />)}
+                </div>
+              </div>
             ) : (
-              <div className="text-center py-16">
-                <p className="text-xl text-dark-400">No results found for "{searchQuery}"</p>
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-6 capitalize">{selectedCategory}</h2>
+                {contentToDisplay.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {contentToDisplay.map(item => <ContentCard key={item.id} item={item} />)}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 w-full flex flex-col items-center justify-center space-y-4">
+                    {searchQuery ? (
+                      <p className="text-xl text-dark-400">No results found for "{searchQuery}" in this category.</p>
+                    ) : (
+                      <>
+                        <Folder size={48} className="text-dark-600" />
+                        <h3 className="text-xl font-semibold text-dark-300">This category is empty.</h3>
+                        <p className="text-dark-400 max-w-sm">There's no content here yet. Save something new to see it appear.</p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </main>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
