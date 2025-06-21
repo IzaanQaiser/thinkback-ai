@@ -3,16 +3,44 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { verifyUserToken } from '../services/api';
 
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, getIdToken } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock authentication - in real app, this would be API call
-    navigate('/dashboard');
+    setError('');
+    setLoading(true);
+
+    try {
+      // 1. Sign in user with Firebase Auth
+      await login(email, password);
+
+      // 2. Get ID token
+      const idToken = await getIdToken();
+      if (!idToken) {
+        throw new Error('Could not retrieve ID token.');
+      }
+
+      // 3. Verify token with backend
+      const backendResponse = await verifyUserToken(idToken);
+      console.log('Backend verification successful:', backendResponse);
+
+      navigate('/dashboard');
+
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      setError(err.message || 'Failed to sign in. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,6 +96,8 @@ const AuthPage: React.FC = () => {
             <p className="text-dark-400">Sign in to your account</p>
           </div>
 
+          {error && <div className="bg-red-500/10 border border-red-500/30 text-red-300 p-3 rounded-md mb-4 text-center animate-fade-in">{error}</div>}
+
           <form onSubmit={handleSubmit} className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <Input
               label="Email"
@@ -87,8 +117,8 @@ const AuthPage: React.FC = () => {
               required
             />
 
-            <Button type="submit" className="w-full transform hover:scale-105 transition-all duration-200" size="lg">
-              Log In
+            <Button type="submit" className="w-full transform hover:scale-105 transition-all duration-200" size="lg" disabled={loading}>
+              {loading ? 'Logging In...' : 'Log In'}
             </Button>
           </form>
 

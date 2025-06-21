@@ -8,6 +8,9 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
+# Firebase
+# IMPORTANT: This file contains sensitive credentials.
+# Make sure it is NEVER committed to version control.
 infrastructure/credentials/service-account.json
 
 # Documentation

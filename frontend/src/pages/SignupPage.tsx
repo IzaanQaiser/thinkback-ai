@@ -3,17 +3,48 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import { useAuth } from '../contexts/AuthContext';
+import { verifyUserToken } from '../services/api';
 
 const SignupPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signup, getIdToken } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock signup - in real app, this would be API call
-    navigate('/dashboard');
+    setError('');
+    setLoading(true);
+
+    try {
+      // 1. Create user in Firebase Auth
+      await signup(email, password);
+
+      // 2. Get the ID token from the newly created user
+      const idToken = await getIdToken();
+      if (!idToken) {
+        throw new Error('Could not retrieve ID token.');
+      }
+
+      // 3. Verify the token with our backend
+      const backendResponse = await verifyUserToken(idToken);
+      console.log('Backend verification successful:', backendResponse);
+
+      // Optional: Store UID or other user info from backend if needed
+      // For now, Firebase Auth state handles redirection
+
+      navigate('/dashboard');
+
+    } catch (err: any) {
+      console.error("Signup failed:", err);
+      setError(err.message || 'Failed to create an account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,6 +100,8 @@ const SignupPage: React.FC = () => {
             <p className="text-dark-400">Start building your knowledge vault</p>
           </div>
 
+          {error && <div className="bg-red-500/10 border border-red-500/30 text-red-300 p-3 rounded-md mb-4 text-center animate-fade-in">{error}</div>}
+
           <form onSubmit={handleSubmit} className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <Input
               label="Full Name"
@@ -97,8 +130,8 @@ const SignupPage: React.FC = () => {
               required
             />
 
-            <Button type="submit" className="w-full transform hover:scale-105 transition-all duration-200" size="lg">
-              Sign Up
+            <Button type="submit" className="w-full transform hover:scale-105 transition-all duration-200" size="lg" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
 
