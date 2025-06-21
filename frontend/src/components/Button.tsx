@@ -20,7 +20,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled = false,
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-semibold rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-900 transition-all duration-200';
+    'inline-flex items-center justify-center font-semibold rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-white dark:focus:ring-offset-dark-900 transition-all duration-200 gap-2';
 
   const sizeStyles = {
     sm: 'px-3 py-1.5 text-sm',
@@ -32,11 +32,11 @@ const Button: React.FC<ButtonProps> = ({
     primary:
       'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 disabled:bg-primary-400/50 disabled:cursor-not-allowed',
     secondary:
-      'bg-dark-700 text-white hover:bg-dark-600 focus:ring-dark-500 disabled:bg-dark-700/50 disabled:cursor-not-allowed',
+      'bg-dark-200 text-dark-800 hover:bg-dark-300 dark:bg-dark-700 dark:text-white dark:hover:bg-dark-600 focus:ring-dark-500 disabled:bg-dark-200/50 dark:disabled:bg-dark-700/50 disabled:cursor-not-allowed',
     danger:
       'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 disabled:bg-red-500/50 disabled:cursor-not-allowed',
     ghost:
-      'bg-transparent text-dark-300 hover:bg-dark-800 hover:text-white focus:ring-primary-500 disabled:text-dark-500 disabled:cursor-not-allowed shadow-none',
+      'bg-transparent text-dark-600 hover:bg-dark-100 hover:text-dark-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white focus:ring-primary-500 disabled:text-dark-500 disabled:cursor-not-allowed shadow-none',
   };
 
   return (

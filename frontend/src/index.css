@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 html, body {
   overscroll-behavior: none;
   scroll-behavior: smooth;
@@ -7,12 +9,46 @@ html, body {
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Autofill Styles */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
-  -webkit-text-fill-color: #e0e0e0 !important;
-  caret-color: #e0e0e0 !important;
+/* Light theme custom autofill */
+html:not(.dark) input:-webkit-autofill,
+html:not(.dark) input:-webkit-autofill:hover,
+html:not(.dark) input:-webkit-autofill:focus,
+html:not(.dark) input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #e2e8f0 inset !important; /* Corresponds to dark-200 */
+  -webkit-text-fill-color: #0f172a !important; /* Corresponds to dark-900 */
+  caret-color: #0f172a !important;
+}
+
+/* Dark theme custom autofill */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1e293b inset !important; /* Corresponds to dark-800 */
+  -webkit-text-fill-color: #e2e8f0 !important; /* Corresponds to dark-200 */
+  caret-color: #e2e8f0 !important;
+}
+
+/* Custom scrollbar for modern browsers */
+::-webkit-scrollbar {
+    width: 12px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+html.dark ::-webkit-scrollbar-thumb {
+    background-color: #1e293b; /* dark-800 */
+    border-radius: 6px;
+    border: 3px solid #0f172a; /* dark-900 */
+}
+html.light ::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1; /* dark-300 */
+    border-radius: 6px;
+    border: 3px solid #f1f5f9; /* dark-100 */
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #334155; /* dark-700 */
+}
+html.light ::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8; /* dark-400 */
 }
