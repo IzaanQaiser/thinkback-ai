@@ -1,0 +1,25 @@
+### tools-and-stats
+#### tools (off rip):
+- FastAPI - Python web framework for building APIs
+- Uvicorn - ASGI (Asynchronous Server Gateway Interface) server for running FastAPI Apps
+- Starlette - ASGI (Asynchronous Server Gateway Interface) framework/toolkit
+- OpenAI - OpenAI Python
+- LiteLLM
+- Hugging Face Hub
+- Tiktoken
+- Tokenizers
+- AgentKit
+- NetworkKit
+- Pydantic
+- Pydantic Core
+- HTTPX
+- HTTPCore
+- AIOHTTP
+- Requests
+- Pytest
+- Pre-commit
+- Black
+- Python-dotenv
+- Click
+- PyYAML
+- decided to complete when I actually know what I have don
