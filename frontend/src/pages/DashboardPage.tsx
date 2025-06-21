@@ -3,20 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { Plus, Search, User as UserIcon, Sun, Moon, Zap, Clock, Star, LayoutGrid, Folder, Check, X, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
-
-// --- Mock Data ---
-const mockData = [
-  { id: '1', title: 'The Science of Building Better Habits', platform: 'youtube', url: 'https://youtube.com/watch?v=example', savedDate: '2024-07-22', notes: 'Excellent breakdown of habit formation psychology', category: 'Productivity' },
-  { id: '5', title: 'Investment Strategies for Beginners', platform: 'youtube', url: 'https://youtube.com/watch?v=example2', savedDate: '2024-07-22', notes: 'Comprehensive guide to getting started', category: 'Finance' },
-  { id: '2', title: 'Deep Work: How to Focus in a Distracted World', platform: 'reddit', url: 'https://reddit.com/r/productivity/example', savedDate: '2024-07-21', notes: 'Great discussion on maintaining focus', category: 'Productivity' },
-  { id: '8', title: 'The Science of Sleep and Recovery', platform: 'youtube', url: 'https://youtube.com/watch?v=example3', savedDate: '2024-07-20', notes: 'Evidence-based approach to better sleep', category: 'Health' },
-  { id: '12', title: 'The Future of AI and Machine Learning', platform: 'youtube', url: 'https://youtube.com/watch?v=example4', savedDate: '2024-07-18', notes: 'Fascinating predictions about AI development', category: 'Tech' },
-  { id: '3', title: 'Time Blocking Method for Maximum Productivity', platform: 'instagram', url: 'https://instagram.com/p/example', savedDate: '2024-07-15', notes: 'Visual guide to time management', category: 'Productivity' },
-  { id: '9', title: 'Mindfulness and Mental Health', platform: 'reddit', url: 'https://reddit.com/r/meditation/example', savedDate: '2024-07-14', notes: 'Community discussion on meditation benefits', category: 'Health' },
-  { id: '6', title: 'Understanding Cryptocurrency Markets', platform: 'reddit', url: 'https://reddit.com/r/investing/example2', savedDate: '2024-07-12', notes: 'Detailed analysis of crypto market trends', category: 'Finance' },
-];
+import { mockData } from '../data/mockData';
 
 const smartSuggestions = [
   { title: "Feeling unproductive? You saved this a month ago.", icon: Clock, item: mockData[2] },
@@ -45,6 +35,7 @@ const groupContentByCategory = (items: typeof mockData) => {
 
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [ghostSuggestion, setGhostSuggestion] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -156,18 +147,25 @@ const DashboardPage: React.FC = () => {
   const contentToDisplay = selectedCategory === 'All' ? filteredData : groupedContent[selectedCategory] || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-white">
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-dark-900/30 backdrop-blur-xl border-b border-dark-800/50">
+      <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
         <div className="max-w-screen-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link to="/dashboard"><Logo size="sm" /></Link>
             <div className="flex items-center space-x-2">
-              <Link to="/save" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-primary-400" />}
+              </button>
+              <Link to="/save" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
                 <Plus size={16} /><span className="font-medium text-sm">Save</span><Kbd>{isMac ? '⌘' : 'Ctrl'}+I</Kbd>
               </Link>
-              <Link to="/account" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-800/50 hover:bg-dark-700/70 transition-colors duration-200">
-                <UserIcon size={20} className="text-dark-300" /><span className="text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span><Kbd>{isMac ? '⌘' : 'Ctrl'}+M</Kbd>
+              <Link to="/account" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
+                <UserIcon size={20} className="text-dark-400 dark:text-dark-300" /><span className="text-dark-800 dark:text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span><Kbd>{isMac ? '⌘' : 'Ctrl'}+M</Kbd>
               </Link>
             </div>
           </div>
@@ -179,11 +177,11 @@ const DashboardPage: React.FC = () => {
         {/* Search Header */}
         <div className="mb-8">
           <div className="relative">
-            <div className="relative bg-dark-800/50 border border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-400" size={20} />
+            <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
               <div className="relative w-full">
-                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-white placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleKeyDown} autoComplete="off" />
-                <div className="absolute inset-y-0 left-0 w-full py-3 pl-14 pr-16 text-dark-500 pointer-events-none">
+                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleKeyDown} autoComplete="off" />
+                <div className="absolute inset-y-0 left-0 w-full py-3 pl-14 pr-16 text-dark-400 dark:text-dark-500 pointer-events-none">
                   {ghostSuggestion && (<span><span className="opacity-0">{searchQuery}</span><span>{ghostSuggestion.substring(searchQuery.length)}</span></span>)}
                 </div>
               </div>
@@ -197,7 +195,7 @@ const DashboardPage: React.FC = () => {
           {/* Left Sidebar */}
           <aside className="w-1/4 xl:w-1/5">
             <div className="sticky top-32">
-              <h2 className="text-xs text-dark-400 font-semibold uppercase tracking-wider mb-3 px-3">Categories</h2>
+              <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider mb-3 px-3">Categories</h2>
               <nav className="flex flex-col space-y-1">
                 {categories.map(category => {
                   const isActive = selectedCategory === category;
@@ -209,10 +207,10 @@ const DashboardPage: React.FC = () => {
                     <div key={category} className="relative px-3">
                       <button
                         onClick={() => !isEditing && setSelectedCategory(category)}
-                        className={`relative flex items-center w-full h-9 rounded-full px-4 transition-colors duration-200 ${isActive ? 'bg-primary-500/10 text-primary-400' : 'text-dark-200 hover:bg-dark-800/60 hover:text-white'} ${isEditing ? 'bg-dark-800/60' : ''}`}
+                        className={`relative flex items-center w-full h-9 rounded-full px-4 transition-colors duration-200 ${isActive ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200 hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'} ${isEditing ? 'bg-dark-200/60 dark:bg-dark-800/60' : ''}`}
                       >
                         <div className="flex items-center space-x-3 text-left w-full">
-                          <Icon size={18} className={`flex-shrink-0 ${isActive ? 'text-primary-400' : 'text-dark-400'}`} />
+                          <Icon size={18} className={`flex-shrink-0 ${isActive ? 'text-primary-500 dark:text-primary-400' : 'text-dark-400 dark:text-dark-400'}`} />
                           {isEditing ? (
                              <input
                               type="text"
@@ -233,7 +231,7 @@ const DashboardPage: React.FC = () => {
 
                         {!isSpecialCategory && !isEditing && (
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <button onClick={(e) => handleMenuClick(e, category)} className="p-1 text-dark-400 hover:text-white transition-colors">
+                            <button onClick={(e) => handleMenuClick(e, category)} className="p-1 text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white transition-colors">
                               <MoreHorizontal size={16} />
                             </button>
                           </div>
@@ -243,11 +241,11 @@ const DashboardPage: React.FC = () => {
                       {openMenuCategory === category && (
                         <div
                           ref={menuRef}
-                          className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-36 bg-dark-800/80 backdrop-blur-lg border border-dark-700 rounded-xl shadow-lg z-20 p-1"
+                          className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-36 bg-dark-100/80 dark:bg-dark-800/80 backdrop-blur-lg border border-dark-200/80 dark:border-dark-700 rounded-xl shadow-lg z-20 p-1"
                         >
                           <button
                             onClick={() => handleRename(category)}
-                            className="flex items-center gap-2 w-full text-left p-2 rounded-md text-sm text-dark-200 hover:text-white hover:bg-dark-700 transition-colors"
+                            className="flex items-center gap-2 w-full text-left p-2 rounded-md text-sm text-dark-600 dark:text-dark-200 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700 transition-colors"
                           >
                             <Edit size={14} className="text-dark-400" />
                             <span>Rename</span>
@@ -275,21 +273,21 @@ const DashboardPage: React.FC = () => {
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleAddNewCategory() }}
-                        className="w-full h-full bg-dark-800 text-sm px-4 rounded-full focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
+                        className="w-full h-full bg-dark-100 dark:bg-dark-800 text-sm px-4 rounded-full focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
                         autoFocus
                         onBlur={() => { if(!newCategoryName) setIsCreatingCategory(false); }}
                       />
-                      <button onClick={handleAddNewCategory} className="p-2 text-primary-400 hover:text-white rounded-full hover:bg-dark-700 transition-colors">
+                      <button onClick={handleAddNewCategory} className="p-2 text-primary-500 dark:text-primary-400 hover:text-dark-900 dark:hover:text-white rounded-full hover:bg-dark-200/70 dark:hover:bg-dark-700 transition-colors">
                         <Check size={18} />
                       </button>
-                      <button onClick={() => setIsCreatingCategory(false)} className="p-2 text-dark-400 hover:text-white rounded-full hover:bg-dark-700 transition-colors">
+                      <button onClick={() => setIsCreatingCategory(false)} className="p-2 text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white rounded-full hover:bg-dark-200/70 dark:hover:bg-dark-700 transition-colors">
                         <X size={18} />
                       </button>
                     </div>
                   ) : (
                     <button
                       onClick={() => setIsCreatingCategory(true)}
-                      className="flex items-center w-full h-9 px-4 rounded-full text-dark-300 hover:bg-dark-800/60 hover:text-white transition-colors duration-200"
+                      className="flex items-center w-full h-9 px-4 rounded-full text-dark-600 dark:text-dark-300 hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white transition-colors duration-200"
                     >
                       <div className="flex items-center space-x-3">
                         <Plus size={18} className="text-dark-400" />
@@ -306,30 +304,30 @@ const DashboardPage: React.FC = () => {
           <main className="w-3/4 xl:w-4/5">
             {selectedCategory === 'For You' ? (
               <div>
-                <h2 className="text-2xl font-bold text-white mb-6">For You</h2>
+                <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6">For You</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                   {smartSuggestions.map((suggestion, index) => {
                     const Icon = suggestion.icon;
                     return (
-                      <Link to={`/view/${suggestion.item.id}`} key={index} className="bg-dark-800/50 p-4 rounded-xl flex items-center space-x-4 hover:bg-dark-700/70 transition-colors duration-200">
-                        <Icon className="text-primary-400 flex-shrink-0" size={20} />
+                      <Link to={`/view/${suggestion.item.id}`} key={index} className="bg-dark-100/50 dark:bg-dark-800/50 p-4 rounded-xl flex items-center space-x-4 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
+                        <Icon className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={20} />
                         <div className="overflow-hidden">
-                          <p className="text-sm text-white truncate">{suggestion.title}</p>
-                          <p className="text-xs text-dark-400 truncate">{suggestion.item.title}</p>
+                          <p className="text-sm text-dark-900 dark:text-white truncate">{suggestion.title}</p>
+                          <p className="text-xs text-dark-500 dark:text-dark-400 truncate">{suggestion.item.title}</p>
                         </div>
                       </Link>
                     );
                   })}
                 </div>
-                <div className="border-b border-dark-800 my-8"></div>
-                <h2 className="text-2xl font-bold text-white mb-6">All Content</h2>
+                <div className="border-b border-dark-200 dark:border-dark-800 my-8"></div>
+                <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6">All Content</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredData.map(item => <ContentCard key={item.id} item={item} />)}
                 </div>
               </div>
             ) : (
               <div>
-                <h2 className="text-2xl font-bold text-white mb-6 capitalize">{selectedCategory}</h2>
+                <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6 capitalize">{selectedCategory}</h2>
                 {contentToDisplay.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {contentToDisplay.map(item => <ContentCard key={item.id} item={item} />)}
@@ -337,12 +335,12 @@ const DashboardPage: React.FC = () => {
                 ) : (
                   <div className="text-center py-16 w-full flex flex-col items-center justify-center space-y-4">
                     {searchQuery ? (
-                      <p className="text-xl text-dark-400">No results found for "{searchQuery}" in this category.</p>
+                      <p className="text-xl text-dark-500 dark:text-dark-400">No results found for "{searchQuery}" in this category.</p>
                     ) : (
                       <>
-                        <Folder size={48} className="text-dark-600" />
-                        <h3 className="text-xl font-semibold text-dark-300">This category is empty.</h3>
-                        <p className="text-dark-400 max-w-sm">There's no content here yet. Save something new to see it appear.</p>
+                        <Folder size={48} className="text-dark-300 dark:text-dark-600" />
+                        <h3 className="text-xl font-semibold text-dark-600 dark:text-dark-300">This category is empty.</h3>
+                        <p className="text-dark-500 dark:text-dark-400 max-w-sm">There's no content here yet. Save something new to see it appear.</p>
                       </>
                     )}
                   </div>

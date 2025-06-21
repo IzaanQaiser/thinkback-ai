@@ -8,6 +8,8 @@ interface InputProps {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   required?: boolean;
+  endIcon?: React.ReactNode;
+  onEndIconClick?: () => void;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -17,24 +19,37 @@ const Input: React.FC<InputProps> = ({
   value,
   onChange,
   className = '',
-  required = false
+  required = false,
+  endIcon,
+  onEndIconClick
 }) => {
   return (
     <div className={`${className}`}>
       {label && (
-        <label className="block text-sm font-medium text-dark-300 mb-2">
+        <label className="block text-sm font-medium text-dark-600 dark:text-dark-300 mb-2">
           {label}
           {required && <span className="text-red-400 ml-1">*</span>}
         </label>
       )}
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        required={required}
-        className="w-full px-4 py-3 border border-dark-700/60 rounded-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-dark-800/60 backdrop-blur-sm shadow-sm text-dark-100 placeholder-dark-500"
-      />
+      <div className="relative">
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          required={required}
+          className="w-full pl-4 pr-16 py-3 border border-dark-300 dark:border-dark-700/60 rounded-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white/50 dark:bg-dark-800/60 backdrop-blur-sm shadow-sm text-dark-900 dark:text-dark-100 placeholder-dark-500"
+        />
+        {endIcon && (
+            <button
+              type="button"
+              onClick={onEndIconClick}
+              className="absolute inset-y-0 right-0 flex items-center px-4 text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white transition-colors"
+            >
+              {endIcon}
+            </button>
+        )}
+      </div>
     </div>
   );
 };

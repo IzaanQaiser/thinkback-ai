@@ -24,21 +24,21 @@ const ContentCard: React.FC<ContentCardProps> = ({ item }) => {
   return (
     <Link
       to={`/view/${item.id}`}
-      className="block bg-dark-800/50 p-5 rounded-xl border border-transparent hover:border-primary-500/30 hover:bg-dark-800 transition-all duration-200 group"
+      className="block bg-dark-100 dark:bg-dark-800/50 p-5 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group"
     >
       <div className="flex items-start space-x-4">
         <div className="mt-1">
-          <Icon className="w-5 h-5 text-dark-400 group-hover:text-primary-400 transition-colors" />
+          <Icon className="w-5 h-5 text-dark-500 dark:text-dark-400 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors" />
         </div>
         <div className="flex-grow">
-          <h3 className="font-semibold text-white mb-1 leading-snug">{item.title}</h3>
-          <p className="text-sm text-dark-400 line-clamp-2">{item.notes}</p>
+          <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug">{item.title}</h3>
+          <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2">{item.notes}</p>
         </div>
       </div>
       <div className="mt-4 flex justify-end">
-        <button className="text-xs font-semibold text-primary-400/80 group-hover:text-primary-400 transition-colors">
+        <div className="text-xs font-semibold text-primary-500/80 dark:text-primary-400/80 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
           View Content &rarr;
-        </button>
+        </div>
       </div>
     </Link>
   );
