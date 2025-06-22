@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
@@ -8,20 +8,35 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import { verifyUserToken } from '../services/api';
 import { mapFirebaseAuthError } from '../utils/errors';
+import { signupQuotes } from '../data/quotes';
 
 const SignupPage: React.FC = () => {
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup, getIdToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const [quote, setQuote] = useState({ text: "", author: "" });
+
+  useEffect(() => {
+    document.title = 'thinkback.ai - Signup';
+    const randomQuote =
+      signupQuotes[Math.floor(Math.random() * signupQuotes.length)];
+    setQuote(randomQuote);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -43,9 +58,10 @@ const SignupPage: React.FC = () => {
 
       navigate('/dashboard');
 
-    } catch (err: any) {
-      console.error("Signup failed:", err);
-      setError(mapFirebaseAuthError(err.message));
+    } catch (err) {
+      const error = err as Error;
+      console.error("Signup failed:", error);
+      setError(mapFirebaseAuthError(error.message));
     } finally {
       setLoading(false);
     }
@@ -59,7 +75,7 @@ const SignupPage: React.FC = () => {
           className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
           aria-label="Toggle theme"
         >
-          {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-primary-400" />}
+          {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
         </button>
       </div>
       {/* Left Side - Branding */}
@@ -88,9 +104,9 @@ const SignupPage: React.FC = () => {
 
           <div className="mt-12 p-6 bg-white/30 dark:bg-dark-800/30 backdrop-blur-xl rounded-2xl border border-dark-200/30 dark:border-dark-700/30 animate-slide-up transform hover:scale-105 transition-all duration-500">
             <p className="text-dark-700 dark:text-dark-200 italic">
-              "We are what we repeatedly do. Excellence, then, is not an act, but a habit."
+              &ldquo;{quote.text}&rdquo;
             </p>
-            <p className="text-sm text-dark-500 dark:text-dark-400 mt-2">— Aristotle</p>
+            <p className="text-sm text-dark-500 dark:text-dark-400 mt-2">&mdash; {quote.author}</p>
           </div>
         </div>
       </div>
@@ -117,15 +133,6 @@ const SignupPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <Input
-              label="Full Name"
-              type="text"
-              placeholder="Enter your full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-
-            <Input
               label="Email"
               type="email"
               placeholder="Enter your email"
@@ -143,7 +150,16 @@ const SignupPage: React.FC = () => {
               required
             />
 
-            <Button type="submit" className="w-full transform hover:scale-105 transition-all duration-200" size="lg" disabled={loading}>
+            <Input
+              label="Confirm Password"
+              type="password"
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+
+            <Button type="submit" variant="login" className="w-full !rounded-full transform hover:scale-105 transition-all duration-200" size="lg" disabled={loading}>
               {loading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
@@ -153,7 +169,7 @@ const SignupPage: React.FC = () => {
               Already have an account?{' '}
               <Link
                 to="/auth"
-                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors duration-200 hover:underline"
+                className="font-medium transition-colors duration-200 rounded-lg px-3 py-1 bg-blue-600 text-white hover:bg-blue-700"
               >
                 Log in
               </Link>

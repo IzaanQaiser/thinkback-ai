@@ -3,13 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
-import { User, LogOut, GitBranch, ChevronLeft, KeyRound, ShieldCheck } from 'lucide-react';
+import { User, LogOut, GitBranch, ArrowLeft, KeyRound, ShieldCheck, Sun, Moon } from 'lucide-react';
 import Input from '../components/Input';
 import { changePassword } from '../services/api';
 import Kbd from '../components/Kbd';
+import { useTheme } from '../contexts/ThemeContext';
 
 const AccountPage: React.FC = () => {
   const { currentUser, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,6 +21,7 @@ const AccountPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    document.title = 'thinkback.ai - Account';
     setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
   }, []);
 
@@ -74,8 +77,9 @@ const AccountPage: React.FC = () => {
       setSuccess(response.message);
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || 'An unexpected error occurred.');
     }
   };
 
@@ -89,33 +93,43 @@ const AccountPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Logo size="sm" />
-            <Link to="/dashboard" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
-                <span className="font-medium text-sm">Back to Vault</span>
-                <Kbd>esc</Kbd>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
+              </button>
+              <Link to="/dashboard" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
+                <ArrowLeft size={16} className="sm:hidden" />
+                <span className="font-medium text-sm hidden sm:inline">Back to Vault</span>
+                <Kbd className="hidden sm:block">esc</Kbd>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <main className="max-w-7xl mx-auto px-6 py-10 sm:py-12">
         <div>
-          <h1 className="text-5xl font-bold mb-2 text-dark-900 dark:text-white" style={{ textShadow: '0 0 25px rgba(14, 165, 233, 0.5)' }}>Account Settings</h1>
-          <p className="text-dark-500 dark:text-dark-400 text-lg mb-10">Manage your account details and application settings.</p>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 text-dark-900 dark:text-white" style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}>Account Settings</h1>
+          <p className="text-base sm:text-lg text-dark-500 dark:text-dark-400 mb-8 sm:mb-10">Manage your account details and application settings.</p>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             <div className="lg:col-span-2">
               {/* Main Settings Box */}
-              <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-8 space-y-8">
+              <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 sm:p-8 space-y-8">
                 {/* Profile Section */}
                 <div>
                   <h2 className="text-xl font-semibold flex items-center space-x-3 mb-4 text-dark-900 dark:text-white">
                     <User size={22} className="text-primary-500 dark:text-primary-400" />
                     <span>Profile</span>
                   </h2>
-                  <div className="pl-9">
+                  <div className="pl-0 sm:pl-9">
                     <p className="text-dark-600 dark:text-dark-300">You are logged in as:</p>
-                    <p className="font-mono text-lg text-dark-900 dark:text-white bg-dark-200/50 dark:bg-dark-800/50 inline-block px-3 py-1 rounded-md mt-1">
+                    <p className="font-mono text-base sm:text-lg text-dark-900 dark:text-white bg-dark-200/50 dark:bg-dark-800/50 inline-block px-3 py-1 rounded-md mt-1 break-all">
                       {currentUser?.email}
                     </p>
                   </div>
@@ -127,14 +141,14 @@ const AccountPage: React.FC = () => {
                     <KeyRound size={22} className="text-yellow-400" />
                     <span>Change Password</span>
                   </h2>
-                  <form onSubmit={handleChangePassword} className="pl-9 space-y-4">
+                  <form onSubmit={handleChangePassword} className="pl-0 sm:pl-9 space-y-4">
                     <div className="space-y-4 max-w-sm">
                       <Input
                         label="New Password"
                         type={showPassword ? 'text' : 'password'}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter your new password"
+                        placeholder="New password"
                         required
                         endIcon={
                           <span className="text-xs font-semibold uppercase tracking-wider">
@@ -144,11 +158,11 @@ const AccountPage: React.FC = () => {
                         onEndIconClick={() => setShowPassword(!showPassword)}
                       />
                       <Input
-                        label="Confirm New Password"
+                        label="Confirm Password"
                         type={showPassword ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm your new password"
+                        placeholder="Confirm New password"
                         required
                         endIcon={
                           <span className="text-xs font-semibold uppercase tracking-wider">
@@ -179,22 +193,24 @@ const AccountPage: React.FC = () => {
 
             <div className="lg:col-span-1">
               {/* Sidebar Box */}
-              <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-8 space-y-8">
+              <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 sm:p-8 space-y-8">
                 {/* Actions Section */}
                 <div>
                   <h2 className="text-xl font-semibold flex items-center space-x-3 mb-4 text-dark-900 dark:text-white">
                     <LogOut size={22} className="text-red-400" />
-                    <span>Actions</span>
+                    <span>Log Out</span>
                   </h2>
-                  <div className="pl-9 space-y-4">
-                    <Button
-                      onClick={handleLogout}
-                      variant="secondary"
-                      className="w-full !rounded-full flex items-center justify-between px-4 py-2 !text-red-500 dark:!text-red-400 bg-red-500/5 hover:!bg-red-500/10 border border-red-500/20 hover:border-red-500/30 dark:bg-dark-800/50 dark:!border-red-500/30 dark:hover:!bg-red-500/10 dark:hover:!border-red-500/50"
-                    >
-                      <span className="font-medium text-sm">Log Out</span>
-                      <Kbd>{isMac ? '⌘' : 'Ctrl'}+Shift+L</Kbd>
-                    </Button>
+                  <div className="pl-0 sm:pl-9 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Button
+                        onClick={handleLogout}
+                        variant="secondary"
+                        className="!text-red-500 dark:!text-red-400 bg-red-500/5 hover:!bg-red-500/10 border border-red-500/20 hover:border-red-500/30 dark:bg-dark-800/50 dark:!border-red-500/30 dark:hover:!bg-red-500/10 dark:hover:!border-red-500/50"
+                      >
+                        <span className="font-medium text-sm">Log Out</span>
+                      </Button>
+                       <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+Shift+L</Kbd>
+                    </div>
                     <p className="text-dark-500 dark:text-dark-400 text-sm">This will end your current session.</p>
                   </div>
                 </div>
@@ -205,7 +221,7 @@ const AccountPage: React.FC = () => {
                     <GitBranch size={22} className="text-gray-400" />
                     <span>About</span>
                   </h2>
-                  <div className="pl-9">
+                  <div className="pl-0 sm:pl-9">
                     <p className="text-dark-600 dark:text-dark-300">Current app version:</p>
                     <p className="font-mono text-lg text-dark-900 dark:text-white">
                       v{appVersion}

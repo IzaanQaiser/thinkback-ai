@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
@@ -8,6 +8,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import { verifyUserToken } from '../services/api';
 import { mapFirebaseAuthError } from '../utils/errors';
+import { loginQuotes } from "../data/quotes";
 
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -17,6 +18,14 @@ const AuthPage: React.FC = () => {
   const { login, getIdToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const [quote, setQuote] = useState({ text: "", author: "" });
+
+  useEffect(() => {
+    document.title = 'thinkback.ai - Login';
+    const randomQuote =
+      loginQuotes[Math.floor(Math.random() * loginQuotes.length)];
+    setQuote(randomQuote);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,9 +48,10 @@ const AuthPage: React.FC = () => {
 
       navigate('/dashboard');
 
-    } catch (err: any) {
-      console.error("Login failed:", err);
-      setError(mapFirebaseAuthError(err.message));
+    } catch (err) {
+      const error = err as Error;
+      console.error("Login failed:", error);
+      setError(mapFirebaseAuthError(error.message));
     } finally {
       setLoading(false);
     }
@@ -55,7 +65,7 @@ const AuthPage: React.FC = () => {
           className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
           aria-label="Toggle theme"
         >
-          {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} className="text-primary-400" />}
+          {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
         </button>
       </div>
       {/* Left Side - Branding */}
@@ -84,15 +94,15 @@ const AuthPage: React.FC = () => {
 
           <div className="mt-12 p-6 bg-white/30 dark:bg-dark-800/30 backdrop-blur-xl rounded-2xl border border-dark-200/30 dark:border-dark-700/30 animate-slide-up transform hover:scale-105 transition-all duration-500">
             <p className="text-dark-700 dark:text-dark-200 italic">
-              "The best way to find out if you can trust somebody is to trust them."
+              &ldquo;{quote.text}&rdquo;
             </p>
-            <p className="text-sm text-dark-500 dark:text-dark-400 mt-2">— Ernest Hemingway</p>
+            <p className="text-sm text-dark-500 dark:text-dark-400 mt-2">— {quote.author}</p>
           </div>
         </div>
       </div>
 
       {/* Right Side - Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden">
+      <div className="w-full lg:w-1/2 flex justify-center p-8 py-40 bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary-500/5 rounded-full blur-2xl animate-pulse-subtle"></div>
@@ -130,7 +140,7 @@ const AuthPage: React.FC = () => {
               required
             />
 
-            <Button type="submit" className="w-full transform hover:scale-105 transition-all duration-200" size="lg" disabled={loading}>
+            <Button type="submit" variant="login" className="w-full !rounded-full transform hover:scale-105 transition-all duration-200" size="lg" disabled={loading}>
               {loading ? 'Logging In...' : 'Log In'}
             </Button>
           </form>
@@ -140,7 +150,7 @@ const AuthPage: React.FC = () => {
               Don't have an account?{' '}
               <Link
                 to="/signup"
-                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors duration-200 hover:underline"
+                className="font-medium transition-colors duration-200 rounded-lg px-3 py-1 bg-blue-600 text-white hover:bg-blue-700"
               >
                 Sign up
               </Link>
