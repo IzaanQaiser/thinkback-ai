@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Sun, Moon, Zap, Clock, Star, LayoutGrid, Folder, Check, X, Edit, Pencil, GripVertical } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Sun, Moon, Zap, Clock, Star, LayoutGrid, Folder, Check, X, Edit, Pencil, GripVertical, HelpCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
 import { mockData } from '../data/mockData';
+import HelpModal from '../components/HelpModal';
 import {
   DndContext,
   closestCenter,
@@ -41,7 +42,6 @@ const categoryIcons: { [key: string]: React.ElementType } = {
 
 const protectedCategories = ['For You', 'All', 'Favorites'];
 
-// --- Helper Functions ---
 const groupContentByCategory = (items: typeof mockData) => {
   const groups: { [key: string]: typeof mockData } = {
     All: items,
@@ -162,15 +162,14 @@ const DashboardPage: React.FC = () => {
   const [isMac, setIsMac] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'For You');
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
-  // State for categories and creation flow
   const allContentGrouped = groupContentByCategory(mockData);
   const initialCategories = [...protectedCategories, ...Object.keys(allContentGrouped).filter(c => !protectedCategories.includes(c)).sort()];
   const [categories, setCategories] = useState<string[]>(initialCategories);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // State for category context menu
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
 
@@ -181,7 +180,6 @@ const DashboardPage: React.FC = () => {
     })
   );
 
-  // --- Effects ---
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
 
@@ -210,7 +208,7 @@ const DashboardPage: React.FC = () => {
         const newIndex = items.indexOf(over.id as string);
 
         if (newIndex < protectedCategories.length) {
-          return items; // Prevent dropping into the protected section
+          return items;
         }
 
         return arrayMove(items, oldIndex, newIndex);
@@ -218,7 +216,6 @@ const DashboardPage: React.FC = () => {
     }
   }
 
-  // --- Handlers ---
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if ((e.key === 'Tab' || e.key === 'ArrowRight' || e.key === 'Enter') && ghostSuggestion) {
       e.preventDefault();
@@ -240,7 +237,7 @@ const DashboardPage: React.FC = () => {
 
   const handleEditToggle = () => {
     setIsCategoryEditMode(!isCategoryEditMode);
-    setEditingCategory(null); // Exit any active rename when toggling main edit mode
+    setEditingCategory(null);
   }
 
   const handleRename = (category: string) => {
@@ -251,210 +248,205 @@ const DashboardPage: React.FC = () => {
   const handleSaveRename = (oldName: string) => {
     const newName = editingCategoryName.trim();
     if (newName && newName !== oldName && !categories.find(c => c.toLowerCase() === newName.toLowerCase())) {
-      setCategories(prev => {
-        const newCategories = prev.map(c => c === oldName ? newName : c);
-        const mainCategories = newCategories.filter(c => !protectedCategories.includes(c)).sort();
-        return [...protectedCategories, ...mainCategories];
-      });
-      if (selectedCategory === oldName) {
-        setSelectedCategory(newName);
-      }
+      setCategories(categories.map(c => c === oldName ? newName : c));
+      setSelectedCategory(newName);
     }
     setEditingCategory(null);
-    setEditingCategoryName('');
   };
 
   const handleDelete = (categoryToDelete: string) => {
-    if (window.confirm(`Are you sure you want to delete the "${categoryToDelete}" category?`)) {
-      setCategories(prev => prev.filter(c => c !== categoryToDelete));
-      if (selectedCategory === categoryToDelete) {
-        setSelectedCategory('All');
-      }
+    setCategories(categories.filter(c => c !== categoryToDelete));
+    if (selectedCategory === categoryToDelete) {
+      setSelectedCategory('All');
     }
   };
 
   const filteredData = mockData.filter(item =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.notes.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase())
+    item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const groupedContent = groupContentByCategory(filteredData);
-  const contentToDisplay = selectedCategory === 'All' ? filteredData : groupedContent[selectedCategory] || [];
+  const contentToDisplay = selectedCategory === 'All' || selectedCategory === 'For You'
+    ? filteredData
+    : filteredData.filter(item => item.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
-        <div className="max-w-screen-2xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/dashboard"><Logo size="sm" /></Link>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={toggleTheme}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
-              </button>
-              <Link to="/save" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
-                <Plus size={16} /><span className="font-medium text-sm hidden sm:inline">Save</span>
-                <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+I</Kbd>
-              </Link>
-              <Link to="/account" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
-                <UserIcon size={20} className="text-dark-900 dark:text-white" /><span className="text-dark-800 dark:text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span>
-                <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+M</Kbd>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-screen-2xl mx-auto px-6 py-10">
-        {/* Search Header */}
-        <div className="mb-8">
-          <div className="relative">
-            <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
-              <div className="relative w-full">
-                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleKeyDown} autoComplete="off" />
-                <div className="absolute inset-y-0 left-0 w-full py-3 pl-14 pr-16 text-dark-400 dark:text-dark-500 pointer-events-none">
-                  {ghostSuggestion && (<span><span className="opacity-0">{searchQuery}</span><span>{ghostSuggestion.substring(searchQuery.length)}</span></span>)}
-                </div>
-              </div>
-              <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
-            </div>
-          </div>
-        </div>
-
-        {/* Two-column Layout */}
-        <div className="flex flex-col lg:flex-row lg:space-x-8">
-          {/* Left Sidebar */}
-          <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0">
-            <div className="sticky top-32">
-              <div className="flex items-center justify-between mb-3 px-3">
-                <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
-                <button onClick={handleEditToggle} className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors">
-                  {isCategoryEditMode ? <Check size={16} className="text-primary-500" /> : <Pencil size={14} />}
-                </button>
-              </div>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={categories.filter(c => !protectedCategories.includes(c))}
-                  strategy={verticalListSortingStrategy}
-                  disabled={!isCategoryEditMode}
+    <>
+      <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
+        <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
+          <div className="max-w-screen-2xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Link to="/dashboard"><Logo size="sm" /></Link>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
+                  aria-label="Toggle theme"
                 >
-                  <nav className="flex flex-col space-y-1">
-                    {categories.map((category) => (
-                      <SortableCategoryItem key={category} id={category} category={category} dashboardProps={{
-                        isCategoryEditMode,
-                        selectedCategory,
-                        editingCategory,
-                        editingCategoryName,
-                        setSelectedCategory,
-                        handleRename,
-                        handleSaveRename,
-                        handleDelete,
-                        setEditingCategoryName,
-                        setEditingCategory
-                      }} />
-                    ))}
-                  </nav>
-                </SortableContext>
-              </DndContext>
-
-              {/* New Category Input */}
-              <div className="mt-2 px-3">
-                {isCreatingCategory ? (
-                  <div className="flex items-center space-x-2 h-9">
-                    <input
-                      type="text"
-                      placeholder="New category..."
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddNewCategory() }}
-                      className="w-full h-full bg-dark-100 dark:bg-dark-800 text-sm px-4 rounded-full focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
-                      autoFocus
-                      onBlur={() => { if(!newCategoryName) setIsCreatingCategory(false); }}
-                    />
-                    <button onClick={handleAddNewCategory} className="p-2 text-primary-500 dark:text-primary-400 hover:text-dark-900 dark:hover:text-white rounded-full hover:bg-dark-200/70 dark:hover:bg-dark-700 transition-colors">
-                      <Check size={18} />
-                    </button>
-                    <button onClick={() => setIsCreatingCategory(false)} className="p-2 text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white rounded-full hover:bg-dark-200/70 dark:hover:bg-dark-700 transition-colors">
-                      <X size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setIsCreatingCategory(true)}
-                    className="flex items-center w-full h-9 px-4 rounded-full text-dark-600 dark:text-dark-300 hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white transition-colors duration-200"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Plus size={18} className="text-dark-400" />
-                      <span className="font-medium text-sm">New Category</span>
-                    </div>
-                  </button>
-                )}
+                  {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
+                </button>
+                <Link to="/save" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
+                  <Plus size={16} /><span className="font-medium text-sm hidden sm:inline">Save</span>
+                  <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+I</Kbd>
+                </Link>
+                <Link to="/account" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
+                  <UserIcon size={20} className="text-dark-900 dark:text-white" /><span className="text-dark-800 dark:text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span>
+                  <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+M</Kbd>
+                </Link>
               </div>
             </div>
-          </aside>
+          </div>
+        </div>
 
-          {/* Right Content */}
-          <main className="w-full lg:w-3/4 xl:w-4/5">
-            {selectedCategory === 'For You' ? (
-              <div>
-                <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6">For You</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                  {smartSuggestions.map((suggestion, index) => {
-                    const Icon = suggestion.icon;
-                    return (
-                      <Link to={`/view/${suggestion.item.id}`} key={index} className="bg-dark-100/50 dark:bg-dark-800/50 p-4 rounded-xl flex items-center space-x-4 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
-                        <Icon className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={20} />
-                        <div className="overflow-hidden">
-                          <p className="text-sm text-dark-900 dark:text-white truncate">{suggestion.title}</p>
-                          <p className="text-xs text-dark-500 dark:text-dark-400 truncate">{suggestion.item.title}</p>
-                        </div>
-                      </Link>
-                    );
-                  })}
+        <div className="max-w-screen-2xl mx-auto px-6 py-10">
+          <div className="mb-8">
+            <div className="relative">
+              <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
+                <div className="relative w-full">
+                  <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleKeyDown} autoComplete="off" />
+                  <div className="absolute inset-y-0 left-0 w-full py-3 pl-14 pr-16 text-dark-400 dark:text-dark-500 pointer-events-none">
+                    {ghostSuggestion && (<span><span className="opacity-0">{searchQuery}</span><span>{ghostSuggestion.substring(searchQuery.length)}</span></span>)}
+                  </div>
                 </div>
-                <div className="border-b border-dark-200 dark:border-dark-800 my-8"></div>
-                <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6">All Content</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filteredData.map(item => <ContentCard key={item.id} item={item} />)}
+                <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col lg:flex-row lg:space-x-8">
+            <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0">
+              <div className="sticky top-32">
+                <div className="flex items-center justify-between mb-3 px-3">
+                  <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
+                  <button onClick={handleEditToggle} className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors">
+                    {isCategoryEditMode ? <Check size={16} className="text-primary-500" /> : <Pencil size={14} />}
+                  </button>
+                </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={categories.filter(c => !protectedCategories.includes(c))}
+                    strategy={verticalListSortingStrategy}
+                    disabled={!isCategoryEditMode}
+                  >
+                    <nav className="flex flex-col space-y-1">
+                      {categories.map((category) => (
+                        <SortableCategoryItem key={category} id={category} category={category} dashboardProps={{
+                          isCategoryEditMode,
+                          selectedCategory,
+                          editingCategory,
+                          editingCategoryName,
+                          setSelectedCategory,
+                          handleRename,
+                          handleSaveRename,
+                          handleDelete,
+                          setEditingCategoryName,
+                          setEditingCategory
+                        }} />
+                      ))}
+                    </nav>
+                  </SortableContext>
+                </DndContext>
+
+                <div className="mt-2 px-3">
+                  {isCreatingCategory ? (
+                    <div className="flex items-center space-x-2 h-9">
+                      <input
+                        type="text"
+                        placeholder="New category..."
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleAddNewCategory() }}
+                        className="w-full h-full bg-dark-100 dark:bg-dark-800 text-sm px-4 rounded-full focus:outline-none focus:ring-1 focus:ring-primary-500 transition"
+                        autoFocus
+                        onBlur={() => { if(!newCategoryName) setIsCreatingCategory(false); }}
+                      />
+                      <button onClick={handleAddNewCategory} className="p-2 text-primary-500 dark:text-primary-400 hover:text-dark-900 dark:hover:text-white rounded-full hover:bg-dark-200/70 dark:hover:bg-dark-700 transition-colors">
+                        <Check size={18} />
+                      </button>
+                      <button onClick={() => setIsCreatingCategory(false)} className="p-2 text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white rounded-full hover:bg-dark-200/70 dark:hover:bg-dark-700 transition-colors">
+                        <X size={18} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setIsCreatingCategory(true)}
+                      className="flex items-center w-full h-9 px-4 rounded-full text-dark-600 dark:text-dark-300 hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white transition-colors duration-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Plus size={18} className="text-dark-400" />
+                        <span className="font-medium text-sm">New Category</span>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
-            ) : (
-              <div>
-                <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6 capitalize">{selectedCategory}</h2>
-                {contentToDisplay.length > 0 ? (
+            </aside>
+
+            <main className="w-full lg:w-3/4 xl:w-4/5">
+              {selectedCategory === 'For You' ? (
+                <div>
+                  <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6">For You</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    {smartSuggestions.map((suggestion, index) => {
+                      const Icon = suggestion.icon;
+                      return (
+                        <Link to={`/view/${suggestion.item.id}`} key={index} className="bg-dark-100/50 dark:bg-dark-800/50 p-4 rounded-xl flex items-center space-x-4 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
+                          <Icon className="text-primary-500 dark:text-primary-400 flex-shrink-0" size={20} />
+                          <div className="overflow-hidden">
+                            <p className="text-sm text-dark-900 dark:text-white truncate">{suggestion.title}</p>
+                            <p className="text-xs text-dark-500 dark:text-dark-400 truncate">{suggestion.item.title}</p>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  <div className="border-b border-dark-200 dark:border-dark-800 my-8"></div>
+                  <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6">All Content</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {contentToDisplay.map(item => <ContentCard key={item.id} item={item} />)}
+                    {filteredData.map(item => <ContentCard key={item.id} item={item} />)}
                   </div>
-                ) : (
-                  <div className="text-center py-16 w-full flex flex-col items-center justify-center space-y-4">
-                    {searchQuery ? (
-                      <p className="text-xl text-dark-500 dark:text-dark-400">No results found for "{searchQuery}" in this category.</p>
-                    ) : (
-                      <>
-                        <Folder size={48} className="text-dark-300 dark:text-dark-600" />
-                        <h3 className="text-xl font-semibold text-dark-600 dark:text-dark-300">This category is empty.</h3>
-                        <p className="text-dark-500 dark:text-dark-400 max-w-sm">There's no content here yet. Save something new to see it appear.</p>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </main>
+                </div>
+              ) : (
+                <div>
+                  <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-6 capitalize">{selectedCategory}</h2>
+                  {contentToDisplay.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {contentToDisplay.map(item => <ContentCard key={item.id} item={item} />)}
+                    </div>
+                  ) : (
+                    <div className="text-center py-16 w-full flex flex-col items-center justify-center space-y-4">
+                      {searchQuery ? (
+                        <p className="text-xl text-dark-500 dark:text-dark-400">No results found for "{searchQuery}" in this category.</p>
+                      ) : (
+                        <>
+                          <Folder size={48} className="text-dark-300 dark:text-dark-600" />
+                          <h3 className="text-xl font-semibold text-dark-600 dark:text-dark-300">This category is empty.</h3>
+                          <p className="text-dark-500 dark:text-dark-400 max-w-sm">There's no content here yet. Save something new to see it appear.</p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+
+      <button
+        onClick={() => setIsHelpModalOpen(true)}
+        className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-primary-500 hover:bg-primary-600 text-white rounded-full flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-200"
+        aria-label="Open user guide"
+      >
+        <HelpCircle size={24} />
+      </button>
+
+      <HelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
+    </>
   );
 };
 

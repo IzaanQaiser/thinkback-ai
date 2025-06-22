@@ -4,3 +4,4 @@
 - set up sendgrid
 - fix github thinkback logo in github authentication
 - fix thinkback name in google authentication
+- make help button better/have it lead to a youtube demo
