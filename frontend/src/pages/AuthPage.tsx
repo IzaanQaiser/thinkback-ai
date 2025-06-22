@@ -8,17 +8,20 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import { verifyUserToken } from '../services/api';
 import { mapFirebaseAuthError } from '../utils/errors';
-import { loginQuotes } from "../data/quotes";
+import { loginQuotes } from '../data/quotes';
+import GoogleIcon from '../components/GoogleIcon';
+import GitHubIcon from '../components/GitHubIcon';
 
 const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, getIdToken } = useAuth();
+  const { login, signInWithGoogle, signInWithGitHub, getIdToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [quote, setQuote] = useState({ text: "", author: "" });
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     document.title = 'thinkback.ai - Login';
@@ -27,35 +30,47 @@ const AuthPage: React.FC = () => {
     setQuote(randomQuote);
   }, []);
 
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      const idToken = await getIdToken();
+      if (!idToken) throw new Error("Could not retrieve ID token from Google Sign-In.");
+      await verifyUserToken(idToken);
+      navigate('/dashboard');
+    } catch (err) {
+      const error = err as Error;
+      console.error("Google Sign-in failed:", error);
+      setError(mapFirebaseAuthError(error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGitHubSignIn = async () => {
+    try {
+      await signInWithGitHub();
+      navigate('/dashboard');
+    } catch (error) {
+      setError(mapFirebaseAuthError(error.code));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // 1. Sign in user with Firebase Auth
       await login(email, password);
-
-      // 2. Get ID token
       const idToken = await getIdToken();
       if (!idToken) {
         throw new Error('Could not retrieve ID token.');
       }
-
-      // 3. Verify token with backend
-      const backendResponse = await verifyUserToken(idToken);
-      console.log('Backend verification successful:', backendResponse);
-
+      await verifyUserToken(idToken);
       navigate('/dashboard');
-
     } catch (err) {
       const error = err as Error;
       console.error("Login failed:", error);
@@ -78,10 +93,9 @@ const AuthPage: React.FC = () => {
       </div>
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-dark-100/50 dark:bg-gradient-to-br from-dark-900 via-dark-950 to-dark-900 p-12 flex-col justify-center items-center relative overflow-hidden">
-        {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/5 rounded-full blur-3xl animate-pulse-subtle"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl animate-pulse-subtle" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500/10 rounded-full blur-3xl animate-pulse-subtle"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse-subtle" style={{ animationDelay: '1s' }}></div>
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse-subtle" style={{ animationDelay: '2s' }}></div>
         </div>
 
@@ -104,14 +118,13 @@ const AuthPage: React.FC = () => {
             <p className="text-dark-700 dark:text-dark-200 italic">
               &ldquo;{quote.text}&rdquo;
             </p>
-            <p className="text-sm text-dark-500 dark:text-dark-400 mt-2">— {quote.author}</p>
+            <p className="text-sm text-dark-500 dark:text-dark-400 mt-2">&mdash; {quote.author}</p>
           </div>
         </div>
       </div>
 
       {/* Right Side - Auth Form */}
-      <div className="w-full lg:w-1/2 flex justify-center p-8 py-40 bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden">
-        {/* Animated Background Elements */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary-500/5 rounded-full blur-2xl animate-pulse-subtle"></div>
           <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/5 rounded-full blur-2xl animate-pulse-subtle" style={{ animationDelay: '1.5s' }}></div>
@@ -141,17 +154,46 @@ const AuthPage: React.FC = () => {
 
             <Input
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              endIcon={
+                <span className="text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                  {showPassword ? 'HIDE' : 'VIEW'}
+                </span>
+              }
+              onEndIconClick={() => setShowPassword(!showPassword)}
             />
 
             <Button type="submit" variant="login" className="w-full !rounded-full transform hover:scale-105 transition-all duration-200" size="lg" disabled={loading}>
               {loading ? 'Logging In...' : 'Log In'}
             </Button>
           </form>
+
+          <div className="relative flex py-8 items-center animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <div className="flex-grow border-t border-gray-600"></div>
+            <span className="flex-shrink mx-4 text-gray-400">OR</span>
+            <div className="flex-grow border-t border-gray-600"></div>
+          </div>
+
+          <div className="flex flex-col gap-y-3 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            <button
+              onClick={handleGoogleSignIn}
+              className="w-full flex justify-center items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline transition-colors duration-200"
+            >
+              <GoogleIcon />
+              Log in with Google
+            </button>
+            <button
+              onClick={handleGitHubSignIn}
+              className="w-full flex justify-center items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline transition-colors duration-200"
+            >
+              <GitHubIcon />
+              Log in with GitHub
+            </button>
+          </div>
 
           <div className="mt-8 text-center animate-slide-up" style={{ animationDelay: '0.4s' }}>
             <p className="text-dark-600 dark:text-dark-400">

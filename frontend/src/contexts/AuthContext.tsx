@@ -7,6 +7,9 @@ import {
   sendEmailVerification,
   signInWithEmailAndPassword,
   signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  GithubAuthProvider,
 } from 'firebase/auth';
 import { auth } from '../firebase'; // Corrected import path
 
@@ -15,6 +18,8 @@ interface AuthContextType {
   loading: boolean;
   signup: (email: string, pass: string) => Promise<any>;
   login: (email: string, pass: string) => Promise<any>;
+  signInWithGoogle: () => Promise<any>;
+  signInWithGitHub: () => Promise<any>;
   logout: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
   sendVerificationEmail: () => Promise<void>;
@@ -42,6 +47,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass);
+  };
+
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  };
+
+  const signInWithGitHub = async () => {
+    const provider = new GithubAuthProvider();
+    await signInWithPopup(auth, provider);
   };
 
   const logout = () => {
@@ -77,6 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     signup,
     login,
+    signInWithGoogle,
+    signInWithGitHub,
     logout,
     getIdToken,
     sendVerificationEmail,
