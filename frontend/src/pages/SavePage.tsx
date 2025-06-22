@@ -78,10 +78,10 @@ const SavePage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-10 sm:py-12">
+      <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-dark-900 dark:text-white mb-2" style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}>Save to Vault</h1>
-          <p className="text-base sm:text-lg text-dark-500 dark:text-dark-400 mb-8 sm:mb-10">Add new content to your personal knowledge vault.</p>
+          <p className="text-base sm:text-lg text-dark-500 dark:text-dark-400 mb-6">Add new content to your personal knowledge vault.</p>
 
           <form onSubmit={handleSubmit} className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 sm:p-8 space-y-6">
             {/* Content Type Toggle */}
@@ -177,7 +177,7 @@ const SavePage: React.FC = () => {
 
         {/* Quick Tips */}
         {contentType === 'link' && (
-          <div className="mt-12 text-center">
+          <div className="mt-8 text-center">
             <p className="text-sm text-dark-500 dark:text-dark-400 font-medium mb-4">Supported platforms</p>
             <div className="flex justify-center items-center gap-x-4 gap-y-2 flex-wrap">
               {[
