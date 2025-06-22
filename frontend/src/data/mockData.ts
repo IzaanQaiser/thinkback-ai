@@ -11,7 +11,8 @@ export const mockData = [
     description: 'James Clear, author of Atomic Habits, provides a scientific framework for improving every day. This video covers the four laws of behavior change and how to apply them.',
     duration: '54:19',
     author: 'James Clear',
-    tags: ['habits', 'productivity', 'psychology', 'self-improvement']
+    tags: ['habits', 'productivity', 'psychology', 'self-improvement'],
+    favorite: true
   },
   {
     id: '5',
@@ -25,7 +26,8 @@ export const mockData = [
     description: 'A walkthrough of various investment strategies, explaining risk tolerance, diversification, and long-term planning for financial growth.',
     duration: '48:22',
     author: 'The Plain Bagel',
-    tags: ['investing', 'finance', 'stocks', 'beginners']
+    tags: ['investing', 'finance', 'stocks', 'beginners'],
+    favorite: false
   },
   {
     id: '2',
@@ -39,7 +41,8 @@ export const mockData = [
     description: 'A community discussion on Reddit about Cal Newport\'s book "Deep Work". Members share their personal strategies for minimizing distractions and maximizing productive output.',
     duration: '15 min read',
     author: 'r/productivity',
-    tags: ['deep work', 'focus', 'productivity', 'Cal Newport']
+    tags: ['deep work', 'focus', 'productivity', 'Cal Newport'],
+    favorite: false
   },
   {
     id: '8',
@@ -53,7 +56,8 @@ export const mockData = [
     description: 'Neuroscientist Matthew Walker explains the critical importance of sleep for learning, memory, and physical health, offering practical tips for improving sleep quality.',
     duration: '1:08:32',
     author: 'Matthew Walker',
-    tags: ['sleep', 'health', 'neuroscience', 'recovery']
+    tags: ['sleep', 'health', 'neuroscience', 'recovery'],
+    favorite: true
   },
   {
     id: '12',
@@ -67,7 +71,8 @@ export const mockData = [
     description: 'A talk by Lex Fridman on the trajectory of artificial intelligence, discussing large language models, robotics, and the philosophical implications of advanced AI.',
     duration: '2:30:15',
     author: 'Lex Fridman',
-    tags: ['AI', 'machine learning', 'tech', 'future']
+    tags: ['AI', 'machine learning', 'tech', 'future'],
+    favorite: true
   },
   {
     id: '3',
@@ -81,7 +86,8 @@ export const mockData = [
     description: 'A short, visual guide on Instagram explaining how to structure your day using time blocks to ensure all important tasks are allocated dedicated time slots.',
     duration: '1 min view',
     author: 'Productive & Co.',
-    tags: ['time management', 'productivity', 'scheduling']
+    tags: ['time management', 'productivity', 'scheduling'],
+    favorite: false
   },
   {
     id: '9',
@@ -95,7 +101,8 @@ export const mockData = [
     description: 'A comprehensive guide for beginners on Reddit, explaining what mindfulness is, its benefits for mental health, and how to start a simple meditation practice.',
     duration: '20 min read',
     author: 'r/Meditation',
-    tags: ['mindfulness', 'meditation', 'mental health', 'wellbeing']
+    tags: ['mindfulness', 'meditation', 'mental health', 'wellbeing'],
+    favorite: false
   },
   {
     id: '6',
@@ -109,7 +116,8 @@ export const mockData = [
     description: 'An in-depth Reddit post explaining the fundamentals of cryptocurrency, blockchain technology, and how to approach investing in this volatile market.',
     duration: '30 min read',
     author: 'r/investing',
-    tags: ['crypto', 'blockchain', 'investing', 'finance']
+    tags: ['crypto', 'blockchain', 'investing', 'finance'],
+    favorite: false
   },
 ];
 

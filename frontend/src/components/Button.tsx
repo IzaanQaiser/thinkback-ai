@@ -6,7 +6,7 @@ type ButtonProps = {
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   size?: 'sm' | 'md' | 'lg';
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'login';
   disabled?: boolean;
 };
 
@@ -37,6 +37,8 @@ const Button: React.FC<ButtonProps> = ({
       'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 disabled:bg-red-500/50 disabled:cursor-not-allowed',
     ghost:
       'bg-transparent text-dark-600 hover:bg-dark-100 hover:text-dark-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white focus:ring-primary-500 disabled:text-dark-500 disabled:cursor-not-allowed shadow-none',
+    login:
+      'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 disabled:bg-blue-400/50 disabled:cursor-not-allowed',
   };
 
   return (

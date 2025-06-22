@@ -31,24 +31,25 @@ html.dark input:-webkit-autofill:active {
 
 /* Custom scrollbar for modern browsers */
 ::-webkit-scrollbar {
-    width: 12px;
+    width: 8px;
 }
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background-color: #f1f5f9; /* A light gray for light mode */
+}
+html.dark ::-webkit-scrollbar-track {
+    background-color: #0f172a; /* A dark color matching the theme for dark mode */
 }
 html.dark ::-webkit-scrollbar-thumb {
-    background-color: #1e293b; /* dark-800 */
-    border-radius: 6px;
-    border: 3px solid #0f172a; /* dark-900 */
+    background-color: #334155; /* dark-700 */
+    border-radius: 4px;
 }
-html.light ::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1; /* dark-300 */
-    border-radius: 6px;
-    border: 3px solid #f1f5f9; /* dark-100 */
+html:not(.dark) ::-webkit-scrollbar-thumb {
+    background-color: #94a3b8; /* dark-400 */
+    border-radius: 4px;
 }
 html.dark ::-webkit-scrollbar-thumb:hover {
-    background-color: #334155; /* dark-700 */
+    background-color: #475569; /* dark-600 */
 }
-html.light ::-webkit-scrollbar-thumb:hover {
-    background-color: #94a3b8; /* dark-400 */
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+    background-color: #64748b; /* dark-500 */
 }

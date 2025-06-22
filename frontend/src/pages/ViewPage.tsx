@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, Edit, Trash2, Star, ClipboardCopy, ChevronDown, Check,
-  Youtube, Book, Clock, Folder as FolderIcon, Calendar
+  Youtube, Book, Clock, Folder as FolderIcon, Calendar, Sun, Moon
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
@@ -10,6 +10,7 @@ import Textarea from '../components/Textarea';
 import { FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Kbd from '../components/Kbd';
 import { mockData, mockCategories } from '../data/mockData';
+import { useTheme } from '../contexts/ThemeContext';
 
 const platformIcons: { [key: string]: React.ElementType } = {
   youtube: Youtube,
@@ -21,16 +22,25 @@ const platformIcons: { [key: string]: React.ElementType } = {
 const ViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const entry = mockData.find(e => e.id === id);
+  const { theme, toggleTheme } = useTheme();
 
   const [isEditing, setIsEditing] = useState(false);
   const [notes, setNotes] = useState(entry?.notes || '');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const navigate = useNavigate();
   const [isMac, setIsMac] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(entry?.favorite || false);
   const [linkCopied, setLinkCopied] = useState(false);
 
   const PlatformIcon = entry ? platformIcons[entry.platform as keyof typeof platformIcons] : null;
+
+  useEffect(() => {
+    if (entry) {
+      document.title = `thinkback.ai - ${entry.title}`;
+    } else {
+      document.title = 'thinkback.ai - Not Found';
+    }
+  }, [entry]);
 
   useEffect(() => {
     setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
@@ -53,8 +63,23 @@ const ViewPage: React.FC = () => {
     };
   }, [navigate, entry]);
 
-  const handleCopyLink = () => {
+  const handleFavorite = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.blur();
+    if (entry) {
+      // In a real app, this would be an API call.
+      // For mock data, we'll find and update the item.
+      const entryIndex = mockData.findIndex(item => item.id === entry.id);
+      if (entryIndex !== -1) {
+        const updatedEntry = { ...mockData[entryIndex], favorite: !isFavorited };
+        mockData[entryIndex] = updatedEntry;
+        setIsFavorited(!isFavorited);
+      }
+    }
+  };
+
+  const handleCopyLink = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!entry) return;
+    e.currentTarget.blur();
     navigator.clipboard.writeText(entry.url);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
@@ -109,21 +134,28 @@ const ViewPage: React.FC = () => {
             <Link to="/dashboard">
               <Logo size="sm" />
             </Link>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
+              </button>
               <a
                 href={entry.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white"
+                className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white"
               >
                 <ExternalLink size={16} />
-                <span className="font-medium text-sm">Open Original</span>
-                <Kbd>{isMac ? '⌘' : 'Ctrl'}+O</Kbd>
+                <span className="font-medium text-sm hidden sm:inline">Open Original</span>
+                <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+O</Kbd>
               </a>
-              <Link to="/dashboard" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
-                <ArrowLeft size={16} />
-                <span className="font-medium text-sm">Back to Vault</span>
-                <Kbd>esc</Kbd>
+              <Link to="/dashboard" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
+                <ArrowLeft size={16} className="sm:hidden" />
+                <span className="font-medium text-sm hidden sm:inline">Back to Vault</span>
+                <Kbd className="hidden sm:block">esc</Kbd>
               </Link>
             </div>
           </div>
@@ -158,8 +190,8 @@ const ViewPage: React.FC = () => {
             </div>
 
             {/* Title & Description */}
-            <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-8">
-              <h1 className="text-4xl font-bold text-dark-900 dark:text-white mb-3" style={{ textShadow: '0 0 20px rgba(0, 0, 0, 0.1)' }}>
+            <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 md:p-8">
+              <h1 className="text-3xl sm:text-4xl font-bold text-dark-900 dark:text-white mb-3" style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}>
                 {entry?.title}
               </h1>
 
@@ -192,7 +224,7 @@ const ViewPage: React.FC = () => {
             </div>
 
             {/* Personal Notes */}
-            <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-8">
+            <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 md:p-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-dark-900 dark:text-white">Personal Notes</h2>
                 <Button
@@ -270,15 +302,15 @@ const ViewPage: React.FC = () => {
               </div>
 
               {/* Actions */}
-              <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-8">
+              <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button onClick={() => setIsFavorited(!isFavorited)} variant="ghost" className={`w-full justify-center flex-col h-20 gap-1 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button onClick={handleFavorite} variant="ghost" className={`w-full justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
                     <Star size={20} className={`${isFavorited ? 'fill-current' : ''}`} />
                     <span className="font-medium text-xs">{isFavorited ? 'Favorited' : 'Favorite'}</span>
                   </Button>
-                  <Button onClick={handleCopyLink} variant="ghost" className="w-full justify-center flex-col h-20 gap-1">
-                    <ClipboardCopy size={20} className="text-blue-400"/>
+                  <Button onClick={handleCopyLink} variant="ghost" className="w-full justify-center flex-col h-20 gap-1 focus:ring-0">
+                    {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
                     <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
                   </Button>
                 </div>
@@ -296,7 +328,7 @@ const ViewPage: React.FC = () => {
       </div>
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-dark-200 dark:bg-dark-800 border border-dark-300 dark:border-dark-700 rounded-2xl p-8 max-w-md w-full shadow-2xl m-4">
             <h2 className="text-2xl font-bold text-dark-900 dark:text-white mb-2">Delete Entry?</h2>
             <p className="text-dark-600 dark:text-dark-300 mb-6">Are you sure you want to permanently delete "{entry?.title}"? This action cannot be undone.</p>
