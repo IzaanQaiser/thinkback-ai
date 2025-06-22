@@ -9,6 +9,8 @@ import { Sun, Moon } from 'lucide-react';
 import { verifyUserToken } from '../services/api';
 import { mapFirebaseAuthError } from '../utils/errors';
 import { signupQuotes } from '../data/quotes';
+import GoogleIcon from '../components/GoogleIcon';
+import GitHubIcon from '../components/GitHubIcon';
 
 const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,10 +18,12 @@ const SignupPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signup, getIdToken } = useAuth();
+  const { signup, signInWithGoogle, signInWithGitHub, getIdToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [quote, setQuote] = useState({ text: "", author: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     document.title = 'thinkback.ai - Signup';
@@ -28,16 +32,36 @@ const SignupPage: React.FC = () => {
     setQuote(randomQuote);
   }, []);
 
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      const idToken = await getIdToken();
+      if (!idToken) throw new Error("Could not retrieve ID token from Google Sign-In.");
+      await verifyUserToken(idToken);
+      navigate('/dashboard');
+    } catch (err) {
+      const error = err as Error;
+      console.error("Google Sign-in failed:", error);
+      setError(mapFirebaseAuthError(error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGitHubSignIn = async () => {
+    try {
+      await signInWithGitHub();
+      navigate('/dashboard');
+    } catch (error) {
+      setError(mapFirebaseAuthError(error.code));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -150,26 +174,61 @@ const SignupPage: React.FC = () => {
 
             <Input
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              endIcon={
+                <span className="text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                  {showPassword ? 'HIDE' : 'VIEW'}
+                </span>
+              }
+              onEndIconClick={() => setShowPassword(!showPassword)}
             />
 
             <Input
               label="Confirm Password"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Confirm your password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              endIcon={
+                <span className="text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                  {showConfirmPassword ? 'HIDE' : 'VIEW'}
+                </span>
+              }
+              onEndIconClick={() => setShowConfirmPassword(!showConfirmPassword)}
             />
 
             <Button type="submit" variant="login" className="w-full !rounded-full transform hover:scale-105 transition-all duration-200" size="lg" disabled={loading}>
               {loading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
+
+          <div className="relative flex py-8 items-center animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <div className="flex-grow border-t border-gray-600"></div>
+            <span className="flex-shrink mx-4 text-gray-400">OR</span>
+            <div className="flex-grow border-t border-gray-600"></div>
+          </div>
+
+          <div className="flex flex-col gap-y-3 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            <button
+              onClick={handleGoogleSignIn}
+              className="w-full flex justify-center items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline transition-colors duration-200"
+            >
+              <GoogleIcon />
+              Sign up with Google
+            </button>
+            <button
+              onClick={handleGitHubSignIn}
+              className="w-full flex justify-center items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline transition-colors duration-200"
+            >
+              <GitHubIcon />
+              Sign up with GitHub
+            </button>
+          </div>
 
           <div className="mt-8 text-center animate-slide-up" style={{ animationDelay: '0.4s' }}>
             <p className="text-dark-600 dark:text-dark-400">
