@@ -1,9 +1,22 @@
 from fastapi import APIRouter, HTTPException, Header, Body
 from typing import Optional
 from firebase import verify_id_token, change_password as change_password_firebase
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 router = APIRouter()
+
+
+class User(BaseModel):
+    uid: str
+    email: Optional[EmailStr] = None
+    email_verified: bool
+    name: Optional[str] = None
+    picture: Optional[str] = None
+
+
+class TokenVerificationResponse(BaseModel):
+    message: str
+    user: User
 
 
 class PasswordChangeRequest(BaseModel):
@@ -15,7 +28,7 @@ async def ping():
     return {"message": "pong"}
 
 
-@router.post("/verify-token")
+@router.post("/verify-token", response_model=TokenVerificationResponse)
 async def verify_token(authorization: Optional[str] = Header(None)):
     """
     Verify Firebase ID token and return decoded user info
