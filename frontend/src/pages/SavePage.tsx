@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Sun, Moon } from 'lucide-react';
 import { FaYoutube, FaTiktok, FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
 import Textarea from '../components/Textarea';
 import Button from '../components/Button';
 import Kbd from '../components/Kbd';
+import { useTheme } from '../contexts/ThemeContext';
 
 const SavePage: React.FC = () => {
   const [contentType, setContentType] = useState<'link' | 'text'>('link');
@@ -15,8 +16,10 @@ const SavePage: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
+    document.title = 'thinkback.ai - Save';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         navigate('/dashboard');
@@ -56,23 +59,31 @@ const SavePage: React.FC = () => {
             <Link to="/dashboard" className="flex items-center space-x-2 text-dark-500 dark:text-dark-300 hover:text-dark-900 dark:hover:text-white transition-colors">
                 <Logo size="sm" />
             </Link>
-            <Link to="/dashboard" className="flex items-center space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
-                <span className="font-medium text-sm">Back to Vault</span>
-                <Kbd>esc</Kbd>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
+              </button>
+              <Link to="/dashboard" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
+                  <ArrowLeft size={16} className="sm:hidden" />
+                  <span className="font-medium text-sm hidden sm:inline">Back to Vault</span>
+                  <Kbd className="hidden sm:block">esc</Kbd>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 max-w-2xl mx-auto px-6 py-12">
-        <div className="text-center mb-10">
-          <h1 className="text-5xl font-bold text-dark-900 dark:text-white mb-2" style={{ textShadow: '0 0 25px rgba(14, 165, 233, 0.5)' }}>Save to Vault</h1>
-          <p className="text-lg text-dark-500 dark:text-dark-400">Capture content that matters to you</p>
-        </div>
+      <main className="max-w-7xl mx-auto px-6 py-10 sm:py-12">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-dark-900 dark:text-white mb-2" style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}>Save to Vault</h1>
+          <p className="text-base sm:text-lg text-dark-500 dark:text-dark-400 mb-8 sm:mb-10">Add new content to your personal knowledge vault.</p>
 
-        <div className="bg-dark-100/30 dark:bg-dark-800/50 border border-dark-200/50 dark:border-dark-700/60 rounded-2xl p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 sm:p-8 space-y-6">
             {/* Content Type Toggle */}
             <div className="flex bg-dark-200/50 dark:bg-dark-800/60 rounded-full p-1 border border-dark-300/60 dark:border-dark-700/60">
               <button
@@ -168,7 +179,7 @@ const SavePage: React.FC = () => {
         {contentType === 'link' && (
           <div className="mt-12 text-center">
             <p className="text-sm text-dark-500 dark:text-dark-400 font-medium mb-4">Supported platforms</p>
-            <div className="flex justify-center items-center gap-4">
+            <div className="flex justify-center items-center gap-x-4 gap-y-2 flex-wrap">
               {[
                 { Icon: FaYoutube, name: 'YouTube' },
                 { Icon: FaTiktok, name: 'TikTok' },

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Youtube, Rss, Instagram, MessageSquare } from 'lucide-react';
+import { Youtube, Rss, Instagram, MessageSquare, Folder, ArrowRight } from 'lucide-react';
 
 const platformIcons: { [key: string]: React.ElementType } = {
   youtube: Youtube,
@@ -15,6 +15,7 @@ interface ContentCardProps {
     platform: string;
     url: string;
     notes: string;
+    category: string;
   };
 }
 
@@ -35,9 +36,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ item }) => {
           <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2">{item.notes}</p>
         </div>
       </div>
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 pt-4 border-t border-dark-200/80 dark:border-dark-700/50 flex justify-between items-center">
+        <div className="flex items-center space-x-2 text-xs text-dark-500 dark:text-dark-400">
+          <Folder size={14} />
+          <span className="font-medium">{item.category}</span>
+        </div>
         <div className="text-xs font-semibold text-primary-500/80 dark:text-primary-400/80 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
-          View Content &rarr;
+          <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
         </div>
       </div>
     </Link>
