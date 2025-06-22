@@ -4,6 +4,7 @@ import {
   User,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
@@ -16,6 +17,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<any>;
   logout: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
+  sendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +34,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const signup = (email: string, pass: string) => {
+  const signup = async (email: string, pass: string) => {
+    // We will no longer send the email from here.
+    // The VerifyEmailPage component will now handle this responsibility.
     return createUserWithEmailAndPassword(auth, email, pass);
   };
 
@@ -42,6 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     return signOut(auth);
+  };
+
+  const sendVerificationEmail = async () => {
+    if (currentUser) {
+      await sendEmailVerification(currentUser);
+    } else {
+      throw new Error("No user is currently signed in.");
+    }
   };
 
   const getIdToken = async () => {
@@ -67,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     getIdToken,
+    sendVerificationEmail,
   };
 
   return (

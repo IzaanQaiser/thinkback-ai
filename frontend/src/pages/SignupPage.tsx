@@ -32,6 +32,13 @@ const SignupPage: React.FC = () => {
     e.preventDefault();
     setError('');
 
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -56,7 +63,7 @@ const SignupPage: React.FC = () => {
       // Optional: Store UID or other user info from backend if needed
       // For now, Firebase Auth state handles redirection
 
-      navigate('/dashboard');
+      navigate('/verify-email');
 
     } catch (err) {
       const error = err as Error;
