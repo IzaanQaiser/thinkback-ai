@@ -8,6 +8,7 @@ import ViewPage from './pages/ViewPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import AccountPage from './pages/AccountPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ function App() {
         <Routes>
           <Route path="/auth" element={currentUser ? <Navigate to="/dashboard" /> : <AuthPage />} />
           <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" /> : <SignupPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/" element={<Navigate to={currentUser ? "/dashboard" : "/auth"} replace />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
