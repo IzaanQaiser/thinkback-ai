@@ -10,6 +10,10 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   GithubAuthProvider,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+  deleteUser,
 } from 'firebase/auth';
 import { auth } from '../firebase'; // Corrected import path
 
@@ -23,6 +27,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   getIdToken: () => Promise<string | null>;
   sendVerificationEmail: () => Promise<void>;
+  deleteAccount: (password?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,6 +62,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGitHub = async () => {
     const provider = new GithubAuthProvider();
     await signInWithPopup(auth, provider);
+  };
+
+  const deleteAccount = async (password?: string) => {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("No user is currently signed in.");
+    }
+
+    const providerId = user.providerData[0]?.providerId;
+
+    try {
+      if (providerId === 'password') {
+        if (!password) {
+          throw new Error("Password is required to delete your account.");
+        }
+        const credential = EmailAuthProvider.credential(user.email!, password);
+        await reauthenticateWithCredential(user, credential);
+      } else if (providerId === 'google.com') {
+        const googleProvider = new GoogleAuthProvider();
+        await reauthenticateWithPopup(user, googleProvider);
+      } else if (providerId === 'github.com') {
+        const githubProvider = new GithubAuthProvider();
+        await reauthenticateWithPopup(user, githubProvider);
+      } else {
+        throw new Error(`Account deletion is not supported for your sign-in method.`);
+      }
+
+      await deleteUser(user);
+    } catch (error) {
+      console.error("Error during account deletion:", error);
+      throw error;
+    }
   };
 
   const logout = () => {
@@ -97,6 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     getIdToken,
     sendVerificationEmail,
+    deleteAccount,
   };
 
   return (

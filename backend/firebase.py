@@ -92,7 +92,7 @@ def get_user_by_uid(uid: str):
 
 
 # Change user password
-async def change_password(uid: str, new_password: str):
+def change_password(uid: str, new_password: str):
     """Change user's password in Firebase Auth"""
     try:
         auth.update_user(uid, password=new_password)

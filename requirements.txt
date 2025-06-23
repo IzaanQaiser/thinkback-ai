@@ -35,7 +35,7 @@ packaging==25.0
 pluggy==1.6.0
 pre-commit==4.2.0
 propcache==0.3.1
-pydantic==2.11.5
+pydantic[email]==2.11.5
 pydantic_core==2.33.2
 Pygments==2.19.1
 pytest==8.4.0
