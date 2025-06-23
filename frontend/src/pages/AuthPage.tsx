@@ -5,7 +5,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, ArrowRight } from 'lucide-react';
 import { verifyUserToken } from '../services/api';
 import { mapFirebaseAuthError } from '../utils/errors';
 import { loginQuotes } from '../data/quotes';
@@ -200,7 +200,7 @@ const AuthPage: React.FC = () => {
               Don't have an account?{' '}
               <Link
                 to="/signup"
-                className="font-medium transition-colors duration-200 rounded-lg px-3 py-1 bg-blue-600 text-white hover:bg-blue-700"
+                className="font-medium text-primary-600 dark:text-primary-400 px-3 py-1 border-2 border-transparent rounded-lg hover:border-primary-400/50 transition-colors duration-300"
               >
                 Sign up
               </Link>

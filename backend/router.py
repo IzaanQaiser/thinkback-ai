@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Header, Body
 from typing import Optional
-from firebase import verify_id_token, change_password as change_password_firebase
+from firebase import change_password as change_password_firebase
 from pydantic import BaseModel, EmailStr
+from firebase_admin import auth
 
 router = APIRouter()
 
@@ -48,16 +49,18 @@ async def verify_token(authorization: Optional[str] = Header(None)):
         )
 
     # Verify the token
-    result = await verify_id_token(token)
+    try:
+        decoded_token = auth.verify_id_token(token)
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
 
-    if not result["success"]:
-        raise HTTPException(status_code=401, detail=result["error"])
-
-    return {"message": "Token verified successfully", "user": result["user"]}
+    return {"message": "Token verified successfully", "user": decoded_token}
 
 
 @router.post("/change-password")
-async def change_password_endpoint(
+def change_password_endpoint(
     password_request: PasswordChangeRequest,
     authorization: Optional[str] = Header(None),
 ):
@@ -79,17 +82,19 @@ async def change_password_endpoint(
         )
 
     # Verify the token
-    verification_result = await verify_id_token(token)
+    try:
+        decoded_token = auth.verify_id_token(token)
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
 
-    if not verification_result["success"]:
-        raise HTTPException(status_code=401, detail=verification_result["error"])
-
-    uid = verification_result["user"]["uid"]
+    uid = decoded_token["uid"]
 
     # Change password
-    change_result = await change_password_firebase(uid, password_request.new_password)
+    change_result = change_password_firebase(uid, password_request.new_password)
 
     if not change_result["success"]:
         raise HTTPException(status_code=400, detail=change_result["error"])
 
-    return {"message": change_result["message"]}
+    return {"message": "Password changed successfully."}
