@@ -101,3 +101,39 @@ def change_password(uid: str, new_password: str):
         return {"success": False, "error": "User not found"}
     except Exception as e:
         return {"success": False, "error": f"Failed to update password: {str(e)}"}
+
+
+# Add an entry for a user
+def add_entry(uid: str, entry_data: dict):
+    """Add an entry to a user's 'entries' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+
+        # Reference the user's entries subcollection and add a new document
+        entry_ref = (
+            db.collection("users").document(uid).collection("entries").document()
+        )
+        entry_data["id"] = entry_ref.id
+        entry_ref.set(entry_data)
+
+        return {"success": True, "entry": entry_data}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to add entry: {str(e)}"}
+
+
+# Get all entries for a user
+def get_entries(uid: str):
+    """Get all entries from a user's 'entries' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+
+        entries_ref = db.collection("users").document(uid).collection("entries")
+        entries = [doc.to_dict() for doc in entries_ref.stream()]
+
+        return {"success": True, "entries": entries}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get entries: {str(e)}"}
