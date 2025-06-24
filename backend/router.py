@@ -4,6 +4,12 @@ from firebase import (
     change_password as change_password_firebase,
     add_entry as add_entry_firebase,
     get_entries as get_entries_firebase,
+    update_entry as update_entry_firebase,
+    delete_entry as delete_entry_firebase,
+    add_collection as add_collection_firebase,
+    get_collections as get_collections_firebase,
+    update_collection as update_collection_firebase,
+    delete_collection as delete_collection_firebase,
 )
 from pydantic import BaseModel, EmailStr, Field
 from firebase_admin import auth
@@ -197,3 +203,176 @@ def get_user_entries(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=400, detail=result["error"])
 
     return result["entries"]
+
+
+@router.put("/api/entries/{entry_id}", response_model=Entry)
+def update_user_entry(
+    entry_id: str, entry: Entry, authorization: Optional[str] = Header(None)
+):
+    """
+    Update an entry for the logged-in user
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    update_data = entry.model_dump(exclude_unset=True)
+    result = update_entry_firebase(uid, entry_id, update_data)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result["entry"]
+
+
+@router.delete("/api/entries/{entry_id}")
+def delete_user_entry(entry_id: str, authorization: Optional[str] = Header(None)):
+    """
+    Delete an entry for the logged-in user
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    result = delete_entry_firebase(uid, entry_id)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return {"message": "Entry deleted successfully."}
+
+
+# --- COLLECTIONS ENDPOINTS ---
+
+
+@router.post("/api/collections", response_model=Collection)
+def create_collection(
+    collection: Collection,
+    authorization: Optional[str] = Header(None),
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    collection_dict = collection.model_dump()
+    result = add_collection_firebase(uid, collection_dict)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result["collection"]
+
+
+@router.get("/api/collections", response_model=List[Collection])
+def get_user_collections(authorization: Optional[str] = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    result = get_collections_firebase(uid)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result["collections"]
+
+
+@router.put("/api/collections/{collection_id}", response_model=Collection)
+def update_user_collection(
+    collection_id: str,
+    collection: Collection,
+    authorization: Optional[str] = Header(None),
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    update_data = collection.model_dump(exclude_unset=True)
+    result = update_collection_firebase(uid, collection_id, update_data)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result["collection"]
+
+
+@router.delete("/api/collections/{collection_id}")
+def delete_user_collection(
+    collection_id: str, authorization: Optional[str] = Header(None)
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    result = delete_collection_firebase(uid, collection_id)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return {"message": "Collection deleted successfully."}

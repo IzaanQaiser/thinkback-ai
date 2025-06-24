@@ -137,3 +137,111 @@ def get_entries(uid: str):
         return {"success": True, "entries": entries}
     except Exception as e:
         return {"success": False, "error": f"Failed to get entries: {str(e)}"}
+
+
+# Update an entry for a user
+def update_entry(uid: str, entry_id: str, update_data: dict):
+    """Update an entry in a user's 'entries' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        entry_ref = (
+            db.collection("users")
+            .document(uid)
+            .collection("entries")
+            .document(entry_id)
+        )
+        entry_ref.update(update_data)
+        updated_entry = entry_ref.get().to_dict()
+        return {"success": True, "entry": updated_entry}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to update entry: {str(e)}"}
+
+
+# Delete an entry for a user
+def delete_entry(uid: str, entry_id: str):
+    """Delete an entry from a user's 'entries' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        entry_ref = (
+            db.collection("users")
+            .document(uid)
+            .collection("entries")
+            .document(entry_id)
+        )
+        entry_ref.delete()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to delete entry: {str(e)}"}
+
+
+# --- COLLECTIONS HELPERS ---
+
+
+def add_collection(uid: str, collection_data: dict):
+    """Add a collection to a user's 'collections' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        collection_ref = (
+            db.collection("users").document(uid).collection("collections").document()
+        )
+        collection_data["id"] = collection_ref.id
+        collection_ref.set(collection_data)
+        return {"success": True, "collection": collection_data}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to add collection: {str(e)}"}
+
+
+def get_collections(uid: str):
+    """Get all collections from a user's 'collections' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        collections_ref = db.collection("users").document(uid).collection("collections")
+        collections = [doc.to_dict() for doc in collections_ref.stream()]
+        return {"success": True, "collections": collections}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get collections: {str(e)}"}
+
+
+def update_collection(uid: str, collection_id: str, update_data: dict):
+    """Update a collection in a user's 'collections' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        collection_ref = (
+            db.collection("users")
+            .document(uid)
+            .collection("collections")
+            .document(collection_id)
+        )
+        collection_ref.update(update_data)
+        updated_collection = collection_ref.get().to_dict()
+        return {"success": True, "collection": updated_collection}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to update collection: {str(e)}"}
+
+
+def delete_collection(uid: str, collection_id: str):
+    """Delete a collection from a user's 'collections' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        collection_ref = (
+            db.collection("users")
+            .document(uid)
+            .collection("collections")
+            .document(collection_id)
+        )
+        collection_ref.delete()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to delete collection: {str(e)}"}
