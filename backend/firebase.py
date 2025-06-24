@@ -245,3 +245,72 @@ def delete_collection(uid: str, collection_id: str):
         return {"success": True}
     except Exception as e:
         return {"success": False, "error": f"Failed to delete collection: {str(e)}"}
+
+
+# --- CATEGORIES HELPERS ---
+
+
+def add_category(uid: str, category_data: dict):
+    """Add a category to a user's 'categories' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        category_ref = (
+            db.collection("users").document(uid).collection("categories").document()
+        )
+        category_data["id"] = category_ref.id
+        category_ref.set(category_data)
+        return {"success": True, "category": category_data}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to add category: {str(e)}"}
+
+
+def get_categories(uid: str):
+    """Get all categories from a user's 'categories' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        categories_ref = db.collection("users").document(uid).collection("categories")
+        categories = [doc.to_dict() for doc in categories_ref.stream()]
+        return {"success": True, "categories": categories}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get categories: {str(e)}"}
+
+
+def update_category(uid: str, category_id: str, update_data: dict):
+    """Update a category in a user's 'categories' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        category_ref = (
+            db.collection("users")
+            .document(uid)
+            .collection("categories")
+            .document(category_id)
+        )
+        category_ref.update(update_data)
+        updated_category = category_ref.get().to_dict()
+        return {"success": True, "category": updated_category}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to update category: {str(e)}"}
+
+
+def delete_category(uid: str, category_id: str):
+    """Delete a category from a user's 'categories' subcollection in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            raise Exception("Firestore client not available")
+        category_ref = (
+            db.collection("users")
+            .document(uid)
+            .collection("categories")
+            .document(category_id)
+        )
+        category_ref.delete()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to delete category: {str(e)}"}

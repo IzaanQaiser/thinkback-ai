@@ -10,6 +10,10 @@ from firebase import (
     get_collections as get_collections_firebase,
     update_collection as update_collection_firebase,
     delete_collection as delete_collection_firebase,
+    add_category as add_category_firebase,
+    get_categories as get_categories_firebase,
+    update_category as update_category_firebase,
+    delete_category as delete_category_firebase,
 )
 from pydantic import BaseModel, EmailStr, Field
 from firebase_admin import auth
@@ -21,8 +25,14 @@ router = APIRouter()
 # Data Models
 class Entry(BaseModel):
     id: Optional[str] = None
-    content: str
+    url: Optional[str] = None
+    title: Optional[str] = None
+    platform: Optional[str] = None
+    notes: Optional[str] = None
+    content: Optional[str] = None  # For future: extracted/AI content
     source: Optional[str] = None
+    tags: List[str] = []
+    favorite: bool = False
     created_at: datetime = Field(default_factory=datetime.now)
     collection_ids: List[str] = []
     category_ids: List[str] = []
@@ -376,3 +386,113 @@ def delete_user_collection(
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
     return {"message": "Collection deleted successfully."}
+
+
+# --- CATEGORIES ENDPOINTS ---
+
+
+@router.post("/api/categories", response_model=Category)
+def create_category(
+    category: Category,
+    authorization: Optional[str] = Header(None),
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    category_dict = category.model_dump()
+    result = add_category_firebase(uid, category_dict)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result["category"]
+
+
+@router.get("/api/categories", response_model=List[Category])
+def get_user_categories(authorization: Optional[str] = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    result = get_categories_firebase(uid)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result["categories"]
+
+
+@router.put("/api/categories/{category_id}", response_model=Category)
+def update_user_category(
+    category_id: str, category: Category, authorization: Optional[str] = Header(None)
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    update_data = category.model_dump(exclude_unset=True)
+    result = update_category_firebase(uid, category_id, update_data)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result["category"]
+
+
+@router.delete("/api/categories/{category_id}")
+def delete_user_category(category_id: str, authorization: Optional[str] = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    result = delete_category_firebase(uid, category_id)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return {"message": "Category deleted successfully."}
