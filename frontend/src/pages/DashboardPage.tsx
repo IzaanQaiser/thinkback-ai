@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Sun, Moon, Zap, Star, LayoutGrid, Folder, Check, X, Edit, Pencil, GripVertical, HelpCircle } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Sun, Moon, Check, Pencil } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
-import HelpModal from '../components/HelpModal';
 import {
   DndContext,
   closestCenter,
@@ -21,19 +20,10 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { fetchEntries } from '../services/api';
+import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry } from '../services/api';
 
 const protectedCategories = ['For You', 'All', 'Favorites'];
-
-const categoryIcons: { [key: string]: React.ElementType } = {
-  Productivity: Zap,
-  Finance: Folder,
-  Health: Moon,
-  Tech: Star
-};
 
 interface Entry {
   id: string;
@@ -56,10 +46,8 @@ const DashboardPage: React.FC = () => {
   const [isMac, setIsMac] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'For You');
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  const [categories, setCategories] = useState<string[]>([...protectedCategories]);
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
@@ -68,6 +56,8 @@ const DashboardPage: React.FC = () => {
   );
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -93,13 +83,46 @@ const DashboardPage: React.FC = () => {
     loadEntries();
   }, [currentUser]);
 
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (!currentUser) return;
+      try {
+        const idToken = await currentUser.getIdToken();
+        const cats = await fetchCategories(idToken);
+        setCategories(cats);
+        const map: { [id: string]: string } = {};
+        cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+        setCategoryMap(map);
+      } catch (error) {
+        // fallback to protectedCategories if error
+        setCategories(protectedCategories.map((name) => ({ id: name, name })));
+      }
+    };
+    loadCategories();
+  }, [currentUser]);
+
   const filteredData = entries.filter(item =>
     item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const contentToDisplay = selectedCategory === 'All' || selectedCategory === 'For You'
-    ? filteredData
-    : filteredData.filter(item => item.category_ids && item.category_ids.length && item.category_ids.includes(selectedCategory));
+  const sidebarCategories = [
+    ...protectedCategories.map((name) => ({ id: name, name })),
+    ...categories.filter((cat: any) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized'),
+  ];
+
+  let mainHeading = '';
+  let entriesToShow: Entry[] = [];
+  if (selectedCategory === 'Favorites') {
+    mainHeading = 'Favorites';
+    entriesToShow = filteredData.filter((item) => item.favorite);
+  } else if (protectedCategories.includes(selectedCategory)) {
+    mainHeading = '';
+    entriesToShow = filteredData;
+  } else {
+    const cat = categories.find((c: any) => c.id === selectedCategory);
+    mainHeading = cat ? cat.name : '';
+    entriesToShow = filteredData.filter((item) => item.category_ids && item.category_ids.includes(selectedCategory));
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -114,6 +137,19 @@ const DashboardPage: React.FC = () => {
       });
     }
   }
+
+  const ensureUncategorized = async () => {
+    let uncategorized = categories.find((cat: any) => cat.name.trim().toLowerCase() === 'uncategorized');
+    if (!uncategorized && currentUser) {
+      const idToken = await currentUser.getIdToken();
+      // Create 'Uncategorized' category
+      await updateCategory(idToken, '', 'Uncategorized'); // backend will create if not exists
+      const cats = await fetchCategories(idToken);
+      uncategorized = cats.find((cat: any) => cat.name.trim().toLowerCase() === 'uncategorized');
+      setCategories(cats);
+    }
+    return uncategorized?.id;
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
@@ -186,23 +222,23 @@ const DashboardPage: React.FC = () => {
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={categories.filter(c => !protectedCategories.includes(c))}
+                  items={sidebarCategories.map((c) => c.id)}
                   strategy={verticalListSortingStrategy}
                   disabled={!isCategoryEditMode}
                 >
                   <nav className="flex flex-col space-y-1">
-                    {categories.map((category) => (
-                      <div key={category} className="touch-none">
+                    {sidebarCategories.map((category) => (
+                      <div key={category.id} className="touch-none">
                         <button
-                          onClick={() => setSelectedCategory(category)}
+                          onClick={() => setSelectedCategory(category.id)}
                           disabled={isCategoryEditMode}
-                          className={`flex items-center w-full h-9 rounded-full px-4 transition-colors duration-200 ${selectedCategory === category && !isCategoryEditMode ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'} ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
+                          className={`flex items-center w-full h-9 rounded-full px-4 transition-colors duration-200 ${selectedCategory === category.id && !isCategoryEditMode ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'} ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
                         >
                           <div className="flex items-center space-x-3 text-left w-full">
-                            <span className="font-medium text-sm flex-grow truncate">{category}</span>
+                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
                           </div>
                         </button>
-                        {category === 'Favorites' && <div className="my-2 mx-3 border-b border-dark-200/80 dark:border-dark-800" />}
+                        {category.name === 'Favorites' && <div className="my-2 mx-3 border-b border-dark-200/80 dark:border-dark-800" />}
                       </div>
                     ))}
                   </nav>
@@ -212,23 +248,34 @@ const DashboardPage: React.FC = () => {
           </aside>
 
           <main className="flex-1">
+            {mainHeading && <h2 className="text-2xl font-bold mb-8">{mainHeading}</h2>}
             {loading ? (
               <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>
-            ) : contentToDisplay.length === 0 ? (
+            ) : entriesToShow.length === 0 ? (
               <div className="text-center py-20 text-dark-500 dark:text-dark-400">No entries found.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {contentToDisplay.map((entry) => (
-                  <ContentCard
-                    key={entry.id}
-                    title={entry.title || 'Untitled'}
-                    url={entry.url}
-                    notes={entry.notes}
-                    tags={entry.tags || []}
-                    favorite={entry.favorite}
-                    createdAt={entry.created_at}
-                  />
-                ))}
+                {entriesToShow.map((entry) => {
+                  // Map the first category ID to its name
+                  let categoryName = 'Unknown';
+                  if (entry.category_ids && entry.category_ids.length > 0 && categoryMap) {
+                    const catId = entry.category_ids[0];
+                    categoryName = categoryMap[catId] || 'Unknown';
+                  }
+                  return (
+                    <ContentCard
+                      key={entry.id}
+                      id={entry.id}
+                      title={entry.title || 'Untitled'}
+                      url={entry.url}
+                      notes={entry.notes}
+                      tags={entry.tags || []}
+                      favorite={entry.favorite}
+                      createdAt={entry.created_at}
+                      category={categoryName}
+                    />
+                  );
+                })}
               </div>
             )}
           </main>

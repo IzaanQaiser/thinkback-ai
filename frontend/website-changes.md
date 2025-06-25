@@ -5,3 +5,8 @@ changes needed in the frontend:
 - [ ] cant open entry
 - [ ] entry card looks ugly
 - [ ] autocomplete not working
+
+
+scrapers to make:
+- Youtube videos
+- Youtube shorts
