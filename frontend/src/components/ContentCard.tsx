@@ -7,13 +7,14 @@ interface ContentCardProps {
   title: string;
   url: string;
   notes?: string;
+  summary?: string;
   tags?: string[];
   favorite?: boolean;
   createdAt?: string;
   category: string;
 }
 
-const ContentCard: React.FC<ContentCardProps> = ({ id, title, url, notes, tags, favorite, createdAt, category }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ id, title, url, notes, summary, tags, favorite, createdAt, category }) => {
   return (
     <Link
       to={`/view/${id}`}
@@ -24,7 +25,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, url, notes, tags, 
           <div className="flex items-start space-x-4">
             <div className="flex-grow">
               <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug">{title}</h3>
-              <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2">{notes}</p>
+              <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2">
+                {summary || notes}
+              </p>
             </div>
           </div>
         </div>

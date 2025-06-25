@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Header, Body
+from fastapi import APIRouter, HTTPException, Header, Body, Query
 from typing import Optional, List
 from firebase import (
     change_password as change_password_firebase,
@@ -18,7 +18,9 @@ from firebase import (
 from pydantic import BaseModel, EmailStr, Field
 from firebase_admin import auth
 from datetime import datetime
-from ai import classify_entry
+from ai import classify_entry, aggregate_entry_data, format_ai_prompt
+from scrapers.youtube import YouTubeScraper
+from scraper_factory import get_scraper
 
 router = APIRouter()
 
@@ -37,6 +39,7 @@ class Entry(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     collection_ids: List[str] = []
     category_ids: List[str] = []
+    summary: Optional[str] = None  # AI-generated summary
 
 
 class Collection(BaseModel):
@@ -152,7 +155,8 @@ def create_entry(
     authorization: Optional[str] = Header(None),
 ):
     """
-    Create a new entry for the logged-in user, then enrich it with AI classification (category, tags, title).
+    Create a new entry for the logged-in user. If the entry already has AI-enriched fields (title, tags, summary),
+    save it directly. Otherwise, enrich it with AI classification.
     """
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
@@ -174,6 +178,18 @@ def create_entry(
             status_code=401, detail=f"Token verification failed: {str(e)}"
         )
 
+    # Check if entry already has AI-enriched fields
+    has_enriched_data = entry.title and entry.tags and entry.summary
+
+    if has_enriched_data:
+        # Entry already has AI-enriched data, save it directly
+        entry_dict = entry.model_dump()
+        result = add_entry_firebase(uid, entry_dict)
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["error"])
+        return result["entry"]
+
+    # Otherwise, run the full AI enrichment pipeline
     entry_dict = entry.model_dump()
     result = add_entry_firebase(uid, entry_dict)
     if not result["success"]:
@@ -191,10 +207,11 @@ def create_entry(
 
     # Handle category (existing or new)
     category_id = None
-    if ai_result["category"]["id"]:
+    if "id" in ai_result["category"] and ai_result["category"]["id"]:
+        # AI returned an existing category ID
         category_id = ai_result["category"]["id"]
     else:
-        # Check for existing category with same name (case-insensitive, trimmed)
+        # AI returned a new category name or "Uncategorized"
         new_cat_name = ai_result["category"]["name"].strip().lower()
         existing = next(
             (c for c in categories if c["name"].strip().lower() == new_cat_name), None
@@ -214,6 +231,7 @@ def create_entry(
         "category_ids": [category_id],
         "tags": ai_result.get("tags", []),
         "title": ai_result.get("title", ""),
+        "summary": ai_result.get("summary", ""),
     }
     update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
     if not update_result["success"]:
@@ -634,3 +652,74 @@ def delete_user_category(category_id: str, authorization: Optional[str] = Header
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
     return {"message": "Category deleted and entries reassigned to Uncategorized."}
+
+
+@router.get("/api/scrape/youtube")
+def scrape_youtube(url: str = Query(...)):
+    scraper = YouTubeScraper()
+    return scraper.scrape(url)
+
+
+@router.post("/api/enrich-entry")
+def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
+    url = data["url"]
+    user_notes = data.get("user_notes", "")
+    print(f"[enrich_entry] Incoming URL: {url}")
+
+    # Platform detection (reuse frontend logic or implement here)
+    def detect_platform(url: str) -> str:
+        url = url.lower()
+        if (
+            "youtube.com/shorts/" in url
+            or "youtu.be/" in url
+            and "?feature=share" in url
+        ):
+            return "YouTube Shorts"
+        if "youtube.com/watch?v=" in url or "youtu.be/" in url:
+            return "YouTube Video"
+        if "instagram.com/reels/" in url:
+            return "Instagram Reel"
+        if "instagram.com/p/" in url:
+            return "Instagram Post"
+        if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
+            return "LinkedIn Post"
+        if "linkedin.com/jobs/view/" in url:
+            return "LinkedIn Job"
+        if "reddit.com/r/" in url and "/comments/" in url:
+            return "Reddit Post"
+        if "tiktok.com/" in url:
+            return "TikTok Video"
+        if "twitter.com/" in url or "x.com/" in url:
+            return "Twitter/X Post"
+        return "Unknown"
+
+    platform = detect_platform(url)
+    print(f"[enrich_entry] Detected platform: {platform}")
+    scraper = get_scraper(platform)
+    scraped_data = scraper.scrape(url) if scraper else {}
+    print(f"[enrich_entry] Scraped data: {scraped_data}")
+    # Get categories for the user (decode from token if available, else fallback)
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception:
+        uid = None
+    categories = []
+    if uid:
+        cat_result = get_categories_firebase(uid)
+        if cat_result["success"]:
+            categories = cat_result["categories"]
+    entry_data = aggregate_entry_data(
+        url, platform, scraped_data, user_notes, categories
+    )
+    print(f"[enrich_entry] Aggregated entry data: {entry_data}")
+    prompt = format_ai_prompt(entry_data)
+    print(f"[enrich_entry] AI prompt: {prompt}")
+    ai_response = classify_entry(
+        entry_data, categories
+    )  # classify_entry should call OpenAI and return the AI's JSON response
+    print(f"[enrich_entry] AI response: {ai_response}")
+    return ai_response
