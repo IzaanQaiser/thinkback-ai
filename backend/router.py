@@ -550,11 +550,41 @@ def update_user_category(
         raise HTTPException(
             status_code=401, detail=f"Token verification failed: {str(e)}"
         )
-    update_data = category.model_dump(exclude_unset=True)
-    result = update_category_firebase(uid, category_id, update_data)
-    if not result["success"]:
-        raise HTTPException(status_code=400, detail=result["error"])
-    return result["category"]
+    # Check if a category with the new name exists (case-insensitive, trimmed)
+    cat_result = get_categories_firebase(uid)
+    if not cat_result["success"]:
+        raise HTTPException(status_code=400, detail=cat_result["error"])
+    categories = cat_result["categories"]
+    new_cat_name = category.name.strip().lower()
+    existing = next(
+        (c for c in categories if c["name"].strip().lower() == new_cat_name), None
+    )
+    if existing and existing["id"] != category_id:
+        # Reassign all entries to this existing category, then delete the old one
+        entries_result = get_entries_firebase(uid)
+        if not entries_result["success"]:
+            raise HTTPException(status_code=400, detail=entries_result["error"])
+        for entry in entries_result["entries"]:
+            if category_id in entry.get("category_ids", []):
+                new_cats = [cid for cid in entry["category_ids"] if cid != category_id]
+                new_cats.append(existing["id"])
+                update_entry_firebase(uid, entry["id"], {"category_ids": new_cats})
+        delete_category_firebase(uid, category_id)
+        return existing
+    else:
+        # Update the category name
+        update_data = category.model_dump(exclude_unset=True)
+        result = update_category_firebase(uid, category_id, update_data)
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["error"])
+        # Reassign all entries to this category (in case name is used for display)
+        entries_result = get_entries_firebase(uid)
+        if not entries_result["success"]:
+            raise HTTPException(status_code=400, detail=entries_result["error"])
+        for entry in entries_result["entries"]:
+            if category_id in entry.get("category_ids", []):
+                update_entry_firebase(uid, entry["id"], {"category_ids": [category_id]})
+        return result["category"]
 
 
 @router.delete("/api/categories/{category_id}")
@@ -576,7 +606,31 @@ def delete_user_category(category_id: str, authorization: Optional[str] = Header
         raise HTTPException(
             status_code=401, detail=f"Token verification failed: {str(e)}"
         )
+    # Find or create 'Uncategorized' category
+    cat_result = get_categories_firebase(uid)
+    if not cat_result["success"]:
+        raise HTTPException(status_code=400, detail=cat_result["error"])
+    categories = cat_result["categories"]
+    uncategorized = next(
+        (c for c in categories if c["name"].strip().lower() == "uncategorized"), None
+    )
+    if not uncategorized:
+        uncategorized_result = add_category_firebase(uid, {"name": "Uncategorized"})
+        if not uncategorized_result["success"]:
+            raise HTTPException(status_code=400, detail=uncategorized_result["error"])
+        uncategorized = uncategorized_result["category"]
+    # Reassign all entries in this category to 'Uncategorized'
+    entries_result = get_entries_firebase(uid)
+    if not entries_result["success"]:
+        raise HTTPException(status_code=400, detail=entries_result["error"])
+    for entry in entries_result["entries"]:
+        if category_id in entry.get("category_ids", []):
+            new_cats = [cid for cid in entry["category_ids"] if cid != category_id]
+            if uncategorized["id"] not in new_cats:
+                new_cats.append(uncategorized["id"])
+            update_entry_firebase(uid, entry["id"], {"category_ids": new_cats})
+    # Delete the category
     result = delete_category_firebase(uid, category_id)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
-    return {"message": "Category deleted successfully."}
+    return {"message": "Category deleted and entries reassigned to Uncategorized."}

@@ -9,8 +9,9 @@ import Button from '../components/Button';
 import Textarea from '../components/Textarea';
 import { FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Kbd from '../components/Kbd';
-import { mockData, mockCategories } from '../data/mockData';
 import { useTheme } from '../contexts/ThemeContext';
+import { fetchEntry, deleteEntry, updateEntry } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const platformIcons: { [key: string]: React.ElementType } = {
   youtube: Youtube,
@@ -21,18 +22,39 @@ const platformIcons: { [key: string]: React.ElementType } = {
 
 const ViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const entry = mockData.find(e => e.id === id);
+  const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
-
+  const [entry, setEntry] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [notes, setNotes] = useState(entry?.notes || '');
+  const [notes, setNotes] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const navigate = useNavigate();
   const [isMac, setIsMac] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(entry?.favorite || false);
+  const [isFavorited, setIsFavorited] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const PlatformIcon = entry ? platformIcons[entry.platform as keyof typeof platformIcons] : null;
+  useEffect(() => {
+    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+  }, []);
+
+  useEffect(() => {
+    if (!id || !currentUser) return;
+    setLoading(true);
+    setError(null);
+    currentUser.getIdToken().then(token => {
+      return fetchEntry(token, id);
+    }).then(data => {
+      setEntry(data);
+      setNotes(data.notes || '');
+      setIsFavorited(!!data.favorite);
+      setLoading(false);
+    }).catch(err => {
+      setError('Content not found');
+      setLoading(false);
+    });
+  }, [id, currentUser]);
 
   useEffect(() => {
     if (entry) {
@@ -42,38 +64,35 @@ const ViewPage: React.FC = () => {
     }
   }, [entry]);
 
-  useEffect(() => {
-    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+  const PlatformIcon = entry ? platformIcons[entry.platform as keyof typeof platformIcons] : null;
 
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         navigate('/dashboard');
       }
-
       const isModifier = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform) ? e.metaKey : e.ctrlKey;
       if (isModifier && e.key.toLowerCase() === 'o' && entry) {
         e.preventDefault();
         window.open(entry.url, '_blank');
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [navigate, entry]);
 
-  const handleFavorite = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleFavorite = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.blur();
-    if (entry) {
-      // In a real app, this would be an API call.
-      // For mock data, we'll find and update the item.
-      const entryIndex = mockData.findIndex(item => item.id === entry.id);
-      if (entryIndex !== -1) {
-        const updatedEntry = { ...mockData[entryIndex], favorite: !isFavorited };
-        mockData[entryIndex] = updatedEntry;
-        setIsFavorited(!isFavorited);
-      }
+    if (!entry || !currentUser) return;
+    try {
+      const token = await currentUser.getIdToken();
+      const updated = await updateEntry(token, entry.id, { favorite: !isFavorited });
+      setIsFavorited(updated.favorite);
+      setEntry((prev: any) => ({ ...prev, favorite: updated.favorite }));
+    } catch (err) {
+      alert('Failed to update favorite: ' + (err as Error).message);
     }
   };
 
@@ -86,13 +105,21 @@ const ViewPage: React.FC = () => {
   };
 
   const handleSaveNotes = () => {
-    // In real app, this would be an API call
+    // TODO: Implement save notes API call
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    // In real app, this would be an API call
-    console.log('Delete entry');
+  const handleDelete = async () => {
+    if (!currentUser || !id) return;
+    try {
+      const token = await currentUser.getIdToken();
+      await deleteEntry(token, id);
+      setShowDeleteConfirm(false);
+      navigate('/dashboard');
+    } catch (err) {
+      alert('Failed to delete entry: ' + (err as Error).message);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleReflect = () => {
@@ -105,7 +132,11 @@ const ViewPage: React.FC = () => {
     console.log('Add to resurface queue');
   };
 
-  if (!entry) {
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-dark-500 dark:text-dark-400">Loading...</div>;
+  }
+
+  if (error || !entry) {
     return (
       <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white flex flex-col items-center justify-center">
         <div className="text-center">

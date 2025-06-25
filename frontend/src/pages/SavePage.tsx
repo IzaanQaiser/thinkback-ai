@@ -11,6 +11,22 @@ import { useTheme } from '../contexts/ThemeContext';
 import { createEntry } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
+// Helper function to detect platform from URL
+function detectPlatform(url: string): string {
+  if (!url) return 'Unknown';
+  url = url.toLowerCase();
+  if (/youtube\.com\/shorts\//.test(url) || /youtu\.be\/.+\?feature=share/.test(url)) return 'YouTube Shorts';
+  if (/youtube\.com\/watch\?v=/.test(url) || /youtu\.be\//.test(url)) return 'YouTube Video';
+  if (/instagram\.com\/reels\//.test(url)) return 'Instagram Reel';
+  if (/instagram\.com\/p\//.test(url)) return 'Instagram Post';
+  if (/linkedin\.com\/feed\/update\//.test(url) || /linkedin\.com\/posts\//.test(url)) return 'LinkedIn Post';
+  if (/reddit\.com\/r\/.+\/comments\//.test(url)) return 'Reddit Post';
+  if (/tiktok\.com\//.test(url)) return 'TikTok Video';
+  if (/twitter\.com\//.test(url) || /x\.com\//.test(url)) return 'Twitter/X Post';
+  if (/linkedin\.com\/jobs\/view\//.test(url)) return 'LinkedIn Job';
+  return 'Unknown';
+}
+
 const SavePage: React.FC = () => {
   const [contentType, setContentType] = useState<'link' | 'text'>('link');
   const [url, setUrl] = useState('');
@@ -125,14 +141,23 @@ const SavePage: React.FC = () => {
 
             {/* Content Input */}
             {contentType === 'link' ? (
-              <Input
-                label="Paste Link"
-                type="url"
-                placeholder="https://youtube.com/watch?v=... or https://reddit.com/r/..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-              />
+              <div className="flex items-center space-x-2">
+                <Input
+                  label="Paste Link"
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=... or https://reddit.com/r/..."
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="px-3 py-1 rounded bg-dark-100 dark:bg-dark-800 hover:bg-dark-200 dark:hover:bg-dark-700 text-xs font-semibold border border-dark-200 dark:border-dark-700"
+                  onClick={() => console.log('Detected platform:', detectPlatform(url))}
+                >
+                  Detect Platform
+                </button>
+              </div>
             ) : (
               <Textarea
                 label="Your Content"
