@@ -58,3 +58,4 @@ uvicorn==0.34.3
 yarl==1.20.0
 zipp==3.22.0
 zmq==0.0.0
+yt-dlp
