@@ -8,6 +8,8 @@ import Textarea from '../components/Textarea';
 import Button from '../components/Button';
 import Kbd from '../components/Kbd';
 import { useTheme } from '../contexts/ThemeContext';
+import { createEntry } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const SavePage: React.FC = () => {
   const [contentType, setContentType] = useState<'link' | 'text'>('link');
@@ -17,6 +19,7 @@ const SavePage: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     document.title = 'thinkback.ai - Save';
@@ -31,16 +34,24 @@ const SavePage: React.FC = () => {
     };
   }, [navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock save - in real app, this would be API call
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
+    if (!currentUser) return;
+    setSaved(false);
+    try {
+      const idToken = await currentUser.getIdToken();
+      const entryData = contentType === 'link'
+        ? { url, notes }
+        : { url: '', notes: text + (notes ? `\n${notes}` : '') };
+      await createEntry(idToken, entryData);
+      setSaved(true);
       setUrl('');
       setText('');
       setNotes('');
-    }, 2000);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      alert('Failed to save entry: ' + (error as Error).message);
+    }
   };
 
   return (

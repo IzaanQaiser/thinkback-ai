@@ -18,6 +18,7 @@ from firebase import (
 from pydantic import BaseModel, EmailStr, Field
 from firebase_admin import auth
 from datetime import datetime
+from ai import classify_entry
 
 router = APIRouter()
 
@@ -151,7 +152,7 @@ def create_entry(
     authorization: Optional[str] = Header(None),
 ):
     """
-    Create a new entry for the logged-in user
+    Create a new entry for the logged-in user, then enrich it with AI classification (category, tags, title).
     """
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
@@ -175,11 +176,42 @@ def create_entry(
 
     entry_dict = entry.model_dump()
     result = add_entry_firebase(uid, entry_dict)
-
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
+    saved_entry = result["entry"]
 
-    return result["entry"]
+    # Fetch all categories for the user
+    cat_result = get_categories_firebase(uid)
+    if not cat_result["success"]:
+        raise HTTPException(status_code=400, detail=cat_result["error"])
+    categories = cat_result["categories"]  # List of dicts with 'id' and 'name'
+
+    # Call the classification agent
+    ai_result = classify_entry(saved_entry, categories)
+
+    # Handle category (existing or new)
+    category_id = None
+    if ai_result["category"]["id"]:
+        category_id = ai_result["category"]["id"]
+    else:
+        # Create new category
+        new_cat = {"name": ai_result["category"]["name"]}
+        new_cat_result = add_category_firebase(uid, new_cat)
+        if not new_cat_result["success"]:
+            raise HTTPException(status_code=400, detail=new_cat_result["error"])
+        category_id = new_cat_result["category"]["id"]
+
+    # Update the entry with AI-enriched fields
+    update_data = {
+        "category_ids": [category_id],
+        "tags": ai_result.get("tags", []),
+        "title": ai_result.get("title", ""),
+    }
+    update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
+    if not update_result["success"]:
+        raise HTTPException(status_code=400, detail=update_result["error"])
+
+    return update_result["entry"]
 
 
 @router.get("/api/entries", response_model=List[Entry])
@@ -272,6 +304,39 @@ def delete_user_entry(entry_id: str, authorization: Optional[str] = Header(None)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
     return {"message": "Entry deleted successfully."}
+
+
+@router.get("/api/entries/{entry_id}", response_model=Entry)
+def get_user_entry(entry_id: str, authorization: Optional[str] = Header(None)):
+    """
+    Get a single entry for the logged-in user by entry_id
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    # Fetch all entries and find the one with the matching id
+    result = get_entries_firebase(uid)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["error"])
+    entries = result["entries"]
+    entry = next((e for e in entries if e["id"] == entry_id), None)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
 
 
 # --- COLLECTIONS ENDPOINTS ---

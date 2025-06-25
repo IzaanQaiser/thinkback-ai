@@ -44,3 +44,35 @@ export async function changePassword(idToken: string, newPassword: string): Prom
     throw error;
   }
 }
+
+// --- ENTRIES API ---
+
+export async function createEntry(idToken: string, entryData: { url: string; notes?: string; }): Promise<any> {
+  const response = await fetch(`${API_URL}/api/entries`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(entryData),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Failed to create entry');
+  }
+  return await response.json();
+}
+
+export async function fetchEntries(idToken: string): Promise<any[]> {
+  const response = await fetch(`${API_URL}/api/entries`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Failed to fetch entries');
+  }
+  return await response.json();
+}
