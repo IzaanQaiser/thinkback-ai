@@ -194,12 +194,20 @@ def create_entry(
     if ai_result["category"]["id"]:
         category_id = ai_result["category"]["id"]
     else:
-        # Create new category
-        new_cat = {"name": ai_result["category"]["name"]}
-        new_cat_result = add_category_firebase(uid, new_cat)
-        if not new_cat_result["success"]:
-            raise HTTPException(status_code=400, detail=new_cat_result["error"])
-        category_id = new_cat_result["category"]["id"]
+        # Check for existing category with same name (case-insensitive, trimmed)
+        new_cat_name = ai_result["category"]["name"].strip().lower()
+        existing = next(
+            (c for c in categories if c["name"].strip().lower() == new_cat_name), None
+        )
+        if existing:
+            category_id = existing["id"]
+        else:
+            # Create new category
+            new_cat = {"name": ai_result["category"]["name"]}
+            new_cat_result = add_category_firebase(uid, new_cat)
+            if not new_cat_result["success"]:
+                raise HTTPException(status_code=400, detail=new_cat_result["error"])
+            category_id = new_cat_result["category"]["id"]
 
     # Update the entry with AI-enriched fields
     update_data = {
@@ -478,6 +486,17 @@ def create_category(
         raise HTTPException(
             status_code=401, detail=f"Token verification failed: {str(e)}"
         )
+    # Check for existing category with same name (case-insensitive, trimmed)
+    cat_result = get_categories_firebase(uid)
+    if not cat_result["success"]:
+        raise HTTPException(status_code=400, detail=cat_result["error"])
+    categories = cat_result["categories"]
+    new_cat_name = category.name.strip().lower()
+    existing = next(
+        (c for c in categories if c["name"].strip().lower() == new_cat_name), None
+    )
+    if existing:
+        return existing
     category_dict = category.model_dump()
     result = add_category_firebase(uid, category_dict)
     if not result["success"]:
