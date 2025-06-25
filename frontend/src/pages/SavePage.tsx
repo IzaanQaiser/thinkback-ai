@@ -11,22 +11,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { createEntry } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-// Helper function to detect platform from URL
-function detectPlatform(url: string): string {
-  if (!url) return 'Unknown';
-  url = url.toLowerCase();
-  if (/youtube\.com\/shorts\//.test(url) || /youtu\.be\/.+\?feature=share/.test(url)) return 'YouTube Shorts';
-  if (/youtube\.com\/watch\?v=/.test(url) || /youtu\.be\//.test(url)) return 'YouTube Video';
-  if (/instagram\.com\/reels\//.test(url)) return 'Instagram Reel';
-  if (/instagram\.com\/p\//.test(url)) return 'Instagram Post';
-  if (/linkedin\.com\/feed\/update\//.test(url) || /linkedin\.com\/posts\//.test(url)) return 'LinkedIn Post';
-  if (/reddit\.com\/r\/.+\/comments\//.test(url)) return 'Reddit Post';
-  if (/tiktok\.com\//.test(url)) return 'TikTok Video';
-  if (/twitter\.com\//.test(url) || /x\.com\//.test(url)) return 'Twitter/X Post';
-  if (/linkedin\.com\/jobs\/view\//.test(url)) return 'LinkedIn Job';
-  return 'Unknown';
-}
-
 const SavePage: React.FC = () => {
   const [contentType, setContentType] = useState<'link' | 'text'>('link');
   const [url, setUrl] = useState('');
@@ -54,19 +38,109 @@ const SavePage: React.FC = () => {
     e.preventDefault();
     if (!currentUser) return;
     setSaved(false);
+
     try {
       const idToken = await currentUser.getIdToken();
-      const entryData = contentType === 'link'
-        ? { url, notes }
-        : { url: '', notes: text + (notes ? `\n${notes}` : '') };
-      await createEntry(idToken, entryData);
+
+      if (contentType === 'link' && url) {
+        // For links: Run full enrichment pipeline
+        console.log('Running enrichment pipeline for URL:', url);
+
+        // Step 1: Call enrichment endpoint
+        const enrichResponse = await fetch('http://localhost:8000/api/enrich-entry', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ url, user_notes: notes }),
+        });
+
+        if (!enrichResponse.ok) {
+          throw new Error('Failed to enrich entry');
+        }
+
+        const aiResult = await enrichResponse.json();
+        console.log('AI Enrichment Result:', aiResult);
+
+        // Step 2: Handle category assignment
+        let categoryId = null;
+        if (aiResult.category) {
+          if (aiResult.category.id) {
+            // AI returned an existing category ID
+            categoryId = aiResult.category.id;
+          } else if (aiResult.category.name) {
+            // AI suggested a new category name, we need to create it
+            try {
+              const categoryResponse = await fetch('http://localhost:8000/api/categories', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({ name: aiResult.category.name }),
+              });
+
+              if (categoryResponse.ok) {
+                const newCategory = await categoryResponse.json();
+                categoryId = newCategory.id;
+              }
+            } catch (categoryError) {
+              console.error('Failed to create category:', categoryError);
+              // Continue without category assignment
+            }
+          }
+        }
+
+        // Step 3: Save enriched entry to database
+        const entryData = {
+          url,
+          notes,
+          title: aiResult.title || '',
+          tags: aiResult.tags || [],
+          summary: aiResult.summary || '',
+          category_ids: categoryId ? [categoryId] : [],
+        };
+
+        await createEntry(idToken, entryData);
+      } else {
+        // For text: Save as basic entry
+        const entryData = contentType === 'link'
+          ? { url, notes }
+          : { url: '', notes: text + (notes ? `\n${notes}` : '') };
+        await createEntry(idToken, entryData);
+      }
+
       setSaved(true);
       setUrl('');
       setText('');
       setNotes('');
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
+      console.error('Save error:', error);
       alert('Failed to save entry: ' + (error as Error).message);
+    }
+  };
+
+  const handleDetectAndEnrich = async () => {
+    if (!url) return;
+    try {
+      let idToken = undefined;
+      if (currentUser) {
+        idToken = await currentUser.getIdToken();
+      }
+      const response = await fetch('http://localhost:8000/api/enrich-entry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+        body: JSON.stringify({ url, user_notes: notes }),
+      });
+      const aiResult = await response.json();
+      console.log('AI Response:', aiResult);
+    } catch (err) {
+      console.error('Failed to enrich entry:', err);
     }
   };
 
@@ -153,7 +227,7 @@ const SavePage: React.FC = () => {
                 <button
                   type="button"
                   className="px-3 py-1 rounded bg-dark-100 dark:bg-dark-800 hover:bg-dark-200 dark:hover:bg-dark-700 text-xs font-semibold border border-dark-200 dark:border-dark-700"
-                  onClick={() => console.log('Detected platform:', detectPlatform(url))}
+                  onClick={handleDetectAndEnrich}
                 >
                   Detect Platform
                 </button>

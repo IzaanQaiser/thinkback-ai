@@ -30,6 +30,7 @@ interface Entry {
   url: string;
   title: string;
   notes?: string;
+  summary?: string;
   tags?: string[];
   favorite?: boolean;
   created_at?: string;
@@ -269,6 +270,7 @@ const DashboardPage: React.FC = () => {
                       title={entry.title || 'Untitled'}
                       url={entry.url}
                       notes={entry.notes}
+                      summary={entry.summary}
                       tags={entry.tags || []}
                       favorite={entry.favorite}
                       createdAt={entry.created_at}

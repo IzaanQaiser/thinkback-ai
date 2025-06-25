@@ -199,32 +199,24 @@ const ViewPage: React.FC = () => {
 
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Media Preview */}
-            <div className="aspect-video bg-dark-200 dark:bg-dark-900 rounded-2xl overflow-hidden relative shadow-2xl border border-dark-200/80 dark:border-dark-800/50">
-              <img
-                src={entry?.thumbnail}
-                alt={entry?.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-0 left-0 m-4">
-                <div className="bg-black/20 dark:bg-dark-900/50 backdrop-blur-md rounded-full p-2.5 border border-white/20 dark:border-dark-700/50">
-                  {PlatformIcon && <PlatformIcon size={20} className="text-white" />}
-                </div>
-              </div>
-              {entry?.duration && (
-                <div className="absolute bottom-0 right-0 m-4">
-                  <div className="bg-black/20 dark:bg-dark-900/50 text-white text-sm px-3 py-1.5 rounded-full backdrop-blur-md border border-white/20 dark:border-dark-700/50">
-                    {entry.duration}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Title & Description */}
             <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 md:p-8">
               <h1 className="text-3xl sm:text-4xl font-bold text-dark-900 dark:text-white mb-3" style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}>
                 {entry?.title}
               </h1>
+
+              {/* AI Summary */}
+              {entry?.summary && (
+                <div className="mb-6 p-4 bg-primary-50/50 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/50 rounded-xl">
+                  <h3 className="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-2 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+                    AI Summary
+                  </h3>
+                  <p className="text-dark-700 dark:text-dark-200 leading-relaxed">
+                    {entry.summary}
+                  </p>
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-sm text-dark-500 dark:text-dark-300">
                 <div className="flex items-center space-x-2">
