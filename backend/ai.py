@@ -100,9 +100,22 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     1. CRITICAL: NEVER assign to "Uncategorized". You must either:
        - Match to an existing category if there's a 50%+ similarity
        - Create a NEW category name (1-2 words) that best describes the content topic/genre
-    2. Generate a concise, human-friendly title (if needed).
+    2. Generate a concise, specific title (4-5 words max) that captures the core topic of the content. Make it more specific and relevant than the original title.
     3. Generate up to 3 relevant tags.
     4. Generate a 3-5 sentence summary of the content that captures the key points and main takeaways.
+
+    CATEGORIZATION RULES:
+    - PREFER BROADER, SIMPLER categories over specific ones
+    - Use single words or simple 2-word phrases (e.g., "Startups", "NBA", "Basketball", "Technology")
+    - Avoid overly specific categories like "Startup Critique" or "Physics Fundamentals"
+    - Consider the content's main topic area, not the specific angle or perspective
+    - Examples:
+      * "How startups are stupid" → "Startups" (not "Startup Critique")
+      * "NBA player injury news" → "NBA" (not "NBA Injuries")
+      * "Random basketball league highlights" → "Basketball" (not "Basketball Highlights")
+      * "Physics tutorial" → "Physics" (not "Physics Education")
+      * "React programming guide" → "Programming" (not "React Tutorial")
+      * "Tech company analysis" → "Technology" (not "Tech Analysis")
 
     Entry:
     URL: {entry.get("url")}
@@ -116,7 +129,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     Existing Categories:
     {categories_str}
 
-    IMPORTANT: If none of the existing categories match well (less than 50% similarity), create a NEW category name that best describes this content. Examples: "Science", "Technology", "Sports", "Entertainment", "Education", "Business", "Health", "Travel", etc.
+    IMPORTANT: Choose the BROADEST appropriate category that still accurately describes the content. Prefer simple, general categories over specific ones. If none of the existing categories match well (less than 50% similarity), create a NEW category name that best describes this content.
 
     Respond in JSON with keys: category (object with id if matching existing category, or name if suggesting new category), title, tags (list of strings), summary (string with 3-5 sentences).
     """
