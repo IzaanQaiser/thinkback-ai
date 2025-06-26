@@ -11,6 +11,11 @@ changes needed:
 - [ ] add category rename functionality
 - [ ] add functionality to reassign entries to different categories
 - [ ] make/do something about entry insertion timing
+- [ ] entry view: platform passthrough
+- [ ] entry view: duration pass through
+- [ ] subscribe to tracks/topics (e.g. follow US news, politics, anime updates, etc)
+- [ ] entry view:
+
 
 scrapers to make:
 - Youtube videos

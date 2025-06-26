@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Sun, Moon, Check, Pencil } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Plus, Search, User as UserIcon, Sun, Moon, Check, Pencil, ExternalLink, Trash2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -42,13 +42,19 @@ const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMac, setIsMac] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'For You');
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
@@ -84,6 +90,29 @@ const DashboardPage: React.FC = () => {
     loadEntries();
   }, [currentUser]);
 
+  // Refresh entries when returning to dashboard
+  useEffect(() => {
+    const handleFocus = () => {
+      if (currentUser) {
+        const loadEntries = async () => {
+          try {
+            const idToken = await currentUser.getIdToken();
+            const data = await fetchEntries(idToken);
+            setEntries(data);
+          } catch (error) {
+            console.error('Failed to refresh entries:', error);
+          }
+        };
+        loadEntries();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [currentUser]);
+
   useEffect(() => {
     const loadCategories = async () => {
       if (!currentUser) return;
@@ -105,6 +134,75 @@ const DashboardPage: React.FC = () => {
   const filteredData = entries.filter(item =>
     item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Get suggestions for autosuggest dropdown
+  const getSuggestions = () => {
+    if (!searchQuery.trim()) return [];
+
+    const query = searchQuery.toLowerCase();
+    return entries
+      .filter(item =>
+        item.title && item.title.toLowerCase().includes(query) ||
+        item.notes && item.notes.toLowerCase().includes(query) ||
+        item.tags && item.tags.some(tag => tag.toLowerCase().includes(query))
+      )
+      .slice(0, 5); // Limit to 5 suggestions
+  };
+
+  const suggestions = getSuggestions();
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
+          searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!showSuggestions || suggestions.length === 0) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedSuggestionIndex(prev =>
+            prev < suggestions.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedSuggestionIndex(prev =>
+            prev > 0 ? prev - 1 : suggestions.length - 1
+          );
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
+            handleSuggestionClick(suggestions[selectedSuggestionIndex]);
+          }
+          break;
+        case 'Escape':
+          setShowSuggestions(false);
+          setSelectedSuggestionIndex(-1);
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showSuggestions, suggestions, selectedSuggestionIndex]);
 
   const sidebarCategories = [
     ...protectedCategories.map((name) => ({ id: name, name })),
@@ -151,6 +249,79 @@ const DashboardPage: React.FC = () => {
     }
     return uncategorized?.id;
   };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setShowSuggestions(value.length > 0);
+    setSelectedSuggestionIndex(-1);
+  };
+
+  const handleSuggestionClick = (entry: Entry) => {
+    setSearchQuery('');
+    setShowSuggestions(false);
+    setSelectedSuggestionIndex(-1);
+    navigate(`/view/${entry.id}`);
+  };
+
+  const handleDeleteCategory = async (category: any) => {
+    if (!currentUser) return;
+
+    try {
+      const idToken = await currentUser.getIdToken();
+      const deleteResult = await deleteCategory(idToken, category.id);
+
+      // Get the count of deleted entries from the response
+      const deletedEntriesCount = deleteResult.deleted_entries_count || 0;
+
+      // Reload categories
+      const cats = await fetchCategories(idToken);
+      setCategories(cats);
+      const map: { [id: string]: string } = {};
+      cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+      setCategoryMap(map);
+
+      // If the deleted category was selected, switch to 'For You'
+      if (selectedCategory === category.id) {
+        setSelectedCategory('For You');
+      }
+
+      // Remove deleted entries from local state
+      if (deletedEntriesCount > 0) {
+        setEntries(prevEntries =>
+          prevEntries.filter(entry =>
+            !entry.category_ids || !entry.category_ids.includes(category.id)
+          )
+        );
+      }
+
+      // Turn off edit mode after successful deletion
+      setIsCategoryEditMode(false);
+
+      setShowDeleteConfirm(false);
+      setCategoryToDelete(null);
+    } catch (error) {
+      alert('Failed to delete category: ' + (error as Error).message);
+    }
+  };
+
+  const confirmDeleteCategory = (category: any) => {
+    setCategoryToDelete(category);
+    setShowDeleteConfirm(true);
+  };
+
+  // Function to remove a specific entry from local state
+  const removeEntryFromState = (entryId: string) => {
+    setEntries(prevEntries => prevEntries.filter(entry => entry.id !== entryId));
+  };
+
+  // Expose the function globally so other components can use it
+  useEffect(() => {
+    (window as any).removeEntryFromState = removeEntryFromState;
+    return () => {
+      delete (window as any).removeEntryFromState;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
@@ -201,10 +372,59 @@ const DashboardPage: React.FC = () => {
             <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
               <div className="relative w-full">
-                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} autoComplete="off" />
+                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={handleSearchChange} autoComplete="off" />
               </div>
               <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
             </div>
+
+            {/* Search Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-800 border border-dark-200/80 dark:border-dark-700/60 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto"
+              >
+                {suggestions.map((entry, index) => {
+                  let categoryName = 'Unknown';
+                  if (entry.category_ids && entry.category_ids.length > 0 && categoryMap) {
+                    const catId = entry.category_ids[0];
+                    categoryName = categoryMap[catId] || 'Unknown';
+                  }
+
+                  return (
+                    <button
+                      key={entry.id}
+                      onClick={() => handleSuggestionClick(entry)}
+                      className={`w-full p-4 text-left hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors border-b border-dark-100/50 dark:border-dark-700/30 last:border-b-0 ${selectedSuggestionIndex === index ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : ''}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-dark-900 dark:text-white truncate mb-1">
+                            {entry.title || 'Untitled'}
+                          </h4>
+                          {entry.summary && (
+                            <p className="text-sm text-dark-600 dark:text-dark-300 line-clamp-2 mb-2">
+                              {entry.summary}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 text-xs text-dark-500 dark:text-dark-400">
+                            <span className="bg-dark-100 dark:bg-dark-700 px-2 py-1 rounded-full">
+                              {categoryName}
+                            </span>
+                            {entry.tags && entry.tags.length > 0 && (
+                              <span className="truncate">
+                                {entry.tags.slice(0, 2).join(', ')}
+                                {entry.tags.length > 2 && '...'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ExternalLink size={16} className="text-dark-400 dark:text-dark-500 ml-2 flex-shrink-0" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -230,15 +450,28 @@ const DashboardPage: React.FC = () => {
                   <nav className="flex flex-col space-y-1">
                     {sidebarCategories.map((category) => (
                       <div key={category.id} className="touch-none">
-                        <button
-                          onClick={() => setSelectedCategory(category.id)}
-                          disabled={isCategoryEditMode}
-                          className={`flex items-center w-full h-9 rounded-full px-4 transition-colors duration-200 ${selectedCategory === category.id && !isCategoryEditMode ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'} ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
-                        >
-                          <div className="flex items-center space-x-3 text-left w-full">
-                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
-                          </div>
-                        </button>
+                        <div className="flex items-center group">
+                          <button
+                            onClick={() => setSelectedCategory(category.id)}
+                            disabled={isCategoryEditMode}
+                            className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200 ${selectedCategory === category.id && !isCategoryEditMode ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'} ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
+                          >
+                            <div className="flex items-center space-x-3 text-left w-full">
+                              <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                            </div>
+                          </button>
+
+                          {/* Delete button - only show for non-protected categories in edit mode */}
+                          {isCategoryEditMode && !protectedCategories.includes(category.name) && (
+                            <button
+                              onClick={() => confirmDeleteCategory(category)}
+                              className="ml-2 p-1 rounded-full text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                              title="Delete category"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                         {category.name === 'Favorites' && <div className="my-2 mx-3 border-b border-dark-200/80 dark:border-dark-800" />}
                       </div>
                     ))}
@@ -283,6 +516,43 @@ const DashboardPage: React.FC = () => {
           </main>
         </div>
       </div>
+
+      {/* Delete Category Confirmation Modal */}
+      {showDeleteConfirm && categoryToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-dark-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">
+              Delete Category
+            </h3>
+            <p className="text-dark-600 dark:text-dark-300 mb-6">
+              Are you sure you want to delete the category "{categoryToDelete.name}"?
+              <br /><br />
+              <span className="text-red-600 dark:text-red-400 font-medium">
+                ⚠️ This will also delete ALL entries in this category permanently.
+              </span>
+              <br /><br />
+              This action cannot be undone.
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setCategoryToDelete(null);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg border border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteCategory(categoryToDelete)}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                Delete Category & Entries
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

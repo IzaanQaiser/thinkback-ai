@@ -2,23 +2,93 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, Edit, Trash2, Star, ClipboardCopy, ChevronDown, Check,
-  Youtube, Book, Clock, Folder as FolderIcon, Calendar, Sun, Moon
+  Youtube, Book, Clock, Folder as FolderIcon, Calendar, Sun, Moon, Play
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
 import Textarea from '../components/Textarea';
-import { FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
+import { FaReddit, FaInstagram, FaTwitter, FaTiktok, FaLinkedin, FaYoutube } from 'react-icons/fa';
 import Kbd from '../components/Kbd';
 import { useTheme } from '../contexts/ThemeContext';
-import { fetchEntry, deleteEntry, updateEntry } from '../services/api';
+import { fetchEntry, deleteEntry, updateEntry, fetchCategories } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const platformIcons: { [key: string]: React.ElementType } = {
-  youtube: Youtube,
+  youtube: FaYoutube,
   reddit: FaReddit,
   instagram: FaInstagram,
-  twitter: FaTwitter
+  twitter: FaTwitter,
+  tiktok: FaTiktok,
+  linkedin: FaLinkedin,
 };
+
+// Helper to format date as 'June 25th, 2025'
+function formatDateWithOrdinal(dateString?: string) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleString('default', { month: 'long' });
+  const year = date.getFullYear();
+  // Ordinal suffix
+  const getOrdinal = (n: number) => {
+    if (n > 3 && n < 21) return 'th';
+    switch (n % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  };
+  return `${month} ${day}${getOrdinal(day)}, ${year}`;
+}
+
+// Helper to format duration as HH:MM:SS or MM:SS
+function formatDuration(duration: any) {
+  if (!duration) return '—';
+  // If string and contains colon, return as-is
+  if (typeof duration === 'string' && duration.includes(':')) return duration;
+  // If string of digits or number, treat as seconds
+  let totalSeconds = typeof duration === 'number' ? duration : parseInt(duration, 10);
+  if (isNaN(totalSeconds) || totalSeconds < 0) return '—';
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  } else {
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+}
+
+function getPlatformIconAndName(platform?: string) {
+  if (!platform) return { icon: null, name: '' };
+  const key = platform.toLowerCase();
+  let name = '';
+  let Icon = null;
+  if (key.includes('youtube')) {
+    name = 'YouTube';
+    Icon = FaYoutube;
+  } else if (key.includes('reddit')) {
+    name = 'Reddit';
+    Icon = FaReddit;
+  } else if (key.includes('instagram')) {
+    name = 'Instagram';
+    Icon = FaInstagram;
+  } else if (key.includes('twitter') || key.includes('x.com')) {
+    name = 'Twitter';
+    Icon = FaTwitter;
+  } else if (key.includes('tiktok')) {
+    name = 'TikTok';
+    Icon = FaTiktok;
+  } else if (key.includes('linkedin')) {
+    name = 'LinkedIn';
+    Icon = FaLinkedin;
+  } else {
+    name = platform.charAt(0).toUpperCase() + platform.slice(1);
+    Icon = null;
+  }
+  return { icon: Icon, name };
+}
 
 const ViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +104,8 @@ const ViewPage: React.FC = () => {
   const [isMac, setIsMac] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoryName, setCategoryName] = useState<string>("");
 
   useEffect(() => {
     setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
@@ -64,7 +136,21 @@ const ViewPage: React.FC = () => {
     }
   }, [entry]);
 
-  const PlatformIcon = entry ? platformIcons[entry.platform as keyof typeof platformIcons] : null;
+  useEffect(() => {
+    if (!currentUser) return;
+    currentUser.getIdToken().then(token => {
+      fetchCategories(token).then(cats => setCategories(cats));
+    });
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (entry && categories.length > 0 && entry.category_ids && entry.category_ids.length > 0) {
+      const cat = categories.find(c => c.id === entry.category_ids[0]);
+      setCategoryName(cat ? cat.name : "Unknown");
+    }
+  }, [entry, categories]);
+
+  const { icon: PlatformIconComponent, name: platformName } = getPlatformIconAndName(entry?.platform);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -114,6 +200,12 @@ const ViewPage: React.FC = () => {
     try {
       const token = await currentUser.getIdToken();
       await deleteEntry(token, id);
+
+      // Remove entry from dashboard state if the function exists
+      if ((window as any).removeEntryFromState) {
+        (window as any).removeEntryFromState(id);
+      }
+
       setShowDeleteConfirm(false);
       navigate('/dashboard');
     } catch (err) {
@@ -218,17 +310,6 @@ const ViewPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 text-sm text-dark-500 dark:text-dark-300">
-                <div className="flex items-center space-x-2">
-                  <Book size={14} />
-                  <span>{entry?.author}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Calendar size={14} />
-                  <span>Saved {entry?.savedDate}</span>
-                </div>
-              </div>
-
               <p className="text-dark-700 dark:text-dark-200 leading-relaxed mb-6">
                 {entry?.description}
               </p>
@@ -294,32 +375,31 @@ const ViewPage: React.FC = () => {
                 <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Details</h2>
                 <ul className="space-y-4 text-sm">
                   <li className="flex items-center justify-between">
-                    <span className="text-dark-500 dark:text-dark-300 flex items-center gap-2">
-                      {PlatformIcon && <PlatformIcon size={16} />}
-                      Platform
+                    <span className="flex items-center gap-2">
+                      {PlatformIconComponent
+                        ? <PlatformIconComponent size={16} style={platformName === 'YouTube' ? { color: '#fff' } : {}} />
+                        : <Play size={16} style={{ color: '#888' }} />
+                      }
+                      <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
                     </span>
-                    <span className="font-medium text-dark-900 dark:text-white capitalize">{entry?.platform}</span>
                   </li>
                   <li className="flex items-center justify-between">
-                    <span className="text-dark-500 dark:text-dark-300 flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       <FolderIcon size={16} />
-                      Category
+                      <span className="font-medium text-dark-900 dark:text-white">{categoryName}</span>
                     </span>
-                    <span className="font-medium text-dark-900 dark:text-white">{entry?.category}</span>
                   </li>
                   <li className="flex items-center justify-between">
-                    <span className="text-dark-500 dark:text-dark-300 flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       <Calendar size={16} />
-                      Saved
+                      <span className="font-medium text-dark-900 dark:text-white">{formatDateWithOrdinal(entry?.created_at || entry?.savedDate)}</span>
                     </span>
-                    <span className="font-medium text-dark-900 dark:text-white">{entry?.savedDate}</span>
                   </li>
                   <li className="flex items-center justify-between">
-                    <span className="text-dark-500 dark:text-dark-300 flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       <Clock size={16} />
-                      Duration
+                      <span className="font-medium text-dark-900 dark:text-white">{formatDuration(entry?.duration)}</span>
                     </span>
-                    <span className="font-medium text-dark-900 dark:text-white">{entry?.duration}</span>
                   </li>
                 </ul>
               </div>
