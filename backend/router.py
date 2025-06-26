@@ -178,19 +178,69 @@ def create_entry(
             status_code=401, detail=f"Token verification failed: {str(e)}"
         )
 
+    # Always detect platform from URL
+    entry_dict = entry.model_dump()
+    url = entry_dict.get("url")
+
+    def detect_platform(url: str) -> str:
+        url = url.lower()
+        if (
+            "youtube.com/shorts/" in url
+            or "youtu.be/" in url
+            and "?feature=share" in url
+        ):
+            return "YouTube Shorts"
+        if "youtube.com/watch?v=" in url or "youtu.be/" in url:
+            return "YouTube Video"
+        if "instagram.com/reels/" in url:
+            return "Instagram Reel"
+        if "instagram.com/p/" in url:
+            return "Instagram Post"
+        if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
+            return "LinkedIn Post"
+        if "linkedin.com/jobs/view/" in url:
+            return "LinkedIn Job"
+        if "reddit.com/r/" in url and "/comments/" in url:
+            return "Reddit Post"
+        if "tiktok.com/" in url:
+            return "TikTok Video"
+        if "twitter.com/" in url or "x.com/" in url:
+            return "Twitter/X Post"
+        return "Unknown"
+
+    platform = detect_platform(url)
+    entry_dict["platform"] = platform
+
     # Check if entry already has AI-enriched fields
     has_enriched_data = entry.title and entry.tags and entry.summary
 
+    # Always extract platform and duration from enrichment context if possible
+    duration = None
+    if hasattr(entry, "metadata") and entry.metadata and "duration" in entry.metadata:
+        duration = entry.metadata["duration"]
+
     if has_enriched_data:
-        # Entry already has AI-enriched data, save it directly
         entry_dict = entry.model_dump()
+        # Force platform and duration as top-level fields
+        if platform:
+            entry_dict["platform"] = platform
+        if duration is not None:
+            entry_dict["duration"] = duration
         result = add_entry_firebase(uid, entry_dict)
         if not result["success"]:
             raise HTTPException(status_code=400, detail=result["error"])
         return result["entry"]
 
     # Otherwise, run the full AI enrichment pipeline
-    entry_dict = entry.model_dump()
+    user_notes = entry_dict.get("notes", "")
+    scraper = get_scraper(platform)
+    scraped_data = scraper.scrape(url) if scraper else {}
+    duration = None
+    if scraped_data and "metadata" in scraped_data and scraped_data["metadata"]:
+        duration = scraped_data["metadata"].get("duration")
+    if duration is not None:
+        entry_dict["duration"] = duration
+    # Save initial entry
     result = add_entry_firebase(uid, entry_dict)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -232,6 +282,8 @@ def create_entry(
         "tags": ai_result.get("tags", []),
         "title": ai_result.get("title", ""),
         "summary": ai_result.get("summary", ""),
+        "platform": platform,
+        "duration": duration,
     }
     update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
     if not update_result["success"]:
@@ -624,34 +676,34 @@ def delete_user_category(category_id: str, authorization: Optional[str] = Header
         raise HTTPException(
             status_code=401, detail=f"Token verification failed: {str(e)}"
         )
-    # Find or create 'Uncategorized' category
-    cat_result = get_categories_firebase(uid)
-    if not cat_result["success"]:
-        raise HTTPException(status_code=400, detail=cat_result["error"])
-    categories = cat_result["categories"]
-    uncategorized = next(
-        (c for c in categories if c["name"].strip().lower() == "uncategorized"), None
-    )
-    if not uncategorized:
-        uncategorized_result = add_category_firebase(uid, {"name": "Uncategorized"})
-        if not uncategorized_result["success"]:
-            raise HTTPException(status_code=400, detail=uncategorized_result["error"])
-        uncategorized = uncategorized_result["category"]
-    # Reassign all entries in this category to 'Uncategorized'
+
+    # Get all entries for the user
     entries_result = get_entries_firebase(uid)
     if not entries_result["success"]:
         raise HTTPException(status_code=400, detail=entries_result["error"])
+
+    # Find entries that belong to this category and delete them
+    entries_to_delete = []
     for entry in entries_result["entries"]:
         if category_id in entry.get("category_ids", []):
-            new_cats = [cid for cid in entry["category_ids"] if cid != category_id]
-            if uncategorized["id"] not in new_cats:
-                new_cats.append(uncategorized["id"])
-            update_entry_firebase(uid, entry["id"], {"category_ids": new_cats})
+            entries_to_delete.append(entry["id"])
+
+    # Delete all entries that belong to this category
+    deleted_count = 0
+    for entry_id in entries_to_delete:
+        delete_result = delete_entry_firebase(uid, entry_id)
+        if delete_result["success"]:
+            deleted_count += 1
+
     # Delete the category
     result = delete_category_firebase(uid, category_id)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
-    return {"message": "Category deleted and entries reassigned to Uncategorized."}
+
+    return {
+        "message": f"Category deleted successfully. {deleted_count} entries were also deleted.",
+        "deleted_entries_count": deleted_count,
+    }
 
 
 @router.get("/api/scrape/youtube")
