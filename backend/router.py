@@ -220,7 +220,6 @@ def create_entry(
         scraper = get_scraper(platform)
         if scraper:
             scraped_data = scraper.scrape(url)
-            print(f"[create_entry] Scraped data: {scraped_data}")
             if (
                 scraped_data
                 and "metadata" in scraped_data
@@ -229,18 +228,14 @@ def create_entry(
             ):
                 duration = scraped_data["metadata"]["duration"]
                 entry_dict["duration"] = duration
-                print(f"[create_entry] Extracted duration: {duration}")
             # Also save thumbnail if present
             if scraped_data.get("thumbnail"):
                 entry_dict["thumbnail"] = scraped_data["thumbnail"]
 
-    print("[create_entry] entry_dict to be saved:", entry_dict)
-    print(
-        "[create_entry] About to save entry with duration:", entry_dict.get("duration")
-    )
-    # Save initial entry
+    print("success")
     result = add_entry_firebase(uid, entry_dict)
     if not result["success"]:
+        print("failed")
         raise HTTPException(status_code=400, detail=result["error"])
     saved_entry = result["entry"]
 
@@ -258,6 +253,8 @@ def create_entry(
     if "id" in ai_result["category"] and ai_result["category"]["id"]:
         # AI returned an existing category ID
         category_id = ai_result["category"]["id"]
+        if "name" in ai_result["category"]:
+            print(ai_result["category"]["name"])
     else:
         # AI returned a new category name or "Uncategorized"
         new_cat_name = ai_result["category"]["name"].strip().lower()
@@ -266,13 +263,18 @@ def create_entry(
         )
         if existing:
             category_id = existing["id"]
+            if "name" in existing:
+                print(existing["name"])
         else:
             # Create new category
             new_cat = {"name": ai_result["category"]["name"]}
             new_cat_result = add_category_firebase(uid, new_cat)
             if not new_cat_result["success"]:
+                print("failed")
                 raise HTTPException(status_code=400, detail=new_cat_result["error"])
             category_id = new_cat_result["category"]["id"]
+            if "name" in new_cat_result["category"]:
+                print(new_cat_result["category"]["name"])
 
     # Update the entry with AI-enriched fields
     update_data = {
@@ -288,8 +290,10 @@ def create_entry(
         update_data["thumbnail"] = entry_dict["thumbnail"]
     update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
     if not update_result["success"]:
+        print("failed")
         raise HTTPException(status_code=400, detail=update_result["error"])
 
+    print("success")
     return update_result["entry"]
 
 
@@ -717,7 +721,6 @@ def scrape_youtube(url: str = Query(...)):
 def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
     url = data["url"]
     user_notes = data.get("user_notes", "")
-    print(f"[enrich_entry] Incoming URL: {url}")
 
     # Platform detection (reuse frontend logic or implement here)
     def detect_platform(url: str) -> str:
@@ -747,10 +750,8 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
         return "Unknown"
 
     platform = detect_platform(url)
-    print(f"[enrich_entry] Detected platform: {platform}")
     scraper = get_scraper(platform)
     scraped_data = scraper.scrape(url) if scraper else {}
-    print(f"[enrich_entry] Scraped data: {scraped_data}")
     # Get categories for the user (decode from token if available, else fallback)
     try:
         scheme, token = authorization.split()
@@ -768,21 +769,18 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
     entry_data = aggregate_entry_data(
         url, platform, scraped_data, user_notes, categories
     )
-    print(f"[enrich_entry] Aggregated entry data: {entry_data}")
     # Promote duration to top-level if present in metadata
     duration = None
     if entry_data.get("metadata") and "duration" in entry_data["metadata"]:
         duration = entry_data["metadata"]["duration"]
         entry_data["duration"] = duration
-    print(
-        f"[enrich_entry] entry_data to be saved (pre-AI, with duration): {entry_data}"
-    )
     prompt = format_ai_prompt(entry_data)
-    print(f"[enrich_entry] AI prompt: {prompt}")
     ai_response = classify_entry(
         entry_data, categories
     )  # classify_entry should call OpenAI and return the AI's JSON response
-    print(f"[enrich_entry] AI response: {ai_response}")
+    if ai_response and "category" in ai_response and "name" in ai_response["category"]:
+        print(f"category: {ai_response['category']['name']}")
+    print("success")
     # Return both the AI response and the scraped data (including thumbnail)
     return {
         "ai": ai_response,

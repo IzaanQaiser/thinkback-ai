@@ -28,7 +28,6 @@ def classify_entry(entry, categories):
             top_p=1.0,
         )
         content = response.choices[0].message.content
-        print(f"[classify_entry] Raw model output: {content}")
         if content is None:
             return {
                 "category": {"name": "General"},
