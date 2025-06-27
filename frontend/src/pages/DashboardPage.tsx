@@ -23,7 +23,7 @@ import {
 } from '@dnd-kit/sortable';
 import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry } from '../services/api';
 
-const protectedCategories = ['For You', 'All', 'Favorites'];
+const protectedCategories = ['Recent', 'All', 'Favorites'];
 
 interface Entry {
   id: string;
@@ -51,7 +51,7 @@ const DashboardPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMac, setIsMac] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'For You');
+  const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'Recent');
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
@@ -216,6 +216,15 @@ const DashboardPage: React.FC = () => {
   if (selectedCategory === 'Favorites') {
     mainHeading = 'Favorites';
     entriesToShow = filteredData.filter((item) => item.favorite);
+  } else if (selectedCategory === 'Recent') {
+    mainHeading = 'Recent';
+    const now = new Date();
+    entriesToShow = filteredData.filter((item) => {
+      if (!item.created_at) return false;
+      const createdAt = new Date(item.created_at);
+      const diffMs = now.getTime() - createdAt.getTime();
+      return diffMs <= 24 * 60 * 60 * 1000; // 24 hours
+    });
   } else if (protectedCategories.includes(selectedCategory)) {
     mainHeading = selectedCategory;
     entriesToShow = filteredData;
@@ -283,9 +292,9 @@ const DashboardPage: React.FC = () => {
       cats.forEach((cat: any) => { map[cat.id] = cat.name; });
       setCategoryMap(map);
 
-      // If the deleted category was selected, switch to 'For You'
+      // If the deleted category was selected, switch to 'Recent'
       if (selectedCategory === category.id) {
-        setSelectedCategory('For You');
+        setSelectedCategory('Recent');
       }
 
       // Remove deleted entries from local state
@@ -498,7 +507,7 @@ const DashboardPage: React.FC = () => {
                     const catId = entry.category_ids[0];
                     categoryName = categoryMap[catId] || 'Unknown';
                   }
-                  return (
+                    return (
                     <ContentCard
                       key={entry.id}
                       id={entry.id}
@@ -513,8 +522,8 @@ const DashboardPage: React.FC = () => {
                       thumbnail={entry.thumbnail}
                       platform={entry.platform}
                     />
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
           </main>

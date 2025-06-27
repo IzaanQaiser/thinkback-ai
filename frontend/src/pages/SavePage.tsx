@@ -114,7 +114,7 @@ const SavePage: React.FC = () => {
         await createEntry(idToken, entryData);
       }
 
-      setSaved(true);
+    setSaved(true);
       setUrl('');
       setText('');
       setNotes('');
@@ -141,12 +141,14 @@ const SavePage: React.FC = () => {
         body: JSON.stringify({ url, user_notes: notes }),
       });
       const aiResult = await response.json();
-      console.log('AI Response:', aiResult);
-      // Log the thumbnail URL if present
-      if (aiResult.thumbnail) {
-        console.log('Thumbnail URL:', aiResult.thumbnail);
+      // Log only the duration if present
+      if (aiResult && aiResult.metadata && aiResult.metadata.duration !== undefined) {
+        console.log('Duration:', aiResult.metadata.duration);
+      } else if (aiResult && aiResult.duration !== undefined) {
+        // fallback if duration is top-level
+        console.log('Duration:', aiResult.duration);
       } else {
-        console.log('No thumbnail found in enrichment result.');
+        console.log('Duration not found.');
       }
     } catch (err) {
       console.error('Failed to enrich entry:', err);
@@ -225,14 +227,14 @@ const SavePage: React.FC = () => {
             {/* Content Input */}
             {contentType === 'link' ? (
               <div className="flex items-center space-x-2">
-                <Input
-                  label="Paste Link"
-                  type="url"
-                  placeholder="https://youtube.com/watch?v=... or https://reddit.com/r/..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required
-                />
+              <Input
+                label="Paste Link"
+                type="url"
+                placeholder="https://youtube.com/watch?v=... or https://reddit.com/r/..."
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                required
+              />
                 <button
                   type="button"
                   className="px-3 py-1 rounded bg-dark-100 dark:bg-dark-800 hover:bg-dark-200 dark:hover:bg-dark-700 text-xs font-semibold border border-dark-200 dark:border-dark-700"
