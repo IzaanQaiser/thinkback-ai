@@ -1,7 +1,5 @@
 ### website-changes
 changes needed:
-- add thumbnail for videos
-- fix favourite entry indication
 - add original titles to the card (maybe do AI title if orignal title is > 5 words, otherwise do original title)
 - make website logo the dark mode thinkback.ai logo
 - find a way to obtain + save that logo

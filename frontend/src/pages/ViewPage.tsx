@@ -370,6 +370,21 @@ const ViewPage: React.FC = () => {
           {/* Right Column */}
           <div className="lg:col-span-1 space-y-8">
             <div className="sticky top-32">
+              {/* Thumbnail Image */}
+              {entry?.thumbnail && entry?.url && (
+                <a
+                  href={entry.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block mb-3 group"
+                >
+                  <img
+                    src={entry.thumbnail}
+                    alt={entry.title || 'Entry thumbnail'}
+                    className="w-full rounded-2xl shadow-lg object-cover max-h-64 transition-transform duration-200 group-hover:scale-105 group-hover:shadow-xl"
+                  />
+                </a>
+              )}
               {/* Details */}
               <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Details</h2>
@@ -405,25 +420,22 @@ const ViewPage: React.FC = () => {
               </div>
 
               {/* Actions */}
-              <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6">
+              <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-4">
                 <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button onClick={handleFavorite} variant="ghost" className={`w-full justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
+                <div className="flex gap-4">
+                  <Button onClick={handleFavorite} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
                     <Star size={20} className={`${isFavorited ? 'fill-current' : ''}`} />
                     <span className="font-medium text-xs">{isFavorited ? 'Favorited' : 'Favorite'}</span>
                   </Button>
-                  <Button onClick={handleCopyLink} variant="ghost" className="w-full justify-center flex-col h-20 gap-1 focus:ring-0">
+                  <Button onClick={handleCopyLink} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
                     {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
                     <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
                   </Button>
+                  <Button onClick={() => setShowDeleteConfirm(true)} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 text-red-500 dark:text-red-500 hover:!bg-red-500/10">
+                    <Trash2 size={20} className="text-red-500 dark:text-red-500" />
+                    <span className="font-medium text-xs !text-red-500 dark:!text-red-500">Delete</span>
+                  </Button>
                 </div>
-
-                <div className="!my-4 border-t border-dark-200/80 dark:border-dark-800/50"></div>
-
-                <Button onClick={() => setShowDeleteConfirm(true)} variant="ghost" className="w-full justify-start gap-3 !px-2 !py-3 !text-red-400 hover:!bg-red-500/10">
-                  <Trash2 size={18} />
-                  <span className="font-medium">Delete</span>
-                </Button>
               </div>
             </div>
           </div>
