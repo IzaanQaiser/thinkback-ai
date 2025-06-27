@@ -132,7 +132,7 @@ const SavePage: React.FC = () => {
       if (currentUser) {
         idToken = await currentUser.getIdToken();
       }
-      const response = await fetch('http://localhost:8000/api/enrich-entry', {
+      const response = await fetch('http://localhost:8000/api/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,6 +141,8 @@ const SavePage: React.FC = () => {
         body: JSON.stringify({ url, user_notes: notes }),
       });
       const aiResult = await response.json();
+      // Debug log: print the full response
+      console.log('Scrape result:', aiResult);
       // Log only the duration if present
       if (aiResult && aiResult.metadata && aiResult.metadata.duration !== undefined) {
         console.log('Duration:', aiResult.metadata.duration);
@@ -151,7 +153,7 @@ const SavePage: React.FC = () => {
         console.log('Duration not found.');
       }
     } catch (err) {
-      console.error('Failed to enrich entry:', err);
+      console.error('Failed to scrape entry:', err);
     }
   };
 
