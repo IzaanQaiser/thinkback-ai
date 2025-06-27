@@ -3,14 +3,17 @@ changes needed:
 - add original titles to the card (maybe do AI title if orignal title is > 5 words, otherwise do original title)
 - give option to assign their own category
 - block entry URL that already exist
+- make AI summary optional
+- backend implementation of quick access items show or hide
 - please fill in this field looks ugly
 - block category names that already
+- redesign save page
+- redesign entry view
 - make website logo the dark mode thinkback.ai logo
 - find a way to obtain + save that logo
 - make animations smoother & faster (maybe framer motion) OR dont have them at all
 - remove show ID Token button
 - remove detect platform button
-- add app icon that the entry is from in entry card
 - add category delete functionality
     - 'are you sure you want to delete?' modal
     - reassigning entries modal

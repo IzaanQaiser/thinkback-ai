@@ -6,21 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
@@ -63,12 +48,6 @@ const DashboardPage: React.FC = () => {
   const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -76,6 +55,18 @@ const DashboardPage: React.FC = () => {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [addCategoryLoading, setAddCategoryLoading] = useState(false);
+  const [isQuickAccessEditMode, setIsQuickAccessEditMode] = useState(false);
+  const [quickAccessVisibility, setQuickAccessVisibility] = useState(() => {
+    const stored = localStorage.getItem('quickAccessVisibility');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // fallback to default if parse fails
+      }
+    }
+    return { Recent: true, All: true, Favorites: true };
+  });
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -243,20 +234,6 @@ const DashboardPage: React.FC = () => {
     entriesToShow = filteredData.filter((item) => item.category_ids && item.category_ids.includes(selectedCategory));
   }
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setCategories((items) => {
-        const oldIndex = items.indexOf(active.id as string);
-        const newIndex = items.indexOf(over.id as string);
-        if (newIndex < protectedCategories.length) {
-          return items;
-        }
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
-  }
-
   const ensureUncategorized = async () => {
     let uncategorized = categories.find((cat: Category) => cat.name.trim().toLowerCase() === 'uncategorized');
     if (!uncategorized && currentUser) {
@@ -337,9 +314,9 @@ const DashboardPage: React.FC = () => {
 
   // Expose the function globally so other components can use it
   useEffect(() => {
-    (window as any).removeEntryFromState = removeEntryFromState;
+    (window as unknown as { removeEntryFromState: (entryId: string) => void }).removeEntryFromState = removeEntryFromState;
     return () => {
-      delete (window as any).removeEntryFromState;
+      delete (window as unknown as { removeEntryFromState?: (entryId: string) => void }).removeEntryFromState;
     };
   }, []);
 
@@ -365,6 +342,37 @@ const DashboardPage: React.FC = () => {
       setAddCategoryLoading(false);
     }
   };
+
+  // Add effect to auto-switch selection when entering Quick Access edit mode
+  useEffect(() => {
+    if (isQuickAccessEditMode) {
+      // If selection is not a user/AI category, move to first user/AI category
+      const userCategoryIds = sidebarCategories.slice(3).map(c => c.id);
+      if (!userCategoryIds.includes(selectedCategory)) {
+        const firstUserCategory = sidebarCategories.slice(3)[0];
+        if (firstUserCategory) {
+          setSelectedCategory(firstUserCategory.id);
+        }
+      }
+    }
+  }, [isQuickAccessEditMode, selectedCategory, sidebarCategories]);
+
+  useEffect(() => {
+    if (isCategoryEditMode) {
+      // If selection is not a visible Quick Access category, move to first visible Quick Access
+      const visibleQuickAccess = protectedCategories.filter(cat => quickAccessVisibility[cat as 'Recent' | 'All' | 'Favorites']);
+      if (!visibleQuickAccess.includes(selectedCategory)) {
+        const firstVisibleQuickAccess = visibleQuickAccess[0];
+        if (firstVisibleQuickAccess) {
+          setSelectedCategory(firstVisibleQuickAccess);
+        }
+      }
+    }
+  }, [isCategoryEditMode, selectedCategory, quickAccessVisibility]);
+
+  useEffect(() => {
+    localStorage.setItem('quickAccessVisibility', JSON.stringify(quickAccessVisibility));
+  }, [quickAccessVisibility]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
@@ -473,113 +481,169 @@ const DashboardPage: React.FC = () => {
 
         <div className="flex flex-col lg:flex-row lg:space-x-8">
           <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0">
-            <div className="sticky top-32">
-              <div className="flex items-center justify-between mb-3 px-3">
-                <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setIsCategoryEditMode(!isCategoryEditMode)} className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors">
-                    {isCategoryEditMode ? <Check size={16} className="text-primary-500" /> : <Pencil size={14} />}
-                  </button>
+            <div className="sticky top-32 flex flex-col gap-6">
+              {/* Quick Access Box - only heading */}
+              <div className="flex flex-col space-y-1">
+                <div className="flex items-center justify-between w-full px-5 py-2 mb-3 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
+                  <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Quick Access</h2>
                   <button
-                    onClick={() => setShowAddCategory(true)}
-                    className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors"
-                    title="Add category"
+                    className={`p-1 rounded-full ${isQuickAccessEditMode ? 'bg-dark-700/60 text-primary-500' : 'text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70'} transition-colors`}
+                    title={isQuickAccessEditMode ? 'Done' : 'Edit Quick Access'}
+                    onClick={() => setIsQuickAccessEditMode((v) => !v)}
                   >
-                    <Plus size={16} />
+                    <Pencil size={16} />
                   </button>
                 </div>
+                {sidebarCategories.slice(0, 3).map((category) => {
+                  const isVisible = quickAccessVisibility[category.name as 'Recent' | 'All' | 'Favorites'];
+                  if (isQuickAccessEditMode) {
+                    return (
+                      <div key={category.id} className="touch-none flex items-center group">
+                        <button
+                          onClick={() => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode}
+                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                            ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                        >
+                          <div className="flex items-center space-x-3 text-left w-full">
+                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                          </div>
+                        </button>
+                        <button
+                          className={`ml-2 px-3 py-1 min-w-[72px] rounded-full text-xs font-semibold border transition-colors duration-150
+                            ${isVisible
+                              ? 'border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/60 hover:text-white'
+                              : 'border-green-500 bg-green-500/20 text-green-500 hover:bg-green-500/60 hover:text-white'}
+                          `}
+                          onClick={() => setQuickAccessVisibility((prev: { Recent: boolean; All: boolean; Favorites: boolean }) => ({ ...prev, [category.name]: !isVisible }))}
+                        >
+                          {isVisible ? 'HIDE' : 'SHOW'}
+                        </button>
+                      </div>
+                    );
+                  } else if (isVisible) {
+                    return (
+                      <div key={category.id} className="touch-none flex items-center group">
+                        <button
+                          onClick={() => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode}
+                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                            ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                        >
+                          <div className="flex items-center space-x-3 text-left w-full">
+                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                          </div>
+                        </button>
+                      </div>
+                    );
+                  } else {
+                    return null;
+                  }
+                })}
               </div>
-              {showAddCategory && (
-                <form
-                  className="flex items-center gap-2 px-3 mb-2"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (newCategoryName.trim()) {
-                      await saveNewCategory();
-                    }
-                  }}
-                  autoComplete="off"
-                >
-                  <input
-                    type="text"
-                    className="flex-1 px-3 py-1 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="New category name"
-                    value={newCategoryName}
-                    autoFocus
-                    onChange={e => setNewCategoryName(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Escape') {
-                        setShowAddCategory(false);
-                        setNewCategoryName('');
+
+              {/* Categories Box - only heading and buttons */}
+              <div className="flex flex-col space-y-1 mt-2">
+                <div className="flex items-center justify-between w-full px-5 py-2 mb-3 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
+                  <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setIsCategoryEditMode(!isCategoryEditMode)} className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors">
+                      {isCategoryEditMode ? <Check size={16} className="text-primary-500" /> : <Pencil size={14} />}
+                    </button>
+                    <button
+                      onClick={() => setShowAddCategory(true)}
+                      className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors"
+                      title="Add category"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                </div>
+                {showAddCategory && (
+                  <form
+                    className="flex items-center gap-2 px-3 mb-2"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (newCategoryName.trim()) {
+                        await saveNewCategory();
                       }
                     }}
-                    disabled={addCategoryLoading}
-                  />
-                  {newCategoryName.trim() && (
+                    autoComplete="off"
+                  >
+                    <input
+                      type="text"
+                      className="flex-1 px-3 py-1 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="New category name"
+                      value={newCategoryName}
+                      autoFocus
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') {
+                          setShowAddCategory(false);
+                          setNewCategoryName('');
+                        }
+                      }}
+                      disabled={addCategoryLoading}
+                    />
+                    {newCategoryName.trim() && (
+                      <button
+                        type="submit"
+                        className="p-1 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20"
+                        title="Save category"
+                        disabled={addCategoryLoading}
+                      >
+                        <Check size={16} />
+                      </button>
+                    )}
                     <button
-                      type="submit"
-                      className="p-1 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20"
-                      title="Save category"
+                      type="button"
+                      onClick={() => {
+                        setShowAddCategory(false);
+                        setNewCategoryName('');
+                      }}
+                      className="p-1 rounded-full text-dark-400 hover:text-red-500"
+                      title="Cancel"
                       disabled={addCategoryLoading}
                     >
-                      <Check size={16} />
+                      <X size={16} />
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddCategory(false);
-                      setNewCategoryName('');
-                    }}
-                    className="p-1 rounded-full text-dark-400 hover:text-red-500"
-                    title="Cancel"
-                    disabled={addCategoryLoading}
-                  >
-                    <X size={16} />
-                  </button>
-                </form>
-              )}
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={sidebarCategories.map((c) => c.id)}
-                  strategy={verticalListSortingStrategy}
-                  disabled={!isCategoryEditMode}
-                >
-                  <nav className="flex flex-col space-y-1">
-                    {sidebarCategories.map((category) => (
-                      <div key={category.id} className="touch-none">
-                        <div className="flex items-center group">
+                  </form>
+                )}
+                {sidebarCategories.slice(3).map((category) => {
+                  // For future extensibility, you could add per-category visibility here
+                  // For now, all user/AI categories are always visible
+                  return (
+                    <div key={category.id} className="touch-none">
+                      <div className="flex items-center group">
+                        <button
+                          onClick={() => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode}
+                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                            ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
+                        >
+                          <div className="flex items-center space-x-3 text-left w-full">
+                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                          </div>
+                        </button>
+                        {isCategoryEditMode && !protectedCategories.includes(category.name) && (
                           <button
-                            onClick={() => setSelectedCategory(category.id)}
-                            disabled={isCategoryEditMode}
-                            className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200 ${selectedCategory === category.id && !isCategoryEditMode ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'} ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
+                            onClick={() => confirmDeleteCategory(category)}
+                            className="ml-2 p-1 rounded-full text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete category"
                           >
-                            <div className="flex items-center space-x-3 text-left w-full">
-                              <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
-                            </div>
+                            <Trash2 size={14} />
                           </button>
-
-                          {/* Delete button - only show for non-protected categories in edit mode */}
-                          {isCategoryEditMode && !protectedCategories.includes(category.name) && (
-                            <button
-                              onClick={() => confirmDeleteCategory(category)}
-                              className="ml-2 p-1 rounded-full text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
-                              title="Delete category"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                        {category.name === 'Favorites' && <div className="my-2 mx-3 border-b border-dark-200/80 dark:border-dark-800" />}
+                        )}
                       </div>
-                    ))}
-                  </nav>
-                </SortableContext>
-              </DndContext>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </aside>
 
