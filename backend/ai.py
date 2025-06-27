@@ -76,6 +76,7 @@ def aggregate_entry_data(
         "description": scraped_data.get("description"),
         "transcript": scraped_data.get("transcript"),
         "metadata": scraped_data.get("metadata"),
+        "thumbnail": scraped_data.get("thumbnail"),
         "user_notes": user_notes,
         "categories": categories,
     }

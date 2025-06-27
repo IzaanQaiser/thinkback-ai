@@ -65,9 +65,11 @@ class YouTubeScraper(BaseScraper):
                             else:
                                 transcript = vtt_to_text(content)
                         break
+            thumbnail = info.get("thumbnail")
             return {
                 "title": title,
                 "description": description,
                 "metadata": metadata,
                 "transcript": transcript,
+                "thumbnail": thumbnail,
             }

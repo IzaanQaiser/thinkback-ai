@@ -60,8 +60,10 @@ const SavePage: React.FC = () => {
           throw new Error('Failed to enrich entry');
         }
 
-        const aiResult = await enrichResponse.json();
-        console.log('AI Enrichment Result:', aiResult);
+        const enrichResult = await enrichResponse.json();
+        console.log('AI Enrichment Result:', enrichResult);
+        const aiResult = enrichResult.ai;
+        const thumbnail = enrichResult.thumbnail;
 
         // Step 2: Handle category assignment
         let categoryId = null;
@@ -100,6 +102,7 @@ const SavePage: React.FC = () => {
           tags: aiResult.tags || [],
           summary: aiResult.summary || '',
           category_ids: categoryId ? [categoryId] : [],
+          ...(thumbnail ? { thumbnail } : {}),
         };
 
         await createEntry(idToken, entryData);
@@ -139,6 +142,12 @@ const SavePage: React.FC = () => {
       });
       const aiResult = await response.json();
       console.log('AI Response:', aiResult);
+      // Log the thumbnail URL if present
+      if (aiResult.thumbnail) {
+        console.log('Thumbnail URL:', aiResult.thumbnail);
+      } else {
+        console.log('No thumbnail found in enrichment result.');
+      }
     } catch (err) {
       console.error('Failed to enrich entry:', err);
     }
