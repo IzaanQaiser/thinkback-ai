@@ -40,6 +40,7 @@ class Entry(BaseModel):
     collection_ids: List[str] = []
     category_ids: List[str] = []
     summary: Optional[str] = None  # AI-generated summary
+    thumbnail: Optional[str] = None  # Add thumbnail field
 
 
 class Collection(BaseModel):
@@ -240,6 +241,9 @@ def create_entry(
         duration = scraped_data["metadata"].get("duration")
     if duration is not None:
         entry_dict["duration"] = duration
+    # Save thumbnail if present
+    if scraped_data.get("thumbnail"):
+        entry_dict["thumbnail"] = scraped_data["thumbnail"]
     # Save initial entry
     result = add_entry_firebase(uid, entry_dict)
     if not result["success"]:
@@ -285,6 +289,9 @@ def create_entry(
         "platform": platform,
         "duration": duration,
     }
+    # Ensure thumbnail is preserved in update
+    if scraped_data.get("thumbnail"):
+        update_data["thumbnail"] = scraped_data["thumbnail"]
     update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
     if not update_result["success"]:
         raise HTTPException(status_code=400, detail=update_result["error"])
@@ -774,4 +781,9 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
         entry_data, categories
     )  # classify_entry should call OpenAI and return the AI's JSON response
     print(f"[enrich_entry] AI response: {ai_response}")
-    return ai_response
+    # Return both the AI response and the scraped data (including thumbnail)
+    return {
+        "ai": ai_response,
+        "scraped": scraped_data,
+        "thumbnail": scraped_data.get("thumbnail"),
+    }
