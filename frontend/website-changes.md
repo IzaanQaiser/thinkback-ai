@@ -1,6 +1,10 @@
 ### website-changes
 changes needed:
 - add original titles to the card (maybe do AI title if orignal title is > 5 words, otherwise do original title)
+- give option to assign their own category
+- block entry URL that already exist
+- please fill in this field looks ugly
+- block category names that already
 - make website logo the dark mode thinkback.ai logo
 - find a way to obtain + save that logo
 - make animations smoother & faster (maybe framer motion) OR dont have them at all
