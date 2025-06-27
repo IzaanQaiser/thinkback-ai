@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Header, Body, Query
+from fastapi import APIRouter, HTTPException, Header, Body, Query, Request
 from typing import Optional, List
 from firebase import (
     change_password as change_password_firebase,
@@ -41,6 +41,7 @@ class Entry(BaseModel):
     category_ids: List[str] = []
     summary: Optional[str] = None  # AI-generated summary
     thumbnail: Optional[str] = None  # Add thumbnail field
+    duration: Optional[int] = None  # Duration in seconds
 
 
 class Collection(BaseModel):
@@ -209,41 +210,34 @@ def create_entry(
             return "Twitter/X Post"
         return "Unknown"
 
-    platform = detect_platform(url)
-    entry_dict["platform"] = platform
+    if url:
+        platform = detect_platform(str(url))
+        entry_dict["platform"] = platform
 
-    # Check if entry already has AI-enriched fields
-    has_enriched_data = entry.title and entry.tags and entry.summary
-
-    # Always extract platform and duration from enrichment context if possible
+    # Always scrape the URL to get metadata (including duration)
     duration = None
-    if hasattr(entry, "metadata") and entry.metadata and "duration" in entry.metadata:
-        duration = entry.metadata["duration"]
+    if url and platform:
+        scraper = get_scraper(platform)
+        if scraper:
+            scraped_data = scraper.scrape(url)
+            print(f"[create_entry] Scraped data: {scraped_data}")
+            if (
+                scraped_data
+                and "metadata" in scraped_data
+                and scraped_data["metadata"]
+                and "duration" in scraped_data["metadata"]
+            ):
+                duration = scraped_data["metadata"]["duration"]
+                entry_dict["duration"] = duration
+                print(f"[create_entry] Extracted duration: {duration}")
+            # Also save thumbnail if present
+            if scraped_data.get("thumbnail"):
+                entry_dict["thumbnail"] = scraped_data["thumbnail"]
 
-    if has_enriched_data:
-        entry_dict = entry.model_dump()
-        # Force platform and duration as top-level fields
-        if platform:
-            entry_dict["platform"] = platform
-        if duration is not None:
-            entry_dict["duration"] = duration
-        result = add_entry_firebase(uid, entry_dict)
-        if not result["success"]:
-            raise HTTPException(status_code=400, detail=result["error"])
-        return result["entry"]
-
-    # Otherwise, run the full AI enrichment pipeline
-    user_notes = entry_dict.get("notes", "")
-    scraper = get_scraper(platform)
-    scraped_data = scraper.scrape(url) if scraper else {}
-    duration = None
-    if scraped_data and "metadata" in scraped_data and scraped_data["metadata"]:
-        duration = scraped_data["metadata"].get("duration")
-    if duration is not None:
-        entry_dict["duration"] = duration
-    # Save thumbnail if present
-    if scraped_data.get("thumbnail"):
-        entry_dict["thumbnail"] = scraped_data["thumbnail"]
+    print("[create_entry] entry_dict to be saved:", entry_dict)
+    print(
+        "[create_entry] About to save entry with duration:", entry_dict.get("duration")
+    )
     # Save initial entry
     result = add_entry_firebase(uid, entry_dict)
     if not result["success"]:
@@ -290,8 +284,8 @@ def create_entry(
         "duration": duration,
     }
     # Ensure thumbnail is preserved in update
-    if scraped_data.get("thumbnail"):
-        update_data["thumbnail"] = scraped_data["thumbnail"]
+    if entry_dict.get("thumbnail"):
+        update_data["thumbnail"] = entry_dict["thumbnail"]
     update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
     if not update_result["success"]:
         raise HTTPException(status_code=400, detail=update_result["error"])
@@ -775,6 +769,14 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
         url, platform, scraped_data, user_notes, categories
     )
     print(f"[enrich_entry] Aggregated entry data: {entry_data}")
+    # Promote duration to top-level if present in metadata
+    duration = None
+    if entry_data.get("metadata") and "duration" in entry_data["metadata"]:
+        duration = entry_data["metadata"]["duration"]
+        entry_data["duration"] = duration
+    print(
+        f"[enrich_entry] entry_data to be saved (pre-AI, with duration): {entry_data}"
+    )
     prompt = format_ai_prompt(entry_data)
     print(f"[enrich_entry] AI prompt: {prompt}")
     ai_response = classify_entry(
@@ -787,3 +789,51 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
         "scraped": scraped_data,
         "thumbnail": scraped_data.get("thumbnail"),
     }
+
+
+@router.post("/api/scrape")
+def scrape_url(
+    request: Request,
+    url: str = Body(..., embed=True),
+):
+    """
+    Scrape the given URL, detect the platform, and return only the scraped data (no AI enrichment).
+    """
+    platform = None
+
+    # Use the same platform detection logic as in create_entry
+    def detect_platform(url: str) -> str:
+        url = url.lower()
+        if (
+            "youtube.com/shorts/" in url
+            or "youtu.be/" in url
+            and "?feature=share" in url
+        ):
+            return "YouTube Shorts"
+        if "youtube.com/watch?v=" in url or "youtu.be/" in url:
+            return "YouTube Video"
+        if "instagram.com/reels/" in url:
+            return "Instagram Reel"
+        if "instagram.com/p/" in url:
+            return "Instagram Post"
+        if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
+            return "LinkedIn Post"
+        if "linkedin.com/jobs/view/" in url:
+            return "LinkedIn Job"
+        if "reddit.com/r/" in url and "/comments/" in url:
+            return "Reddit Post"
+        if "tiktok.com/" in url:
+            return "TikTok Video"
+        if "twitter.com/" in url or "x.com/" in url:
+            return "Twitter/X Post"
+        return "Unknown"
+
+    platform = detect_platform(url)
+    scraper = get_scraper(platform)
+    if not scraper:
+        return {
+            "success": False,
+            "error": f"No scraper available for platform: {platform}",
+        }
+    scraped_data = scraper.scrape(url)
+    return {"success": True, "platform": platform, **scraped_data}

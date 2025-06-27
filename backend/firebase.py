@@ -116,6 +116,7 @@ def add_entry(uid: str, entry_data: dict):
             db.collection("users").document(uid).collection("entries").document()
         )
         entry_data["id"] = entry_ref.id
+        print("[add_entry] Final entry_data to Firestore:", entry_data)
         entry_ref.set(entry_data)
 
         return {"success": True, "entry": entry_data}
