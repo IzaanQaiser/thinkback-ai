@@ -44,20 +44,22 @@ function formatDateWithOrdinal(dateString?: string) {
 
 // Helper to format duration as HH:MM:SS or MM:SS
 function formatDuration(duration: any) {
+  console.log('formatDuration called with:', duration, 'type:', typeof duration);
   if (!duration) return '—';
   // If string and contains colon, return as-is
   if (typeof duration === 'string' && duration.includes(':')) return duration;
   // If string of digits or number, treat as seconds
   let totalSeconds = typeof duration === 'number' ? duration : parseInt(duration, 10);
+  console.log('totalSeconds calculated:', totalSeconds);
   if (isNaN(totalSeconds) || totalSeconds < 0) return '—';
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  if (hours > 0) {
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  } else {
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }
+  const result = hours > 0
+    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  console.log('formatDuration result:', result);
+  return result;
 }
 
 function getPlatformIconAndName(platform?: string) {
@@ -119,6 +121,8 @@ const ViewPage: React.FC = () => {
       return fetchEntry(token, id);
     }).then(data => {
       setEntry(data);
+      console.log('Entry data loaded:', data);
+      console.log('Duration value:', data.duration);
       setNotes(data.notes || '');
       setIsFavorited(!!data.favorite);
       setLoading(false);
@@ -431,7 +435,10 @@ const ViewPage: React.FC = () => {
                     {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
                     <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
                   </Button>
-                  <Button onClick={() => setShowDeleteConfirm(true)} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 text-red-500 dark:text-red-500 hover:!bg-red-500/10">
+                  <Button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-2 focus:ring-red-400 focus:outline-none border border-red-500 !text-red-500 dark:!text-red-500 bg-red-500/10 hover:bg-red-500/20"
+                  >
                     <Trash2 size={20} className="text-red-500 dark:text-red-500" />
                     <span className="font-medium text-xs !text-red-500 dark:!text-red-500">Delete</span>
                   </Button>
@@ -449,7 +456,12 @@ const ViewPage: React.FC = () => {
             <p className="text-dark-600 dark:text-dark-300 mb-6">Are you sure you want to permanently delete "{entry?.title}"? This action cannot be undone.</p>
             <div className="flex justify-end gap-4">
               <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+              <Button
+                onClick={handleDelete}
+                className="border border-red-500 !text-red-500 dark:!text-red-500 bg-red-500/10 hover:bg-red-500/20 focus:ring-2 focus:ring-red-400 focus:outline-none"
+              >
+                Delete
+              </Button>
             </div>
           </div>
         </div>
