@@ -36,6 +36,8 @@ interface Entry {
   created_at?: string;
   collection_ids?: string[];
   category_ids?: string[];
+  thumbnail?: string;
+  platform?: string;
 }
 
 const DashboardPage: React.FC = () => {
@@ -215,7 +217,7 @@ const DashboardPage: React.FC = () => {
     mainHeading = 'Favorites';
     entriesToShow = filteredData.filter((item) => item.favorite);
   } else if (protectedCategories.includes(selectedCategory)) {
-    mainHeading = '';
+    mainHeading = selectedCategory;
     entriesToShow = filteredData;
   } else {
     const cat = categories.find((c: any) => c.id === selectedCategory);
@@ -508,6 +510,8 @@ const DashboardPage: React.FC = () => {
                       favorite={entry.favorite}
                       createdAt={entry.created_at}
                       category={categoryName}
+                      thumbnail={entry.thumbnail}
+                      platform={entry.platform}
                     />
                   );
                 })}
