@@ -396,27 +396,27 @@ const ViewPage: React.FC = () => {
                   <li className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       {PlatformIconComponent
-                        ? <PlatformIconComponent size={16} style={platformName === 'YouTube' ? { color: '#fff' } : {}} />
-                        : <Play size={16} style={{ color: '#888' }} />
+                        ? <PlatformIconComponent size={20} style={{ color: 'currentColor' }} />
+                        : <Play size={20} style={{ color: '#888' }} />
                       }
                       <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
                     </span>
                   </li>
                   <li className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <FolderIcon size={16} />
+                      <FolderIcon size={20} />
                       <span className="font-medium text-dark-900 dark:text-white">{categoryName}</span>
                     </span>
                   </li>
                   <li className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <Calendar size={16} />
+                      <Calendar size={20} />
                       <span className="font-medium text-dark-900 dark:text-white">{formatDateWithOrdinal(entry?.created_at || entry?.savedDate)}</span>
                     </span>
                   </li>
                   <li className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <Clock size={16} />
+                      <Clock size={20} />
                       <span className="font-medium text-dark-900 dark:text-white">{formatDuration(entry?.duration)}</span>
                     </span>
                   </li>
