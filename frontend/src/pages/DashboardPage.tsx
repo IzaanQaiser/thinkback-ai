@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Sun, Moon, Check, Pencil, ExternalLink, Trash2 } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Sun, Moon, Check, Pencil, ExternalLink, Trash2, X, Folder } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -21,7 +21,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry } from '../services/api';
+import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
 
@@ -40,6 +40,12 @@ interface Entry {
   platform?: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  ai_generated?: boolean;
+}
+
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -53,10 +59,10 @@ const DashboardPage: React.FC = () => {
   const [isMac, setIsMac] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'Recent');
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
@@ -67,6 +73,9 @@ const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [addCategoryLoading, setAddCategoryLoading] = useState(false);
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -123,7 +132,7 @@ const DashboardPage: React.FC = () => {
         const cats = await fetchCategories(idToken);
         setCategories(cats);
         const map: { [id: string]: string } = {};
-        cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+        cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
         setCategoryMap(map);
       } catch (error) {
         // fallback to protectedCategories if error
@@ -206,9 +215,9 @@ const DashboardPage: React.FC = () => {
     };
   }, [showSuggestions, suggestions, selectedSuggestionIndex]);
 
-  const sidebarCategories = [
-    ...protectedCategories.map((name) => ({ id: name, name })),
-    ...categories.filter((cat: any) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized'),
+  const sidebarCategories: Category[] = [
+    ...protectedCategories.map((name) => ({ id: name, name, ai_generated: false })),
+    ...categories.filter((cat: Category) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized'),
   ];
 
   let mainHeading = '';
@@ -229,7 +238,7 @@ const DashboardPage: React.FC = () => {
     mainHeading = selectedCategory;
     entriesToShow = filteredData;
   } else {
-    const cat = categories.find((c: any) => c.id === selectedCategory);
+    const cat = categories.find((c: Category) => c.id === selectedCategory);
     mainHeading = cat ? cat.name : '';
     entriesToShow = filteredData.filter((item) => item.category_ids && item.category_ids.includes(selectedCategory));
   }
@@ -249,13 +258,13 @@ const DashboardPage: React.FC = () => {
   }
 
   const ensureUncategorized = async () => {
-    let uncategorized = categories.find((cat: any) => cat.name.trim().toLowerCase() === 'uncategorized');
+    let uncategorized = categories.find((cat: Category) => cat.name.trim().toLowerCase() === 'uncategorized');
     if (!uncategorized && currentUser) {
       const idToken = await currentUser.getIdToken();
       // Create 'Uncategorized' category
       await updateCategory(idToken, '', 'Uncategorized'); // backend will create if not exists
       const cats = await fetchCategories(idToken);
-      uncategorized = cats.find((cat: any) => cat.name.trim().toLowerCase() === 'uncategorized');
+      uncategorized = cats.find((cat: Category) => cat.name.trim().toLowerCase() === 'uncategorized');
       setCategories(cats);
     }
     return uncategorized?.id;
@@ -275,7 +284,7 @@ const DashboardPage: React.FC = () => {
     navigate(`/view/${entry.id}`);
   };
 
-  const handleDeleteCategory = async (category: any) => {
+  const handleDeleteCategory = async (category: Category) => {
     if (!currentUser) return;
 
     try {
@@ -289,7 +298,7 @@ const DashboardPage: React.FC = () => {
       const cats = await fetchCategories(idToken);
       setCategories(cats);
       const map: { [id: string]: string } = {};
-      cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+      cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
       setCategoryMap(map);
 
       // If the deleted category was selected, switch to 'Recent'
@@ -316,7 +325,7 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const confirmDeleteCategory = (category: any) => {
+  const confirmDeleteCategory = (category: Category) => {
     setCategoryToDelete(category);
     setShowDeleteConfirm(true);
   };
@@ -333,6 +342,29 @@ const DashboardPage: React.FC = () => {
       delete (window as any).removeEntryFromState;
     };
   }, []);
+
+  // Save new category helper
+  const saveNewCategory = async () => {
+    if (!currentUser || !newCategoryName.trim()) return;
+    if (addCategoryLoading) return;
+    setAddCategoryLoading(true);
+    const idToken = await currentUser.getIdToken();
+    try {
+      await createCategory(idToken, newCategoryName.trim());
+      setNewCategoryName('');
+      setShowAddCategory(false);
+      // Refresh categories
+      const cats = await fetchCategories(idToken);
+      setCategories(cats);
+      const map: { [id: string]: string } = {};
+      cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
+      setCategoryMap(map);
+    } catch (err) {
+      console.error('Failed to add category:', err);
+    } finally {
+      setAddCategoryLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
@@ -444,10 +476,69 @@ const DashboardPage: React.FC = () => {
             <div className="sticky top-32">
               <div className="flex items-center justify-between mb-3 px-3">
                 <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
-                <button onClick={() => setIsCategoryEditMode(!isCategoryEditMode)} className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors">
-                  {isCategoryEditMode ? <Check size={16} className="text-primary-500" /> : <Pencil size={14} />}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setIsCategoryEditMode(!isCategoryEditMode)} className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors">
+                    {isCategoryEditMode ? <Check size={16} className="text-primary-500" /> : <Pencil size={14} />}
+                  </button>
+                  <button
+                    onClick={() => setShowAddCategory(true)}
+                    className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors"
+                    title="Add category"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
+              {showAddCategory && (
+                <form
+                  className="flex items-center gap-2 px-3 mb-2"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (newCategoryName.trim()) {
+                      await saveNewCategory();
+                    }
+                  }}
+                  autoComplete="off"
+                >
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-1 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="New category name"
+                    value={newCategoryName}
+                    autoFocus
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') {
+                        setShowAddCategory(false);
+                        setNewCategoryName('');
+                      }
+                    }}
+                    disabled={addCategoryLoading}
+                  />
+                  {newCategoryName.trim() && (
+                    <button
+                      type="submit"
+                      className="p-1 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20"
+                      title="Save category"
+                      disabled={addCategoryLoading}
+                    >
+                      <Check size={16} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddCategory(false);
+                      setNewCategoryName('');
+                    }}
+                    className="p-1 rounded-full text-dark-400 hover:text-red-500"
+                    title="Cancel"
+                    disabled={addCategoryLoading}
+                  >
+                    <X size={16} />
+                  </button>
+                </form>
+              )}
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -497,7 +588,13 @@ const DashboardPage: React.FC = () => {
             {loading ? (
               <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>
             ) : entriesToShow.length === 0 ? (
-              <div className="text-center py-20 text-dark-500 dark:text-dark-400">No entries found.</div>
+              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
+                <div className="text-2xl font-semibold mb-2">No entries found.</div>
+                <div className="text-base text-dark-400 dark:text-dark-500">
+                  Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
+                </div>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {entriesToShow.map((entry) => {

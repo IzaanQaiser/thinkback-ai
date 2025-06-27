@@ -55,6 +55,7 @@ class Category(BaseModel):
     id: Optional[str] = None
     name: str
     created_at: datetime = Field(default_factory=datetime.now)
+    ai_generated: bool
 
 
 # Existing User and Auth Models
@@ -267,7 +268,7 @@ def create_entry(
                 print(existing["name"])
         else:
             # Create new category
-            new_cat = {"name": ai_result["category"]["name"]}
+            new_cat = {"name": ai_result["category"]["name"], "ai_generated": True}
             new_cat_result = add_category_firebase(uid, new_cat)
             if not new_cat_result["success"]:
                 print("failed")
@@ -573,6 +574,7 @@ def create_category(
     if existing:
         return existing
     category_dict = category.model_dump()
+    category_dict["ai_generated"] = False  # User-created category
     result = add_category_firebase(uid, category_dict)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -601,7 +603,12 @@ def get_user_categories(authorization: Optional[str] = Header(None)):
     result = get_categories_firebase(uid)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
-    return result["categories"]
+    # Fallback: ensure all categories have ai_generated, backfill as False if missing
+    categories = result["categories"]
+    for cat in categories:
+        if "ai_generated" not in cat:
+            cat["ai_generated"] = False
+    return categories
 
 
 @router.put("/api/categories/{category_id}", response_model=Category)
