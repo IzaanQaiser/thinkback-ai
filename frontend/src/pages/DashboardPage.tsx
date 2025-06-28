@@ -1,27 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Sun, Moon, Check, Pencil, ExternalLink, Trash2 } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Sun, Moon, Check, Pencil, ExternalLink, Trash2, X, Folder } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry } from '../services/api';
+import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
 
@@ -40,6 +25,12 @@ interface Entry {
   platform?: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  ai_generated?: boolean;
+}
+
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -53,20 +44,29 @@ const DashboardPage: React.FC = () => {
   const [isMac, setIsMac] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'Recent');
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [addCategoryLoading, setAddCategoryLoading] = useState(false);
+  const [isQuickAccessEditMode, setIsQuickAccessEditMode] = useState(false);
+  const [quickAccessVisibility, setQuickAccessVisibility] = useState(() => {
+    const stored = localStorage.getItem('quickAccessVisibility');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // fallback to default if parse fails
+      }
+    }
+    return { Recent: true, All: true, Favorites: true };
+  });
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -123,7 +123,7 @@ const DashboardPage: React.FC = () => {
         const cats = await fetchCategories(idToken);
         setCategories(cats);
         const map: { [id: string]: string } = {};
-        cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+        cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
         setCategoryMap(map);
       } catch (error) {
         // fallback to protectedCategories if error
@@ -206,9 +206,9 @@ const DashboardPage: React.FC = () => {
     };
   }, [showSuggestions, suggestions, selectedSuggestionIndex]);
 
-  const sidebarCategories = [
-    ...protectedCategories.map((name) => ({ id: name, name })),
-    ...categories.filter((cat: any) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized'),
+  const sidebarCategories: Category[] = [
+    ...protectedCategories.map((name) => ({ id: name, name, ai_generated: false })),
+    ...categories.filter((cat: Category) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized'),
   ];
 
   let mainHeading = '';
@@ -229,33 +229,19 @@ const DashboardPage: React.FC = () => {
     mainHeading = selectedCategory;
     entriesToShow = filteredData;
   } else {
-    const cat = categories.find((c: any) => c.id === selectedCategory);
+    const cat = categories.find((c: Category) => c.id === selectedCategory);
     mainHeading = cat ? cat.name : '';
     entriesToShow = filteredData.filter((item) => item.category_ids && item.category_ids.includes(selectedCategory));
   }
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setCategories((items) => {
-        const oldIndex = items.indexOf(active.id as string);
-        const newIndex = items.indexOf(over.id as string);
-        if (newIndex < protectedCategories.length) {
-          return items;
-        }
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
-  }
-
   const ensureUncategorized = async () => {
-    let uncategorized = categories.find((cat: any) => cat.name.trim().toLowerCase() === 'uncategorized');
+    let uncategorized = categories.find((cat: Category) => cat.name.trim().toLowerCase() === 'uncategorized');
     if (!uncategorized && currentUser) {
       const idToken = await currentUser.getIdToken();
       // Create 'Uncategorized' category
       await updateCategory(idToken, '', 'Uncategorized'); // backend will create if not exists
       const cats = await fetchCategories(idToken);
-      uncategorized = cats.find((cat: any) => cat.name.trim().toLowerCase() === 'uncategorized');
+      uncategorized = cats.find((cat: Category) => cat.name.trim().toLowerCase() === 'uncategorized');
       setCategories(cats);
     }
     return uncategorized?.id;
@@ -275,7 +261,7 @@ const DashboardPage: React.FC = () => {
     navigate(`/view/${entry.id}`);
   };
 
-  const handleDeleteCategory = async (category: any) => {
+  const handleDeleteCategory = async (category: Category) => {
     if (!currentUser) return;
 
     try {
@@ -289,7 +275,7 @@ const DashboardPage: React.FC = () => {
       const cats = await fetchCategories(idToken);
       setCategories(cats);
       const map: { [id: string]: string } = {};
-      cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+      cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
       setCategoryMap(map);
 
       // If the deleted category was selected, switch to 'Recent'
@@ -316,7 +302,7 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const confirmDeleteCategory = (category: any) => {
+  const confirmDeleteCategory = (category: Category) => {
     setCategoryToDelete(category);
     setShowDeleteConfirm(true);
   };
@@ -328,11 +314,65 @@ const DashboardPage: React.FC = () => {
 
   // Expose the function globally so other components can use it
   useEffect(() => {
-    (window as any).removeEntryFromState = removeEntryFromState;
+    (window as unknown as { removeEntryFromState: (entryId: string) => void }).removeEntryFromState = removeEntryFromState;
     return () => {
-      delete (window as any).removeEntryFromState;
+      delete (window as unknown as { removeEntryFromState?: (entryId: string) => void }).removeEntryFromState;
     };
   }, []);
+
+  // Save new category helper
+  const saveNewCategory = async () => {
+    if (!currentUser || !newCategoryName.trim()) return;
+    if (addCategoryLoading) return;
+    setAddCategoryLoading(true);
+    const idToken = await currentUser.getIdToken();
+    try {
+      await createCategory(idToken, newCategoryName.trim());
+      setNewCategoryName('');
+      setShowAddCategory(false);
+      // Refresh categories
+      const cats = await fetchCategories(idToken);
+      setCategories(cats);
+      const map: { [id: string]: string } = {};
+      cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
+      setCategoryMap(map);
+    } catch (err) {
+      console.error('Failed to add category:', err);
+    } finally {
+      setAddCategoryLoading(false);
+    }
+  };
+
+  // Add effect to auto-switch selection when entering Quick Access edit mode
+  useEffect(() => {
+    if (isQuickAccessEditMode) {
+      // If selection is not a user/AI category, move to first user/AI category
+      const userCategoryIds = sidebarCategories.slice(3).map(c => c.id);
+      if (!userCategoryIds.includes(selectedCategory)) {
+        const firstUserCategory = sidebarCategories.slice(3)[0];
+        if (firstUserCategory) {
+          setSelectedCategory(firstUserCategory.id);
+        }
+      }
+    }
+  }, [isQuickAccessEditMode, selectedCategory, sidebarCategories]);
+
+  useEffect(() => {
+    if (isCategoryEditMode) {
+      // If selection is not a visible Quick Access category, move to first visible Quick Access
+      const visibleQuickAccess = protectedCategories.filter(cat => quickAccessVisibility[cat as 'Recent' | 'All' | 'Favorites']);
+      if (!visibleQuickAccess.includes(selectedCategory)) {
+        const firstVisibleQuickAccess = visibleQuickAccess[0];
+        if (firstVisibleQuickAccess) {
+          setSelectedCategory(firstVisibleQuickAccess);
+        }
+      }
+    }
+  }, [isCategoryEditMode, selectedCategory, quickAccessVisibility]);
+
+  useEffect(() => {
+    localStorage.setItem('quickAccessVisibility', JSON.stringify(quickAccessVisibility));
+  }, [quickAccessVisibility]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
@@ -441,54 +481,197 @@ const DashboardPage: React.FC = () => {
 
         <div className="flex flex-col lg:flex-row lg:space-x-8">
           <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0">
-            <div className="sticky top-32">
-              <div className="flex items-center justify-between mb-3 px-3">
-                <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
-                <button onClick={() => setIsCategoryEditMode(!isCategoryEditMode)} className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors">
-                  {isCategoryEditMode ? <Check size={16} className="text-primary-500" /> : <Pencil size={14} />}
-                </button>
-              </div>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={sidebarCategories.map((c) => c.id)}
-                  strategy={verticalListSortingStrategy}
-                  disabled={!isCategoryEditMode}
-                >
-                  <nav className="flex flex-col space-y-1">
-                    {sidebarCategories.map((category) => (
-                      <div key={category.id} className="touch-none">
-                        <div className="flex items-center group">
-                          <button
-                            onClick={() => setSelectedCategory(category.id)}
-                            disabled={isCategoryEditMode}
-                            className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200 ${selectedCategory === category.id && !isCategoryEditMode ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'} ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
-                          >
-                            <div className="flex items-center space-x-3 text-left w-full">
-                              <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
-                            </div>
-                          </button>
-
-                          {/* Delete button - only show for non-protected categories in edit mode */}
-                          {isCategoryEditMode && !protectedCategories.includes(category.name) && (
-                            <button
-                              onClick={() => confirmDeleteCategory(category)}
-                              className="ml-2 p-1 rounded-full text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
-                              title="Delete category"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                        {category.name === 'Favorites' && <div className="my-2 mx-3 border-b border-dark-200/80 dark:border-dark-800" />}
+            <div className="sticky top-32 flex flex-col gap-6">
+              {/* Quick Access Box - only heading */}
+              <div className="flex flex-col space-y-1">
+                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
+                  <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Quick Access</h2>
+                  <button
+                    className={`p-1 rounded-full transition-all duration-150
+                      ${isQuickAccessEditMode
+                        ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
+                        : 'text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
+                    `}
+                    title={isQuickAccessEditMode ? 'Done' : 'Edit Quick Access'}
+                    onClick={() => {
+                      setIsQuickAccessEditMode((v) => {
+                        if (!v) setIsCategoryEditMode(false);
+                        return !v;
+                      });
+                    }}
+                  >
+                    {isQuickAccessEditMode ? (
+                      <Check size={20} className="text-primary-500" />
+                    ) : (
+                      <Pencil size={20} />
+                    )}
+                  </button>
+                </div>
+                {sidebarCategories.slice(0, 3).map((category) => {
+                  const isVisible = quickAccessVisibility[category.name as 'Recent' | 'All' | 'Favorites'];
+                  if (isQuickAccessEditMode) {
+                    return (
+                      <div key={category.id} className="touch-none flex items-center group">
+                        <button
+                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode || isQuickAccessEditMode}
+                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                        >
+                          <div className="flex items-center space-x-3 text-left w-full">
+                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                          </div>
+                        </button>
+                        <button
+                          className={`ml-2 px-3 py-1 min-w-[72px] rounded-full text-xs font-semibold border transition-colors duration-150
+                            ${isVisible
+                              ? 'border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/60 hover:text-white'
+                              : 'border-green-500 bg-green-500/20 text-green-500 hover:bg-green-500/60 hover:text-white'}
+                          `}
+                          onClick={() => setQuickAccessVisibility((prev: { Recent: boolean; All: boolean; Favorites: boolean }) => ({ ...prev, [category.name]: !isVisible }))}
+                        >
+                          {isVisible ? 'HIDE' : 'SHOW'}
+                        </button>
                       </div>
-                    ))}
-                  </nav>
-                </SortableContext>
-              </DndContext>
+                    );
+                  } else if (isVisible) {
+                    return (
+                      <div key={category.id} className="touch-none flex items-center group">
+                        <button
+                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode || isQuickAccessEditMode}
+                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                        >
+                          <div className="flex items-center space-x-3 text-left w-full">
+                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                          </div>
+                        </button>
+                      </div>
+                    );
+                  } else {
+                    return null;
+                  }
+                })}
+              </div>
+
+              {/* Categories Box - only heading and buttons */}
+              <div className="flex flex-col space-y-1 mt-2">
+                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
+                  <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setIsCategoryEditMode((v) => {
+                          if (!v) setIsQuickAccessEditMode(false);
+                          return !v;
+                        });
+                      }}
+                      className={`p-1 rounded-full transition-all duration-150
+                        ${isCategoryEditMode
+                          ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
+                          : 'text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
+                      `}
+                    >
+                      {isCategoryEditMode ? <Check size={20} className="text-primary-500" /> : <Pencil size={20} />}
+                    </button>
+                    <button
+                      onClick={() => setShowAddCategory(true)}
+                      className="p-1 rounded-full transition-all duration-150 text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
+                      title="Add category"
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+                {showAddCategory && (
+                  <form
+                    className="flex items-center gap-2 px-3 mb-2"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (newCategoryName.trim()) {
+                        await saveNewCategory();
+                      }
+                    }}
+                    autoComplete="off"
+                  >
+                    <input
+                      type="text"
+                      className="flex-1 px-3 py-1 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="New category name"
+                      value={newCategoryName}
+                      autoFocus
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') {
+                          setShowAddCategory(false);
+                          setNewCategoryName('');
+                        }
+                      }}
+                      disabled={addCategoryLoading}
+                    />
+                    {newCategoryName.trim() && (
+                      <button
+                        type="submit"
+                        className="p-1 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20"
+                        title="Save category"
+                        disabled={addCategoryLoading}
+                      >
+                        <Check size={16} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddCategory(false);
+                        setNewCategoryName('');
+                      }}
+                      className="p-1 rounded-full text-dark-400 hover:text-red-500"
+                      title="Cancel"
+                      disabled={addCategoryLoading}
+                    >
+                      <X size={16} />
+                    </button>
+                  </form>
+                )}
+                {sidebarCategories.slice(3).map((category) => {
+                  // For future extensibility, you could add per-category visibility here
+                  // For now, all user/AI categories are always visible
+                  return (
+                    <div key={category.id} className="touch-none">
+                      <div className="flex items-center group">
+                        <button
+                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode || isQuickAccessEditMode}
+                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
+                        >
+                          <div className="flex items-center space-x-3 text-left w-full">
+                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                          </div>
+                        </button>
+                        {isCategoryEditMode && !protectedCategories.includes(category.name) && (
+                          <button
+                            onClick={() => confirmDeleteCategory(category)}
+                            className="ml-2 p-1 rounded-full text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete category"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </aside>
 
@@ -497,7 +680,27 @@ const DashboardPage: React.FC = () => {
             {loading ? (
               <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>
             ) : entriesToShow.length === 0 ? (
-              <div className="text-center py-20 text-dark-500 dark:text-dark-400">No entries found.</div>
+              selectedCategory === 'Favorites' ? (
+                <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                  <span className="mb-6">
+                    <svg width="72" height="72" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-dark-400 dark:text-dark-500">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" />
+                    </svg>
+                  </span>
+                  <div className="text-2xl font-semibold mb-2">No favorites yet.</div>
+                  <div className="text-base text-dark-400 dark:text-dark-500 text-center max-w-xs">
+                    Click the <span className="inline align-text-bottom"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="inline text-dark-400 dark:text-dark-500 relative top-[2px]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" /></svg></span> icon on any entry to add it to your Favorites!
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                  <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
+                  <div className="text-2xl font-semibold mb-2">No entries found.</div>
+                  <div className="text-base text-dark-400 dark:text-dark-500">
+                    Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
+                  </div>
+                </div>
+              )
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {entriesToShow.map((entry) => {
