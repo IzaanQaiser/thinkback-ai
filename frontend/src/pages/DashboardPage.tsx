@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
-import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory } from '../services/api';
+import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory, deleteEntry } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
 
@@ -35,6 +35,7 @@ const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const [committedSearchQuery, setCommittedSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +68,9 @@ const DashboardPage: React.FC = () => {
     }
     return { Recent: true, All: true, Favorites: true };
   });
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -133,8 +137,9 @@ const DashboardPage: React.FC = () => {
     loadCategories();
   }, [currentUser]);
 
+  // Main dashboard results use committedSearchQuery
   const filteredData = entries.filter(item =>
-    item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())
+    item.title && item.title.toLowerCase().includes(committedSearchQuery.toLowerCase())
   );
 
   // Get suggestions for autosuggest dropdown
@@ -247,6 +252,15 @@ const DashboardPage: React.FC = () => {
     return uncategorized?.id;
   };
 
+  // Update committedSearchQuery only on search submit
+  const handleSearchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setCommittedSearchQuery(searchQuery);
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
+    }
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
@@ -271,25 +285,30 @@ const DashboardPage: React.FC = () => {
       // Get the count of deleted entries from the response
       const deletedEntriesCount = deleteResult.deleted_entries_count || 0;
 
-      // Reload categories
+      // Optimistically remove deleted categories from state
+      setCategories(prev => prev.filter(cat => !selectedCategoryIds.includes(cat.id)));
+      setCategoryMap(prev => {
+        const newMap = { ...prev };
+        selectedCategoryIds.forEach(id => { delete newMap[id]; });
+        return newMap;
+      });
+      // Remove affected entries from local state (do NOT call deleteEntry)
+      setEntries(prev => prev.filter(entry =>
+        !entry.category_ids || !entry.category_ids.some(catId => selectedCategoryIds.includes(catId))
+      ));
+      setSelectedCategoryIds([]);
+      // Optionally, still re-fetch from backend for consistency
       const cats = await fetchCategories(idToken);
       setCategories(cats);
       const map: { [id: string]: string } = {};
       cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
       setCategoryMap(map);
+      const data = await fetchEntries(idToken);
+      setEntries(data);
 
       // If the deleted category was selected, switch to 'Recent'
       if (selectedCategory === category.id) {
         setSelectedCategory('Recent');
-      }
-
-      // Remove deleted entries from local state
-      if (deletedEntriesCount > 0) {
-        setEntries(prevEntries =>
-          prevEntries.filter(entry =>
-            !entry.category_ids || !entry.category_ids.includes(category.id)
-          )
-        );
       }
 
       // Turn off edit mode after successful deletion
@@ -327,17 +346,26 @@ const DashboardPage: React.FC = () => {
     setAddCategoryLoading(true);
     const idToken = await currentUser.getIdToken();
     try {
-      await createCategory(idToken, newCategoryName.trim());
+      // 1. Create the new category
+      const newCat = await createCategory(idToken, newCategoryName.trim());
+      const newCatId = newCat.id;
+      // 2. For each selected entry, update its category to the new category
+      await Promise.all(selectedEntryIds.map(entryId =>
+        updateEntry(idToken, entryId, { category_ids: [newCatId] })
+      ));
       setNewCategoryName('');
-      setShowAddCategory(false);
-      // Refresh categories
+      setShowCategoryModal(false);
+      setSelectedEntryIds([]);
+      // Refresh categories and entries
       const cats = await fetchCategories(idToken);
       setCategories(cats);
       const map: { [id: string]: string } = {};
       cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
       setCategoryMap(map);
+      const data = await fetchEntries(idToken);
+      setEntries(data);
     } catch (err) {
-      console.error('Failed to add category:', err);
+      console.error('Failed to add category or update entries:', err);
     } finally {
       setAddCategoryLoading(false);
     }
@@ -373,6 +401,17 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('quickAccessVisibility', JSON.stringify(quickAccessVisibility));
   }, [quickAccessVisibility]);
+
+  useEffect(() => {
+    if (showCategoryModal) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [showCategoryModal]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
@@ -423,7 +462,7 @@ const DashboardPage: React.FC = () => {
             <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
               <div className="relative w-full">
-                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={handleSearchChange} autoComplete="off" />
+                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={handleSearchChange} autoComplete="off" onKeyDown={handleSearchInputKeyDown} />
               </div>
               <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
             </div>
@@ -479,12 +518,12 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row lg:space-x-8">
-          <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0">
-            <div className="sticky top-32 flex flex-col gap-6">
+        <div className="flex flex-col lg:flex-row lg:space-x-8 min-h-screen h-screen">
+          <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0 h-screen overflow-y-auto">
+            <div className="sticky top-0 flex flex-col gap-6">
               {/* Quick Access Box - only heading */}
               <div className="flex flex-col space-y-1">
-                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
+                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50 mt-0">
                   <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Quick Access</h2>
                   <button
                     className={`p-1 rounded-full transition-all duration-150
@@ -573,21 +612,60 @@ const DashboardPage: React.FC = () => {
                           return !v;
                         });
                       }}
-                      className={`p-1 rounded-full transition-all duration-150
+                      className={`p-1 rounded-full transition-all duration-150 mr-2
                         ${isCategoryEditMode
                           ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
-                          : 'text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
+                          : 'text-primary-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-primary-400 dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
                       `}
+                      title={isCategoryEditMode ? 'Exit edit mode' : 'Edit categories'}
                     >
-                      {isCategoryEditMode ? <Check size={20} className="text-primary-500" /> : <Pencil size={20} />}
+                      <Pencil size={20} />
                     </button>
-                    <button
-                      onClick={() => setShowAddCategory(true)}
-                      className="p-1 rounded-full transition-all duration-150 text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
-                      title="Add category"
-                    >
-                      <Plus size={20} />
-                    </button>
+                    {isCategoryEditMode ? (
+                      <button
+                        onClick={async () => {
+                          if (selectedCategoryIds.length === 0) return;
+                          if (!currentUser) return;
+                          const idToken = await currentUser.getIdToken();
+                          // Delete selected categories
+                          for (const catId of selectedCategoryIds) {
+                            await deleteCategory(idToken, catId);
+                          }
+                          // Remove affected entries from local state (do NOT call deleteEntry)
+                          setEntries(prev => prev.filter(entry =>
+                            !entry.category_ids || !entry.category_ids.some(catId => selectedCategoryIds.includes(catId))
+                          ));
+                          setCategories(prev => prev.filter(cat => !selectedCategoryIds.includes(cat.id)));
+                          setCategoryMap(prev => {
+                            const newMap = { ...prev };
+                            selectedCategoryIds.forEach(id => { delete newMap[id]; });
+                            return newMap;
+                          });
+                          setSelectedCategoryIds([]);
+                          // Optionally, still re-fetch from backend for consistency
+                          const cats = await fetchCategories(idToken);
+                          setCategories(cats);
+                          const map: { [id: string]: string } = {};
+                          cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
+                          setCategoryMap(map);
+                          const data = await fetchEntries(idToken);
+                          setEntries(data);
+                        }}
+                        className={`p-1 rounded-full transition-all duration-150 ${selectedCategoryIds.length === 0 ? 'text-dark-400 bg-dark-100/50 cursor-not-allowed' : 'text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-700'} `}
+                        title="Delete selected categories"
+                        disabled={selectedCategoryIds.length === 0}
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setShowCategoryModal(true)}
+                        className="p-1 rounded-full transition-all duration-150 text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
+                        title="Add category"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 {showAddCategory && (
@@ -643,9 +721,26 @@ const DashboardPage: React.FC = () => {
                 {sidebarCategories.slice(3).map((category) => {
                   // For future extensibility, you could add per-category visibility here
                   // For now, all user/AI categories are always visible
+                  const isProtected = protectedCategories.includes(category.name);
+                  const isSelected = selectedCategoryIds.includes(category.id);
                   return (
                     <div key={category.id} className="touch-none">
                       <div className="flex items-center group">
+                        {isCategoryEditMode && !isProtected && (
+                          <button
+                            type="button"
+                            className={`mr-1 w-7 h-7 flex items-center justify-center rounded-full border-2 transition-colors duration-150 ${isSelected ? 'bg-red-500 border-red-500 text-white' : 'border-dark-200 dark:border-dark-700 text-dark-400 dark:text-dark-500 bg-transparent hover:bg-dark-100 dark:hover:bg-dark-800'}`}
+                            onClick={() => {
+                              setSelectedCategoryIds(prev =>
+                                isSelected ? prev.filter(id => id !== category.id) : [...prev, category.id]
+                              );
+                            }}
+                            aria-pressed={isSelected}
+                            tabIndex={0}
+                          >
+                            {isSelected ? <Check size={18} /> : ''}
+                          </button>
+                        )}
                         <button
                           onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
                           disabled={isCategoryEditMode || isQuickAccessEditMode}
@@ -658,11 +753,12 @@ const DashboardPage: React.FC = () => {
                             <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
                           </div>
                         </button>
-                        {isCategoryEditMode && !protectedCategories.includes(category.name) && (
+                        {isCategoryEditMode && !isProtected && (
                           <button
                             onClick={() => confirmDeleteCategory(category)}
                             className="ml-2 p-1 rounded-full text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
                             title="Delete category"
+                            style={{ display: 'none' }} // Hide the old single delete button
                           >
                             <Trash2 size={14} />
                           </button>
@@ -675,7 +771,7 @@ const DashboardPage: React.FC = () => {
             </div>
           </aside>
 
-          <main className="flex-1">
+          <main className="flex-1 h-screen overflow-y-auto hide-scrollbar">
             {mainHeading && <h2 className="text-2xl font-bold mb-8">{mainHeading}</h2>}
             {loading ? (
               <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>
@@ -766,6 +862,102 @@ const DashboardPage: React.FC = () => {
                 Delete Category & Entries
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Category Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-dark-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">
+              Add New Category
+            </h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (newCategoryName.trim()) {
+                  await saveNewCategory();
+                }
+              }}
+              autoComplete="off"
+            >
+              <input
+                type="text"
+                className="w-full px-3 py-2 rounded-full border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
+                placeholder="Category name"
+                value={newCategoryName}
+                autoFocus
+                onChange={e => setNewCategoryName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    setShowCategoryModal(false);
+                    setNewCategoryName('');
+                  }
+                }}
+                disabled={addCategoryLoading}
+              />
+
+              {/* Section title for entry assignment */}
+              <div className="font-semibold text-dark-700 dark:text-dark-200 mb-2 mt-2">Assign Entries to This Category</div>
+
+              {/* Scrollable list of entries for assignment */}
+              <div className="max-h-56 overflow-y-auto mb-4 rounded-xl border border-dark-200 dark:border-dark-700 bg-dark-50 dark:bg-dark-900/40">
+                {entries.length === 0 ? (
+                  <div className="text-center text-dark-400 py-6">No entries found.</div>
+                ) : (
+                  entries.map(entry => {
+                    const currentCat = (entry.category_ids && entry.category_ids.length > 0 && categoryMap[entry.category_ids[0]]) || 'None';
+                    const isSelected = selectedEntryIds.includes(entry.id);
+                    return (
+                      <div
+                        key={entry.id}
+                        className={`flex items-center justify-between px-4 py-2 border-b border-dark-100 dark:border-dark-800 last:border-b-0 hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors`}
+                      >
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-medium text-sm text-dark-900 dark:text-white truncate">{entry.title}</span>
+                          <span className="text-xs text-dark-400 dark:text-dark-500">{currentCat}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className={`ml-4 w-8 h-8 flex items-center justify-center rounded-full border-2 transition-colors duration-150 ${isSelected ? 'bg-primary-500 border-primary-500 text-white' : 'border-dark-200 dark:border-dark-700 text-dark-400 dark:text-dark-500 bg-transparent hover:bg-dark-100 dark:hover:bg-dark-800'}`}
+                          onClick={() => {
+                            setSelectedEntryIds(prev =>
+                              isSelected ? prev.filter(id => id !== entry.id) : [...prev, entry.id]
+                            );
+                          }}
+                          aria-pressed={isSelected}
+                          tabIndex={0}
+                        >
+                          {isSelected ? <Check size={20} /> : ''}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="flex space-x-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCategoryModal(false);
+                    setNewCategoryName('');
+                  }}
+                  className="flex-1 px-4 py-2 rounded-full border border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors"
+                  disabled={addCategoryLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 rounded-full bg-primary-500 text-white hover:bg-primary-600 transition-colors disabled:opacity-60"
+                  disabled={addCategoryLoading || !newCategoryName.trim()}
+                >
+                  {addCategoryLoading ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

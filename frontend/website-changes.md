@@ -2,6 +2,7 @@
 changes needed:
 - add original titles to the card (maybe do AI title if orignal title is > 5 words, otherwise do original title)
 - give option to assign their own category
+- 'please fill in this field' when hovering over social media supported platforms in save page
 - block entry URL that already exist
 - make AI summary optional
 - backend implementation of quick access items show or hide
