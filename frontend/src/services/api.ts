@@ -164,3 +164,34 @@ export async function updateEntry(idToken: string, entryId: string, updateData: 
   }
   return await response.json();
 }
+
+export async function createCategory(idToken: string, name: string): Promise<any> {
+  const response = await fetch(`${API_URL}/api/categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ name, ai_generated: false }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Failed to create category');
+  }
+  return await response.json();
+}
+
+export async function cleanupEmptyCategories(idToken: string): Promise<any> {
+  const response = await fetch(`${API_URL}/api/cleanup-empty-categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.detail || 'Failed to cleanup empty categories');
+  }
+  return await response.json();
+}
