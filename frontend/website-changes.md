@@ -20,6 +20,8 @@ changes needed:
 - add category rename functionality
 - add functionality to reassign entries to different categories
 - make/do something about entry insertion timing
+    - add gen AI style iterative completion thing
+    - fix save success message
 - entry view: platform passthrough
 - entry view: duration pass through
 - subscribe to tracks/topics (e.g. follow US news, politics, anime updates, etc)
