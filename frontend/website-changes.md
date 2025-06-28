@@ -44,3 +44,26 @@ changes needed:
 - tiktok videos basic workflow (detect platform, scrape, AI query)
 - twitter/x posts basic workflow (detect platform, scrape, AI query)
 - youtube video refined workflow (make AI summary optional, title logic, thumbnails)
+
+
+280625 plan:
+- clean room
+- make AI summaries optional
+- youtube shorts pipeline
+- instagram reels pipeline
+- instagram posts pipeline
+- linkedin posts pipeline
+- linkedin jobs pipeline
+- reddit posts pipeline
+- tiktok posts pipeline
+- twitter/x pipeline
+- domain
+- quick/direct share functionality
+
+290625:
+- saving gen-ai style checklist animaiton
+- forgot password
+- rename categories
+- reassign categories
+- are you sure you want to delete modal
+- make AI summary optional
