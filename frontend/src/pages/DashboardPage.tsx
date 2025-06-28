@@ -493,9 +493,18 @@ const DashboardPage: React.FC = () => {
                         : 'text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
                     `}
                     title={isQuickAccessEditMode ? 'Done' : 'Edit Quick Access'}
-                    onClick={() => setIsQuickAccessEditMode((v) => !v)}
+                    onClick={() => {
+                      setIsQuickAccessEditMode((v) => {
+                        if (!v) setIsCategoryEditMode(false);
+                        return !v;
+                      });
+                    }}
                   >
-                    <Pencil size={20} />
+                    {isQuickAccessEditMode ? (
+                      <Check size={20} className="text-primary-500" />
+                    ) : (
+                      <Pencil size={20} />
+                    )}
                   </button>
                 </div>
                 {sidebarCategories.slice(0, 3).map((category) => {
@@ -504,11 +513,12 @@ const DashboardPage: React.FC = () => {
                     return (
                       <div key={category.id} className="touch-none flex items-center group">
                         <button
-                          onClick={() => setSelectedCategory(category.id)}
-                          disabled={isCategoryEditMode}
+                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode || isQuickAccessEditMode}
+                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
                           className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
                             ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                            ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                             ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
                         >
                           <div className="flex items-center space-x-3 text-left w-full">
@@ -531,11 +541,12 @@ const DashboardPage: React.FC = () => {
                     return (
                       <div key={category.id} className="touch-none flex items-center group">
                         <button
-                          onClick={() => setSelectedCategory(category.id)}
-                          disabled={isCategoryEditMode}
+                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode || isQuickAccessEditMode}
+                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
                           className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
                             ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                            ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                             ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
                         >
                           <div className="flex items-center space-x-3 text-left w-full">
@@ -556,7 +567,12 @@ const DashboardPage: React.FC = () => {
                   <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setIsCategoryEditMode(!isCategoryEditMode)}
+                      onClick={() => {
+                        setIsCategoryEditMode((v) => {
+                          if (!v) setIsQuickAccessEditMode(false);
+                          return !v;
+                        });
+                      }}
                       className={`p-1 rounded-full transition-all duration-150
                         ${isCategoryEditMode
                           ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
@@ -631,11 +647,12 @@ const DashboardPage: React.FC = () => {
                     <div key={category.id} className="touch-none">
                       <div className="flex items-center group">
                         <button
-                          onClick={() => setSelectedCategory(category.id)}
-                          disabled={isCategoryEditMode}
+                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                          disabled={isCategoryEditMode || isQuickAccessEditMode}
+                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
                           className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
                             ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                            ${isCategoryEditMode ? 'cursor-default' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
+                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
                         >
                           <div className="flex items-center space-x-3 text-left w-full">
                             <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
@@ -663,13 +680,27 @@ const DashboardPage: React.FC = () => {
             {loading ? (
               <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>
             ) : entriesToShow.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
-                <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
-                <div className="text-2xl font-semibold mb-2">No entries found.</div>
-                <div className="text-base text-dark-400 dark:text-dark-500">
-                  Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
+              selectedCategory === 'Favorites' ? (
+                <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                  <span className="mb-6">
+                    <svg width="72" height="72" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-dark-400 dark:text-dark-500">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" />
+                    </svg>
+                  </span>
+                  <div className="text-2xl font-semibold mb-2">No favorites yet.</div>
+                  <div className="text-base text-dark-400 dark:text-dark-500 text-center max-w-xs">
+                    Click the <span className="inline align-text-bottom"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="inline text-dark-400 dark:text-dark-500 relative top-[2px]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" /></svg></span> icon on any entry to add it to your Favorites!
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                  <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
+                  <div className="text-2xl font-semibold mb-2">No entries found.</div>
+                  <div className="text-base text-dark-400 dark:text-dark-500">
+                    Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
+                  </div>
+                </div>
+              )
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {entriesToShow.map((entry) => {
