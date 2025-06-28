@@ -484,14 +484,18 @@ const DashboardPage: React.FC = () => {
             <div className="sticky top-32 flex flex-col gap-6">
               {/* Quick Access Box - only heading */}
               <div className="flex flex-col space-y-1">
-                <div className="flex items-center justify-between w-full px-5 py-2 mb-3 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
+                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
                   <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Quick Access</h2>
                   <button
-                    className={`p-1 rounded-full ${isQuickAccessEditMode ? 'bg-dark-700/60 text-primary-500' : 'text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70'} transition-colors`}
+                    className={`p-1 rounded-full transition-all duration-150
+                      ${isQuickAccessEditMode
+                        ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
+                        : 'text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
+                    `}
                     title={isQuickAccessEditMode ? 'Done' : 'Edit Quick Access'}
                     onClick={() => setIsQuickAccessEditMode((v) => !v)}
                   >
-                    <Pencil size={16} />
+                    <Pencil size={20} />
                   </button>
                 </div>
                 {sidebarCategories.slice(0, 3).map((category) => {
@@ -548,18 +552,25 @@ const DashboardPage: React.FC = () => {
 
               {/* Categories Box - only heading and buttons */}
               <div className="flex flex-col space-y-1 mt-2">
-                <div className="flex items-center justify-between w-full px-5 py-2 mb-3 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
+                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
                   <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setIsCategoryEditMode(!isCategoryEditMode)} className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors">
-                      {isCategoryEditMode ? <Check size={16} className="text-primary-500" /> : <Pencil size={14} />}
+                    <button
+                      onClick={() => setIsCategoryEditMode(!isCategoryEditMode)}
+                      className={`p-1 rounded-full transition-all duration-150
+                        ${isCategoryEditMode
+                          ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
+                          : 'text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
+                      `}
+                    >
+                      {isCategoryEditMode ? <Check size={20} className="text-primary-500" /> : <Pencil size={20} />}
                     </button>
                     <button
                       onClick={() => setShowAddCategory(true)}
-                      className="p-1 rounded-full text-dark-500 dark:text-dark-400 hover:text-dark-900 dark:hover:text-white hover:bg-dark-200/70 dark:hover:bg-dark-700/70 transition-colors"
+                      className="p-1 rounded-full transition-all duration-150 text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
                       title="Add category"
                     >
-                      <Plus size={16} />
+                      <Plus size={20} />
                     </button>
                   </div>
                 </div>
