@@ -529,7 +529,7 @@ const DashboardPage: React.FC = () => {
                     className={`p-1 rounded-full transition-all duration-150
                       ${isQuickAccessEditMode
                         ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
-                        : 'text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
+                        : 'text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
                     `}
                     title={isQuickAccessEditMode ? 'Done' : 'Edit Quick Access'}
                     onClick={() => {
@@ -615,7 +615,7 @@ const DashboardPage: React.FC = () => {
                       className={`p-1 rounded-full transition-all duration-150 mr-2
                         ${isCategoryEditMode
                           ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
-                          : 'text-primary-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-primary-400 dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
+                          : 'text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
                       `}
                       title={isCategoryEditMode ? 'Exit edit mode' : 'Edit categories'}
                     >
@@ -660,7 +660,7 @@ const DashboardPage: React.FC = () => {
                     ) : (
                       <button
                         onClick={() => setShowCategoryModal(true)}
-                        className="p-1 rounded-full transition-all duration-150 text-gray-500 hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
+                        className="p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
                         title="Add category"
                       >
                         <Plus size={20} />
