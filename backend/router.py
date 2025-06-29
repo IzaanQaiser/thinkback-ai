@@ -227,6 +227,7 @@ def create_entry(
 
     # Always scrape the URL to get metadata (including duration)
     duration = None
+    scraped_title = None
     if url and platform:
         scraper = get_scraper(platform)
         if scraper:
@@ -242,6 +243,8 @@ def create_entry(
             # Also save thumbnail if present
             if scraped_data.get("thumbnail"):
                 entry_dict["thumbnail"] = scraped_data["thumbnail"]
+            # Save scraped title for later validation
+            scraped_title = scraped_data.get("title")
 
     print("success")
     result = add_entry_firebase(uid, entry_dict)
@@ -258,6 +261,64 @@ def create_entry(
 
     # Call the classification agent
     ai_result = classify_entry(saved_entry, categories)
+
+    # Helper to check if a title is nonsense/generic
+    def is_nonsense_title(title, platform=None):
+        if not title or not title.strip():
+            return True
+        t = title.strip().lower()
+        generic_titles = [
+            "untitled",
+            "video",
+            "instagram reel",
+            "tiktok",
+            "placeholder",
+            "reel",
+            "post",
+            "shorts",
+            "youtube shorts",
+            "watch",
+            "no title",
+            "",
+            None,
+        ]
+        # Add platform-specific generic titles
+        if platform:
+            if platform.lower() == "youtube shorts":
+                generic_titles += ["shorts", "youtube shorts"]
+            if platform.lower() == "instagram reel":
+                generic_titles += ["instagram reel", "reel"]
+            if platform.lower() == "tiktok video":
+                generic_titles += ["tiktok", "video"]
+        # If title is just a URL
+        if t.startswith("http://") or t.startswith("https://"):
+            return True
+        # If title is too short or matches generic
+        if t in generic_titles or len(t) < 3:
+            return True
+        return False
+
+    # Decide which title to use
+    final_title = ai_result.get("title", "")
+    if scraped_title and not is_nonsense_title(scraped_title, platform):
+        final_title = scraped_title
+
+    # Truncate hashtags at the end of the title if present
+    def truncate_title_at_trailing_hashtags(title):
+        if not title:
+            return title
+        idx = title.find("#")
+        if idx == -1:
+            return title
+        # If the hashtag is not at the start, truncate at the hashtag
+        if idx > 0:
+            before = title[:idx].rstrip()
+            # Only truncate if the text before the hashtag does not itself start with a hashtag
+            if before and not before.strip().startswith("#"):
+                return before
+        return title
+
+    final_title = truncate_title_at_trailing_hashtags(final_title)
 
     # Handle category (existing or new)
     category_id = None
@@ -287,11 +348,11 @@ def create_entry(
             if "name" in new_cat_result["category"]:
                 print(new_cat_result["category"]["name"])
 
-    # Update the entry with AI-enriched fields
+    # Update the entry with AI-enriched fields, but use the chosen title
     update_data = {
         "category_ids": [category_id],
         "tags": ai_result.get("tags", []),
-        "title": ai_result.get("title", ""),
+        "title": final_title,
         "summary": ai_result.get("summary", ""),
         "platform": platform,
         "duration": duration,
