@@ -71,6 +71,7 @@ def aggregate_entry_data(
     return {
         "url": url,
         "platform": platform,
+        "type": scraped_data.get("type"),
         "title": scraped_data.get("title"),
         "description": scraped_data.get("description"),
         "transcript": scraped_data.get("transcript"),
@@ -120,6 +121,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     Entry:
     URL: {entry.get("url")}
     Platform: {entry.get("platform")}
+    Type: {entry.get("type", "unknown")}
     Title: {entry.get("title")}
     Description: {entry.get("description")}
     Transcript: {transcript}

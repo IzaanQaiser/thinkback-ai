@@ -58,6 +58,16 @@ class Category(BaseModel):
     ai_generated: bool
 
 
+class Mention(BaseModel):
+    platform: str
+    username: str
+    content_url: Optional[str] = None
+    comment: str
+    timestamp: str
+    comment_id: Optional[str] = None
+    video_id: Optional[str] = None
+
+
 # Existing User and Auth Models
 class User(BaseModel):
     uid: str
@@ -1001,3 +1011,42 @@ def cleanup_empty_categories_endpoint(authorization: Optional[str] = Header(None
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
+
+
+@router.post("/api/mentions")
+def process_mention(mention: Mention):
+    """
+    Process incoming mentions from social media platforms.
+    This endpoint receives mentions from bots/monitors and either:
+    1. Saves content directly if user is found via social_identity_links
+    2. Queues for user confirmation if no match found
+    """
+    try:
+        print(
+            f"[MENTION RECEIVED] {mention.platform} - {mention.username}: {mention.comment[:100]}..."
+        )
+
+        # TODO: Implement social identity lookup
+        # For now, just log the mention and return success
+        # In the future, this will:
+        # 1. Look up username in social_identity_links table
+        # 2. If found, create entry for that user
+        # 3. If not found, queue for confirmation
+
+        # Log the mention data
+        mention_data = mention.model_dump()
+        print(f"Mention data: {mention_data}")
+
+        # For now, return success
+        return {
+            "success": True,
+            "message": "Mention received and logged",
+            "mention_id": f"{mention.platform}_{mention.comment_id}_{mention.timestamp}",
+            "status": "logged",  # Will be "saved" or "queued" in future
+        }
+
+    except Exception as e:
+        print(f"Error processing mention: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process mention: {str(e)}"
+        )
