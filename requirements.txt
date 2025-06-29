@@ -59,3 +59,5 @@ yarl==1.20.0
 zipp==3.22.0
 zmq==0.0.0
 yt-dlp
+google-api-python-client==2.174.0
+google-auth-oauthlib==1.2.2
