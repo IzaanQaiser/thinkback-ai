@@ -59,6 +59,7 @@ changes needed:
 - twitter/x pipeline
 - domain
 - quick/direct share functionality
+- auto turn off categories edit on delete
 
 290625:
 - saving gen-ai style checklist animaiton
