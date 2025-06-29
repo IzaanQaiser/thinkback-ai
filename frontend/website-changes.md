@@ -27,6 +27,7 @@ changes needed:
 - entry view: duration pass through
 - subscribe to tracks/topics (e.g. follow US news, politics, anime updates, etc)
 - redesign entry view page
+- redirect to next category when AI-generated category is deleted
 
 ### ideas:
 - RSS reader for videos/alter media
