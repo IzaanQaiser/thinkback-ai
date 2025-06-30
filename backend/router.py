@@ -346,14 +346,14 @@ def create_entry(
 
     # Decide which title to use
     final_title = ai_result.get("title", "")
-    # For Instagram: use caption as title if present, else AI title
+    # For Instagram, use the caption as the title if present
     if platform and platform.lower() in ["instagram post", "instagram reel"]:
-        caption = scraped_data.get("description", "")
+        caption = scraped_data.get("description", "") if scraped_data else ""
         if caption and caption.strip():
             final_title = caption.strip()
             print(f"📝 Using Instagram caption as title: {final_title}")
         else:
-            print(f"📝 Using AI-generated title (no caption): {final_title}")
+            print(f"📝 No caption found, using AI-generated title: {final_title}")
     elif scraped_title and not is_nonsense_title(scraped_title, platform):
         final_title = scraped_title
         print(f"📝 Using scraped title: {final_title}")

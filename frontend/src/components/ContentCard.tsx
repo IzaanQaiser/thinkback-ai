@@ -131,7 +131,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
         <div className="flex-1 p-5">
       <div className="flex items-start space-x-4">
             <div className="flex-grow">
-              <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug">{title}</h3>
+              <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-3">{title}</h3>
               {platform && platform.toLowerCase().includes('instagram') && description && (
                 <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2 mb-1">
                   {description}
