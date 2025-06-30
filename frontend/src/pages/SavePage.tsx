@@ -170,9 +170,7 @@ const SavePage: React.FC = () => {
       <div className="relative z-10 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/dashboard" className="flex items-center space-x-2 text-dark-500 dark:text-dark-300 hover:text-dark-900 dark:hover:text-white transition-colors">
-                <Logo size="sm" />
-            </Link>
+            <Logo size="sm" />
             <div className="flex items-center space-x-2">
               <button
                 onClick={toggleTheme}
