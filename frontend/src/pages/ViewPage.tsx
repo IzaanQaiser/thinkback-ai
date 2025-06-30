@@ -270,9 +270,7 @@ const ViewPage: React.FC = () => {
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
         <div className="max-w-screen-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/dashboard">
-              <Logo size="sm" />
-            </Link>
+            <Logo size="sm" />
             <div className="flex items-center space-x-2 sm:space-x-3">
               <button
                 onClick={toggleTheme}
