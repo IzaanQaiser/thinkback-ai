@@ -231,7 +231,7 @@ const DashboardPage: React.FC = () => {
       if (!item.created_at) return false;
       const createdAt = new Date(item.created_at);
       const diffMs = now.getTime() - createdAt.getTime();
-      return diffMs <= 24 * 60 * 60 * 1000; // 24 hours
+      return diffMs <= 8 * 60 * 60 * 1000; // 8 hours
     });
   } else if (protectedCategories.includes(selectedCategory)) {
     mainHeading = selectedCategory;
@@ -421,7 +421,7 @@ const DashboardPage: React.FC = () => {
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
         <div className="max-w-screen-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/dashboard"><Logo size="sm" /></Link>
+            <Logo size="sm" />
             <div className="flex items-center space-x-2">
               <button
                 onClick={toggleTheme}
@@ -522,7 +522,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row lg:space-x-8 min-h-screen h-screen">
-          <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0 h-screen overflow-y-auto">
+          <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0 h-screen overflow-y-auto hide-scrollbar">
             <div className="sticky top-0 flex flex-col gap-6">
               {/* Quick Access Box - only heading */}
               <div className="flex flex-col space-y-1">
@@ -789,6 +789,14 @@ const DashboardPage: React.FC = () => {
                   <div className="text-2xl font-semibold mb-2">No favorites yet.</div>
                   <div className="text-base text-dark-400 dark:text-dark-500 text-center max-w-xs">
                     Click the <span className="inline align-text-bottom"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="inline text-dark-400 dark:text-dark-500 relative top-[2px]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" /></svg></span> icon on any entry to add it to your Favorites!
+                  </div>
+                </div>
+              ) : selectedCategory === 'Recent' ? (
+                <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                  <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
+                  <div className="text-2xl font-semibold mb-2">No entries added in the last 8 hours.</div>
+                  <div className="text-base text-dark-400 dark:text-dark-500">
+                    Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
                   </div>
                 </div>
               ) : (
