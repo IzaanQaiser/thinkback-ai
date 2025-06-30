@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, ExternalLink, Edit, Trash2, Star, ClipboardCopy, ChevronDown, Check,
-  Youtube, Book, Clock, Folder as FolderIcon, Calendar, Sun, Moon, Play
+  ArrowLeft, ExternalLink, Edit, Trash2, Star, ClipboardCopy, Check,
+  Clock, Folder as FolderIcon, Calendar, Sun, Moon, Play
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
@@ -12,15 +12,6 @@ import Kbd from '../components/Kbd';
 import { useTheme } from '../contexts/ThemeContext';
 import { fetchEntry, deleteEntry, updateEntry, fetchCategories } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-
-const platformIcons: { [key: string]: React.ElementType } = {
-  youtube: FaYoutube,
-  reddit: FaReddit,
-  instagram: FaInstagram,
-  twitter: FaTwitter,
-  tiktok: FaTiktok,
-  linkedin: FaLinkedin,
-};
 
 // Helper to format date as 'June 25th, 2025'
 function formatDateWithOrdinal(dateString?: string) {
@@ -43,13 +34,13 @@ function formatDateWithOrdinal(dateString?: string) {
 }
 
 // Helper to format duration as HH:MM:SS or MM:SS
-function formatDuration(duration: any) {
+function formatDuration(duration: unknown) {
   console.log('formatDuration called with:', duration, 'type:', typeof duration);
   if (!duration) return '—';
   // If string and contains colon, return as-is
   if (typeof duration === 'string' && duration.includes(':')) return duration;
   // If string of digits or number, treat as seconds
-  let totalSeconds = typeof duration === 'number' ? duration : parseInt(duration, 10);
+  const totalSeconds = typeof duration === 'number' ? duration : parseInt(duration as string, 10);
   console.log('totalSeconds calculated:', totalSeconds);
   if (isNaN(totalSeconds) || totalSeconds < 0) return '—';
   const hours = Math.floor(totalSeconds / 3600);
@@ -135,7 +126,7 @@ const ViewPage: React.FC = () => {
       setNotes(data.notes || '');
       setIsFavorited(!!data.favorite);
       setLoading(false);
-    }).catch(err => {
+    }).catch(() => {
       setError('Content not found');
       setLoading(false);
     });
@@ -157,8 +148,14 @@ const ViewPage: React.FC = () => {
   }, [currentUser]);
 
   useEffect(() => {
-    if (entry && categories.length > 0 && entry.category_ids && entry.category_ids.length > 0) {
-      const cat = categories.find(c => c.id === entry.category_ids[0]);
+    if (
+      entry &&
+      Array.isArray(categories) &&
+      categories.length > 0 &&
+      (entry as any).category_ids &&
+      (entry as any).category_ids.length > 0
+    ) {
+      const cat = (categories as any[]).find(c => c.id === (entry as any).category_ids[0]);
       setCategoryName(cat ? cat.name : "Unknown");
     }
   }, [entry, categories]);
@@ -239,6 +236,8 @@ const ViewPage: React.FC = () => {
 
   // Add a helper to check if the entry is Instagram
   const isInstagram = entry?.platform?.toLowerCase().includes('instagram');
+  // Add a helper to check if the entry is TikTok
+  const isTikTok = entry?.platform?.toLowerCase().includes('tiktok');
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-dark-500 dark:text-dark-400">Loading...</div>;
@@ -303,7 +302,7 @@ const ViewPage: React.FC = () => {
       <div className="max-w-screen-2xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column */}
-          <div className={isInstagram ? "lg:col-span-2 space-y-8 flex flex-col" : "lg:col-span-2 space-y-8"}>
+          <div className={(isInstagram || isTikTok) ? "lg:col-span-2 space-y-8 flex flex-col" : "lg:col-span-2 space-y-8"}>
             {/* Title & Description */}
             <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 md:p-8">
               <h1 className="text-3xl sm:text-4xl font-bold text-dark-900 dark:text-white mb-3" style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}>
@@ -323,12 +322,12 @@ const ViewPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Instagram Caption */}
-              {entry?.description && (
+              {/* Instagram or TikTok Caption */}
+              {entry?.description && (isInstagram || isTikTok) && (
                 <div className="mb-6 p-4 bg-dark-50/50 dark:bg-dark-800/20 border border-dark-200/50 dark:border-dark-700/50 rounded-xl">
                   <h3 className="text-sm font-semibold text-dark-700 dark:text-dark-200 mb-2 flex items-center gap-2">
                     <span className="w-2 h-2 bg-dark-400 rounded-full"></span>
-                    Instagram Caption
+                    {isInstagram ? 'Instagram Caption' : 'TikTok Caption'}
                   </h3>
                   <p className="text-dark-700 dark:text-dark-200 leading-relaxed">
                     {entry.description}
@@ -342,7 +341,7 @@ const ViewPage: React.FC = () => {
 
               {/* Tags */}
               <div className="flex flex-wrap gap-3">
-                {entry?.tags?.map((tag, index) => (
+                {entry?.tags?.map((tag: string, index: number) => (
                   <span
                     key={index}
                     className="inline-flex items-center px-4 py-2 rounded-full text-xs font-semibold bg-primary-100/60 dark:bg-dark-800/60 text-primary-800 dark:text-primary-300 border border-primary-200/50 dark:border-dark-700/80 hover:bg-primary-100/80 dark:hover:bg-dark-700/60 transition-colors"
@@ -392,8 +391,8 @@ const ViewPage: React.FC = () => {
               )}
             </div>
 
-            {/* Move Details and Actions here for Instagram */}
-            {isInstagram && (
+            {/* Move Details and Actions here for Instagram or TikTok */}
+            {(isInstagram || isTikTok) && (
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex-1">
                   {/* Details */}
@@ -429,11 +428,11 @@ const ViewPage: React.FC = () => {
                   <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-0">
                     <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
                     <div className="flex gap-4">
-                      <Button onClick={handleFavorite} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
+                      <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleFavorite(e)} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
                         <Star size={20} className={`${isFavorited ? 'fill-current' : ''}`} />
                         <span className="font-medium text-xs">{isFavorited ? 'Favorited' : 'Favorite'}</span>
                       </Button>
-                      <Button onClick={handleCopyLink} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
+                      <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleCopyLink(e)} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
                         {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
                         <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
                       </Button>
@@ -453,7 +452,7 @@ const ViewPage: React.FC = () => {
 
           {/* Right Column */}
           <div className="lg:col-span-1 space-y-8">
-            {/* Only show image in right column for Instagram */}
+            {/* Only show image in right column for Instagram or TikTok */}
             {isInstagram ? (
               <div className="sticky top-32">
                 {entry?.thumbnail && entry?.url && (
@@ -468,6 +467,24 @@ const ViewPage: React.FC = () => {
                       alt={entry.title || 'Entry thumbnail'}
                       className="w-full rounded-2xl shadow-lg object-cover"
                       style={{ aspectRatio: '9/16', maxHeight: '700px', width: '100%' }}
+                    />
+                  </a>
+                )}
+              </div>
+            ) : isTikTok ? (
+              <div className="sticky top-32">
+                {entry?.thumbnail && entry?.url && (
+                  <a
+                    href={entry.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block mb-3 group"
+                  >
+                    <img
+                      src={getProxiedImageUrl(entry.thumbnail, entry.platform)}
+                      alt={entry.title || 'Entry thumbnail'}
+                      className="w-full rounded-2xl shadow-lg"
+                      style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '1rem' }}
                     />
                   </a>
                 )}
@@ -528,11 +545,11 @@ const ViewPage: React.FC = () => {
                 <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-4">
                   <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
                   <div className="flex gap-4">
-                    <Button onClick={handleFavorite} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
+                    <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleFavorite(e)} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
                       <Star size={20} className={`${isFavorited ? 'fill-current' : ''}`} />
                       <span className="font-medium text-xs">{isFavorited ? 'Favorited' : 'Favorite'}</span>
                     </Button>
-                    <Button onClick={handleCopyLink} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
+                    <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleCopyLink(e)} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
                       {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
                       <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
                     </Button>

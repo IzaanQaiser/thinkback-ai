@@ -30,9 +30,11 @@ const portraitPlatforms = [
 const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, tags, favorite, category, thumbnail, platform, isCarousel, carouselCount, description }) => {
   const { theme } = useTheme();
   const isPortrait = portraitPlatforms.includes(platform || '');
-  // For portrait platforms, use a taller aspect ratio (9/12) but do NOT set minHeight, so the card size stays consistent.
+  // For portrait platforms, use a taller aspect ratio (9/8) but do NOT set minHeight, so the card size stays consistent.
   const portraitAspect = '9/8';
   const landscapeAspect = '16/9';
+  // Instagram post aspect ratio (used for cropping TikTok thumbnails to match Instagram post size)
+  const instagramPostAspect = '1/1'; // square aspect ratio for Instagram posts
 
   function getPlatformIconOverlay(platform?: string, theme?: string) {
     if (!platform) return null;
@@ -107,12 +109,33 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
     >
       {/* Thumbnail with overlays */}
       {thumbnail && (
-        <div className="relative w-full" style={{ aspectRatio: isPortrait ? portraitAspect : landscapeAspect }}>
+        <div
+          className={`relative w-full${platform === 'TikTok Video' ? ' !rounded-t-none !p-0 !m-0' : ''}`}
+          style={{
+            aspectRatio:
+              platform === 'TikTok Video'
+                ? instagramPostAspect
+                : isPortrait
+                ? portraitAspect
+                : landscapeAspect,
+            ...(platform === 'TikTok Video' ? { borderRadius: 0, padding: 0, margin: 0 } : {}),
+          }}
+        >
           <img
             src={getProxiedImageUrl(thumbnail, platform)}
             alt={title}
-            className="w-full h-full object-cover rounded-t-xl"
-            style={{ display: 'block' }}
+            className={`w-full h-full object-cover${platform === 'TikTok Video' ? ' !rounded-none !aspect-square' : ' rounded-t-xl'}${platform === 'TikTok Video' ? ' object-top' : ''}`}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: platform === 'TikTok Video' ? 'top' : undefined,
+              transform: undefined, // Remove scale for TikTok
+              borderRadius: platform === 'TikTok Video' ? 0 : '0.75rem',
+              padding: platform === 'TikTok Video' ? 0 : undefined,
+              margin: platform === 'TikTok Video' ? 0 : undefined,
+            }}
             loading="lazy"
           />
           {getPlatformIconOverlay(platform, theme)}

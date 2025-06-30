@@ -438,22 +438,6 @@ const DashboardPage: React.FC = () => {
                 <UserIcon size={20} className="text-dark-900 dark:text-white" /><span className="text-dark-800 dark:text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span>
                 <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+M</Kbd>
               </Link>
-              {process.env.NODE_ENV === 'development' && (
-                <button
-                  onClick={() => {
-                    if (currentUser) {
-                      currentUser.getIdToken().then(token => {
-                        console.log('Your Firebase ID token:', token);
-                      });
-                    } else {
-                      console.log('No user is logged in.');
-                    }
-                  }}
-                  className="ml-2 px-3 py-2 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs font-semibold"
-                >
-                  Show My ID Token
-                </button>
-              )}
             </div>
           </div>
         </div>
