@@ -12,7 +12,15 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def classify_entry(entry, categories):
+    print(f"\n🤖 AI CLASSIFICATION STARTED")
+    print(f"   Entry ID: {entry.get('id', 'N/A')}")
+    print(f"   Platform: {entry.get('platform', 'N/A')}")
+    print(f"   URL: {entry.get('url', 'N/A')}")
+    print(f"   Available categories: {len(categories)}")
+
     prompt = format_ai_prompt(entry)
+    print(f"   Prompt length: {len(prompt)} characters")
+
     try:
         response = client.chat.completions.create(
             model="gpt-4-1106-preview",  # gpt-4.1
@@ -28,7 +36,10 @@ def classify_entry(entry, categories):
             top_p=1.0,
         )
         content = response.choices[0].message.content
+        print(f"   ✅ AI response received ({len(content)} chars)")
+
         if content is None:
+            print(f"   ❌ AI returned empty response")
             return {
                 "category": {"name": "General"},
                 "tags": [],
@@ -37,15 +48,25 @@ def classify_entry(entry, categories):
             }
         try:
             result = json.loads(content)
+            print(f"   ✅ JSON parsed successfully")
+            print(f"   AI Results:")
+            print(f"     Category: {result.get('category', {})}")
+            print(f"     Title: {result.get('title', 'N/A')}")
+            print(f"     Tags: {result.get('tags', [])}")
+            print(f"     Summary: {result.get('summary', 'N/A')[:50]}...")
             return result
-        except Exception:
+        except Exception as e:
+            print(f"   ⚠️ JSON parsing failed: {e}")
             # Try to extract JSON from the response using regex
             match = re.search(r"\{[\s\S]*\}", content)
             if match:
                 try:
-                    return json.loads(match.group(0))
-                except Exception:
-                    pass
+                    result = json.loads(match.group(0))
+                    print(f"   ✅ JSON extracted with regex")
+                    return result
+                except Exception as e2:
+                    print(f"   ❌ Regex extraction also failed: {e2}")
+            print(f"   ❌ Returning fallback data")
             return {
                 "category": {"name": "General"},
                 "tags": [],
@@ -53,6 +74,7 @@ def classify_entry(entry, categories):
                 "summary": "",
             }
     except Exception as e:
+        print(f"   ❌ AI API call failed: {e}")
         return {
             "category": {"name": "General"},
             "tags": [],
@@ -94,6 +116,23 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     # Format metadata for display
     metadata = entry.get("metadata") or {}
     metadata_str = ", ".join(f"{k}: {v}" for k, v in metadata.items() if v)
+
+    # Add Instagram-specific guidance
+    platform = entry.get("platform", "").lower()
+    instagram_guidance = ""
+    if "instagram" in platform:
+        instagram_guidance = """
+    INSTAGRAM-SPECIFIC GUIDANCE:
+    - Instagram posts often have hashtags and mentions - focus on the core content
+    - Look for the main message or theme beyond hashtags
+    - Consider visual content type (photo, carousel, story-style)
+    - Extract meaningful topics from captions and hashtags
+    - Examples:
+      * "Beautiful sunset at the beach #sunset #beach #nature" → "Nature" (not "Sunset Photography")
+      * "New recipe for chocolate cake 🍰 #food #baking #dessert" → "Food" (not "Baking Recipes")
+      * "Motivational quote about success #motivation #success #inspiration" → "Motivation" (not "Inspirational Quotes")
+    """
+
     # Compose prompt
     prompt = textwrap.dedent(
         f"""
@@ -117,6 +156,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
       * "Physics tutorial" → "Physics" (not "Physics Education")
       * "React programming guide" → "Programming" (not "React Tutorial")
       * "Tech company analysis" → "Technology" (not "Tech Analysis")
+    {instagram_guidance}
 
     Entry:
     URL: {entry.get("url")}
