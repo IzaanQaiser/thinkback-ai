@@ -171,6 +171,10 @@ def create_entry(
     Create a new entry for the logged-in user. If the entry already has AI-enriched fields (title, tags, summary),
     save it directly. Otherwise, enrich it with AI classification.
     """
+    print("\n" + "=" * 60)
+    print("🚀 ENTRY CREATION PROCESS STARTED")
+    print("=" * 60)
+
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
 
@@ -186,6 +190,7 @@ def create_entry(
     try:
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token["uid"]
+        print(f"✅ Authentication successful - UID: {uid}")
     except Exception as e:
         raise HTTPException(
             status_code=401, detail=f"Token verification failed: {str(e)}"
@@ -194,6 +199,11 @@ def create_entry(
     # Always detect platform from URL
     entry_dict = entry.model_dump()
     url = entry_dict.get("url")
+    notes = entry_dict.get("notes", "")
+
+    print(f"📝 Input Data:")
+    print(f"   URL: {url}")
+    print(f"   Notes: {notes}")
 
     def detect_platform(url: str) -> str:
         url = url.lower()
@@ -224,14 +234,28 @@ def create_entry(
     if url:
         platform = detect_platform(str(url))
         entry_dict["platform"] = platform
+        print(f"🔍 Platform Detection: {platform}")
 
     # Always scrape the URL to get metadata (including duration)
     duration = None
     scraped_title = None
     if url and platform:
+        print(f"🔧 Starting content scraping for {platform}...")
         scraper = get_scraper(platform)
         if scraper:
+            print(f"   Using scraper: {scraper.__class__.__name__}")
             scraped_data = scraper.scrape(url)
+
+            print(f"📊 Scraped Data Summary:")
+            print(f"   Title: {scraped_data.get('title', 'N/A')}")
+            print(f"   Type: {scraped_data.get('type', 'N/A')}")
+            print(
+                f"   Description length: {len(scraped_data.get('description', ''))} chars"
+            )
+            print(f"   Hashtags: {scraped_data.get('hashtags', [])}")
+            print(f"   Mentions: {scraped_data.get('mentions', [])}")
+            print(f"   Thumbnail: {scraped_data.get('thumbnail', 'N/A')}")
+
             if (
                 scraped_data
                 and "metadata" in scraped_data
@@ -240,27 +264,47 @@ def create_entry(
             ):
                 duration = scraped_data["metadata"]["duration"]
                 entry_dict["duration"] = duration
+                print(f"   Duration: {duration} seconds")
             # Also save thumbnail if present
             if scraped_data.get("thumbnail"):
                 entry_dict["thumbnail"] = scraped_data["thumbnail"]
+                print(f"   ✅ Thumbnail saved")
             # Save scraped title for later validation
             scraped_title = scraped_data.get("title")
+            print(f"   ✅ Scraped title: {scraped_title}")
+            # Save description (caption) if present
+            if scraped_data.get("description"):
+                entry_dict["description"] = scraped_data["description"]
+                print(f"   ✅ Description (caption) saved: {entry_dict['description']}")
+        else:
+            print(f"   ❌ No scraper found for platform: {platform}")
 
-    print("success")
+    print(f"💾 Saving initial entry to Firebase...")
     result = add_entry_firebase(uid, entry_dict)
     if not result["success"]:
-        print("failed")
+        print(f"   ❌ Failed to save entry: {result['error']}")
         raise HTTPException(status_code=400, detail=result["error"])
     saved_entry = result["entry"]
+    print(f"   ✅ Entry saved with ID: {saved_entry['id']}")
 
     # Fetch all categories for the user
+    print(f"📂 Fetching user categories...")
     cat_result = get_categories_firebase(uid)
     if not cat_result["success"]:
+        print(f"   ❌ Failed to fetch categories: {cat_result['error']}")
         raise HTTPException(status_code=400, detail=cat_result["error"])
     categories = cat_result["categories"]  # List of dicts with 'id' and 'name'
+    print(f"   ✅ Found {len(categories)} categories")
 
     # Call the classification agent
+    print(f"🤖 Starting AI enrichment...")
     ai_result = classify_entry(saved_entry, categories)
+
+    print(f"🧠 AI Enrichment Results:")
+    print(f"   Category: {ai_result.get('category', {})}")
+    print(f"   AI Title: {ai_result.get('title', 'N/A')}")
+    print(f"   Tags: {ai_result.get('tags', [])}")
+    print(f"   Summary: {ai_result.get('summary', 'N/A')[:100]}...")
 
     # Helper to check if a title is nonsense/generic
     def is_nonsense_title(title, platform=None):
@@ -288,6 +332,8 @@ def create_entry(
                 generic_titles += ["shorts", "youtube shorts"]
             if platform.lower() == "instagram reel":
                 generic_titles += ["instagram reel", "reel"]
+            if platform.lower() == "instagram post":
+                generic_titles += ["instagram post", "post", "instagram"]
             if platform.lower() == "tiktok video":
                 generic_titles += ["tiktok", "video"]
         # If title is just a URL
@@ -300,8 +346,19 @@ def create_entry(
 
     # Decide which title to use
     final_title = ai_result.get("title", "")
-    if scraped_title and not is_nonsense_title(scraped_title, platform):
+    # For Instagram: use caption as title if present, else AI title
+    if platform and platform.lower() in ["instagram post", "instagram reel"]:
+        caption = scraped_data.get("description", "")
+        if caption and caption.strip():
+            final_title = caption.strip()
+            print(f"📝 Using Instagram caption as title: {final_title}")
+        else:
+            print(f"📝 Using AI-generated title (no caption): {final_title}")
+    elif scraped_title and not is_nonsense_title(scraped_title, platform):
         final_title = scraped_title
+        print(f"📝 Using scraped title: {final_title}")
+    else:
+        print(f"📝 Using AI-generated title: {final_title}")
 
     # Truncate hashtags at the end of the title if present
     def truncate_title_at_trailing_hashtags(title):
@@ -319,6 +376,7 @@ def create_entry(
         return title
 
     final_title = truncate_title_at_trailing_hashtags(final_title)
+    print(f"📝 Final title after hashtag truncation: {final_title}")
 
     # Handle category (existing or new)
     category_id = None
@@ -326,7 +384,7 @@ def create_entry(
         # AI returned an existing category ID
         category_id = ai_result["category"]["id"]
         if "name" in ai_result["category"]:
-            print(ai_result["category"]["name"])
+            print(f"🏷️ Using existing category: {ai_result['category']['name']}")
     else:
         # AI returned a new category name or "Uncategorized"
         new_cat_name = ai_result["category"]["name"].strip().lower()
@@ -336,17 +394,18 @@ def create_entry(
         if existing:
             category_id = existing["id"]
             if "name" in existing:
-                print(existing["name"])
+                print(f"🏷️ Found existing category: {existing['name']}")
         else:
             # Create new category
             new_cat = {"name": ai_result["category"]["name"], "ai_generated": True}
+            print(f"🏷️ Creating new category: {new_cat['name']}")
             new_cat_result = add_category_firebase(uid, new_cat)
             if not new_cat_result["success"]:
-                print("failed")
+                print(f"   ❌ Failed to create category: {new_cat_result['error']}")
                 raise HTTPException(status_code=400, detail=new_cat_result["error"])
             category_id = new_cat_result["category"]["id"]
             if "name" in new_cat_result["category"]:
-                print(new_cat_result["category"]["name"])
+                print(f"   ✅ Category created: {new_cat_result['category']['name']}")
 
     # Update the entry with AI-enriched fields, but use the chosen title
     update_data = {
@@ -360,12 +419,27 @@ def create_entry(
     # Ensure thumbnail is preserved in update
     if entry_dict.get("thumbnail"):
         update_data["thumbnail"] = entry_dict["thumbnail"]
+
+    print(f"🔄 Updating entry with enriched data...")
+    print(f"   Category ID: {category_id}")
+    print(f"   Tags: {update_data['tags']}")
+    print(f"   Title: {update_data['title']}")
+    print(f"   Summary length: {len(update_data['summary'])} chars")
+
     update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
     if not update_result["success"]:
-        print("failed")
+        print(f"   ❌ Failed to update entry: {update_result['error']}")
         raise HTTPException(status_code=400, detail=update_result["error"])
 
-    print("success")
+    print(f"✅ Entry creation completed successfully!")
+    print(f"📋 Final Entry Summary:")
+    print(f"   ID: {update_result['entry']['id']}")
+    print(f"   Platform: {update_result['entry'].get('platform', 'N/A')}")
+    print(f"   Title: {update_result['entry'].get('title', 'N/A')}")
+    print(f"   Category: {update_result['entry'].get('category_ids', [])}")
+    print(f"   Tags: {update_result['entry'].get('tags', [])}")
+    print("=" * 60)
+
     return update_result["entry"]
 
 
@@ -885,8 +959,14 @@ def scrape_youtube(url: str = Query(...)):
 
 @router.post("/api/enrich-entry")
 def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
+    print(f"\n🔍 ENRICH-ENTRY ENDPOINT CALLED")
+    print(f"   Input data: {data}")
+
     url = data["url"]
     user_notes = data.get("user_notes", "")
+
+    print(f"   URL: {url}")
+    print(f"   User notes: {user_notes}")
 
     # Platform detection (reuse frontend logic or implement here)
     def detect_platform(url: str) -> str:
@@ -916,8 +996,16 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
         return "Unknown"
 
     platform = detect_platform(url)
+    print(f"   🔍 Detected platform: {platform}")
+
     scraper = get_scraper(platform)
+    print(f"   🔧 Using scraper: {scraper.__class__.__name__ if scraper else 'None'}")
+
     scraped_data = scraper.scrape(url) if scraper else {}
+    print(
+        f"   📊 Scraped data keys: {list(scraped_data.keys()) if scraped_data else 'None'}"
+    )
+
     # Get categories for the user (decode from token if available, else fallback)
     try:
         scheme, token = authorization.split()
@@ -925,34 +1013,60 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
             raise HTTPException(status_code=401, detail="Invalid authorization scheme")
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token["uid"]
-    except Exception:
+        print(f"   👤 Authenticated user: {uid}")
+    except Exception as e:
+        print(f"   ⚠️ Authentication failed: {e}")
         uid = None
+
     categories = []
     if uid:
         cat_result = get_categories_firebase(uid)
         if cat_result["success"]:
             categories = cat_result["categories"]
+            print(f"   📂 Found {len(categories)} categories for user")
+        else:
+            print(f"   ❌ Failed to fetch categories: {cat_result['error']}")
+    else:
+        print(f"   ⚠️ No user ID, using empty categories list")
+
     entry_data = aggregate_entry_data(
         url, platform, scraped_data, user_notes, categories
     )
+    print(f"   📋 Aggregated entry data keys: {list(entry_data.keys())}")
+
     # Promote duration to top-level if present in metadata
     duration = None
     if entry_data.get("metadata") and "duration" in entry_data["metadata"]:
         duration = entry_data["metadata"]["duration"]
         entry_data["duration"] = duration
+        print(f"   ⏱️ Duration promoted: {duration} seconds")
+
     prompt = format_ai_prompt(entry_data)
+    print(f"   🤖 AI prompt length: {len(prompt)} characters")
+
     ai_response = classify_entry(
         entry_data, categories
     )  # classify_entry should call OpenAI and return the AI's JSON response
+
+    print(f"   🧠 AI response received:")
+    print(f"     Category: {ai_response.get('category', {})}")
+    print(f"     Title: {ai_response.get('title', 'N/A')}")
+    print(f"     Tags: {ai_response.get('tags', [])}")
+    print(f"     Summary: {ai_response.get('summary', 'N/A')[:50]}...")
+
     if ai_response and "category" in ai_response and "name" in ai_response["category"]:
         print(f"category: {ai_response['category']['name']}")
     print("success")
+
     # Return both the AI response and the scraped data (including thumbnail)
-    return {
+    result = {
         "ai": ai_response,
         "scraped": scraped_data,
         "thumbnail": scraped_data.get("thumbnail"),
     }
+
+    print(f"   ✅ Enrichment completed, returning result")
+    return result
 
 
 @router.post("/api/scrape")

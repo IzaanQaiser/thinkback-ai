@@ -23,6 +23,9 @@ interface Entry {
   category_ids?: string[];
   thumbnail?: string;
   platform?: string;
+  is_carousel?: boolean;
+  carousel_count?: number;
+  description?: string;
 }
 
 interface Category {
@@ -820,6 +823,9 @@ const DashboardPage: React.FC = () => {
                       category={categoryName}
                       thumbnail={entry.thumbnail}
                       platform={entry.platform}
+                      isCarousel={entry.is_carousel}
+                      carouselCount={entry.carousel_count}
+                      description={entry.description}
                     />
                     );
                   })}
