@@ -110,31 +110,30 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
       {/* Thumbnail with overlays */}
       {thumbnail && (
         <div
-          className={`relative w-full${platform === 'TikTok Video' ? ' !rounded-t-none !p-0 !m-0' : ''}`}
+          className={`relative w-full${platform === 'TikTok Video' ? '' : ''}`}
           style={{
             aspectRatio:
-              platform === 'TikTok Video'
+              (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram')))
                 ? instagramPostAspect
                 : isPortrait
                 ? portraitAspect
                 : landscapeAspect,
-            ...(platform === 'TikTok Video' ? { borderRadius: 0, padding: 0, margin: 0 } : {}),
+            ...(platform === 'TikTok Video' ? { maxWidth: '430px', maxHeight: '430px', margin: '0 auto' } : {}),
           }}
         >
           <img
             src={getProxiedImageUrl(thumbnail, platform)}
             alt={title}
-            className={`w-full h-full object-cover${platform === 'TikTok Video' ? ' !rounded-none !aspect-square' : ' rounded-t-xl'}${platform === 'TikTok Video' ? ' object-top' : ''}`}
+            className={`w-full h-full object-cover${platform === 'TikTok Video' ? ' rounded-b-xl' : ' rounded-t-xl'}`}
             style={{
               display: 'block',
-              width: '100%',
-              height: '100%',
+              width: platform === 'TikTok Video' ? '430px' : '100%',
+              height: platform === 'TikTok Video' ? '430px' : '100%',
               objectFit: 'cover',
-              objectPosition: platform === 'TikTok Video' ? 'top' : undefined,
-              transform: undefined, // Remove scale for TikTok
-              borderRadius: platform === 'TikTok Video' ? 0 : '0.75rem',
-              padding: platform === 'TikTok Video' ? 0 : undefined,
-              margin: platform === 'TikTok Video' ? 0 : undefined,
+              objectPosition: (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram'))) ? 'center' : undefined,
+              borderRadius: platform === 'TikTok Video' ? '0 0 0.75rem 0.75rem' : '0.75rem',
+              padding: undefined,
+              margin: undefined,
             }}
             loading="lazy"
           />
