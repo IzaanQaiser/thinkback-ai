@@ -2,6 +2,7 @@
 changes needed:
 - add original titles to the card (maybe do AI title if orignal title is > 5 words, otherwise do original title)
 - give option to assign their own category
+- 'please fill in this field' when hovering over social media supported platforms in save page
 - block entry URL that already exist
 - make AI summary optional
 - backend implementation of quick access items show or hide
@@ -26,6 +27,7 @@ changes needed:
 - entry view: duration pass through
 - subscribe to tracks/topics (e.g. follow US news, politics, anime updates, etc)
 - redesign entry view page
+- redirect to next category when AI-generated category is deleted
 
 ### ideas:
 - RSS reader for videos/alter media
@@ -43,3 +45,27 @@ changes needed:
 - tiktok videos basic workflow (detect platform, scrape, AI query)
 - twitter/x posts basic workflow (detect platform, scrape, AI query)
 - youtube video refined workflow (make AI summary optional, title logic, thumbnails)
+
+
+280625 plan:
+- clean room
+- make AI summaries optional
+- youtube shorts pipeline
+- instagram reels pipeline
+- instagram posts pipeline
+- linkedin posts pipeline
+- linkedin jobs pipeline
+- reddit posts pipeline
+- tiktok posts pipeline
+- twitter/x pipeline
+- domain
+- quick/direct share functionality
+- auto turn off categories edit on delete
+
+290625:
+- saving gen-ai style checklist animaiton
+- forgot password
+- rename categories
+- reassign categories
+- are you sure you want to delete modal
+- make AI summary optional
