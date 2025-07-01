@@ -125,38 +125,6 @@ const SavePage: React.FC = () => {
     }
   };
 
-  const handleDetectAndEnrich = async () => {
-    if (!url) return;
-    try {
-      let idToken = undefined;
-      if (currentUser) {
-        idToken = await currentUser.getIdToken();
-      }
-      const response = await fetch('http://localhost:8000/api/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-        },
-        body: JSON.stringify({ url, user_notes: notes }),
-      });
-      const aiResult = await response.json();
-      // Debug log: print the full response
-      console.log('Scrape result:', aiResult);
-      // Log only the duration if present
-      if (aiResult && aiResult.metadata && aiResult.metadata.duration !== undefined) {
-        console.log('Duration:', aiResult.metadata.duration);
-      } else if (aiResult && aiResult.duration !== undefined) {
-        // fallback if duration is top-level
-        console.log('Duration:', aiResult.duration);
-      } else {
-        console.log('Duration not found.');
-      }
-    } catch (err) {
-      console.error('Failed to scrape entry:', err);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 relative overflow-hidden text-dark-900 dark:text-white">
       {/* Animated Background Elements */}
@@ -170,9 +138,7 @@ const SavePage: React.FC = () => {
       <div className="relative z-10 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/dashboard" className="flex items-center space-x-2 text-dark-500 dark:text-dark-300 hover:text-dark-900 dark:hover:text-white transition-colors">
-                <Logo size="sm" />
-            </Link>
+            <Logo size="sm" />
             <div className="flex items-center space-x-2">
               <button
                 onClick={toggleTheme}
@@ -228,22 +194,16 @@ const SavePage: React.FC = () => {
 
             {/* Content Input */}
             {contentType === 'link' ? (
-              <div className="flex items-center space-x-2">
-              <Input
-                label="Paste Link"
-                type="url"
-                placeholder="https://youtube.com/watch?v=... or https://reddit.com/r/..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-              />
-                <button
-                  type="button"
-                  className="px-3 py-1 rounded bg-dark-100 dark:bg-dark-800 hover:bg-dark-200 dark:hover:bg-dark-700 text-xs font-semibold border border-dark-200 dark:border-dark-700"
-                  onClick={handleDetectAndEnrich}
-                >
-                  Detect Platform
-                </button>
+              <div>
+                <Input
+                  label="Paste Link"
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=... or https://reddit.com/r/..."
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  required
+                  className="w-full"
+                />
               </div>
             ) : (
               <Textarea

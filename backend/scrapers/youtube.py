@@ -2,6 +2,7 @@ from .base import BaseScraper
 import yt_dlp
 import requests
 import json
+import re
 
 
 def vtt_to_text(vtt_content: str) -> str:
@@ -26,6 +27,14 @@ def youtube_json_to_text(json_str: str) -> str:
         return "".join(text)
     except Exception:
         return ""
+
+
+def is_shorts_url(url: str) -> bool:
+    """Check if the URL is a YouTube Shorts URL."""
+    url_lower = url.lower()
+    return "youtube.com/shorts/" in url_lower or (
+        "youtu.be/" in url_lower and "?feature=share" in url_lower
+    )
 
 
 class YouTubeScraper(BaseScraper):
@@ -66,9 +75,15 @@ class YouTubeScraper(BaseScraper):
                                 transcript = vtt_to_text(content)
                         break
             thumbnail = info.get("thumbnail")
+
+            # Determine content type
+            content_type = "shorts" if is_shorts_url(url) else "video"
+
             return {
+                "url": url,
                 "title": title,
                 "description": description,
+                "type": content_type,
                 "metadata": metadata,
                 "transcript": transcript,
                 "thumbnail": thumbnail,
