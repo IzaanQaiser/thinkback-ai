@@ -1,6 +1,5 @@
 ### website-changes
 changes needed:
-- add original titles to the card (maybe do AI title if orignal title is > 5 words, otherwise do original title)
 - give option to assign their own category
 - 'please fill in this field' when hovering over social media supported platforms in save page
 - block entry URL that already exist
