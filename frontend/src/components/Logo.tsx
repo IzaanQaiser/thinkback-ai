@@ -24,6 +24,12 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', className = '' }) => {
 
   return (
     <div className={`flex items-center space-x-3 ${className}`}>
+      {/* <img
+        src={theme === 'dark' ? '/x-logo-white.png' : '/x-logo-black.png'}
+        alt="X logo"
+        style={{ width: iconSizes[size], height: iconSizes[size], borderRadius: '6px' }}
+        className="shadow-sm"
+      /> */}
       <div className="bg-primary-500/10 rounded-lg p-2">
         <Brain className="text-primary-500 dark:text-dark-300" size={iconSizes[size]} />
       </div>

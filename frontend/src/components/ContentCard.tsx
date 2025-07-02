@@ -36,6 +36,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
   // Instagram post aspect ratio (used for cropping TikTok thumbnails to match Instagram post size)
   const instagramPostAspect = '1/1'; // square aspect ratio for Instagram posts
 
+  function XLogo({ theme, size = 22 }: { theme: string; size?: number }) {
+    // SVG for X logo, white for dark, black for light
+    return (
+      <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="120" height="120" rx="24" fill={theme === 'dark' ? '#fff' : '#000'} />
+        <path d="M35 35L85 85M85 35L35 85" stroke={theme === 'dark' ? '#000' : '#fff'} strokeWidth="16" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
   function getPlatformIconOverlay(platform?: string, theme?: string) {
     if (!platform) return null;
     const size = 22;
@@ -57,7 +67,15 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
       case 'Reddit Post':
         return <span className={baseClass}><FaReddit size={size} className={theme === 'dark' ? 'text-white' : 'text-black'} /></span>;
       case 'Twitter/X Post':
-        return <span className={baseClass}><FaTwitter size={size} className="text-sky-500" /></span>;
+        return (
+          <span className={baseClass}>
+            <img
+              src={theme === 'dark' ? '/x-logo-white.png' : '/x-logo-black.png'}
+              alt="X logo"
+              style={{ width: size, height: size, borderRadius: '50%' }}
+            />
+          </span>
+        );
       case 'Instagram Reel':
       case 'Instagram Post':
         return <span className={baseClass}><FaInstagram size={size} className={theme === 'dark' ? 'text-white' : 'text-black'} /></span>;
@@ -151,6 +169,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
               className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
               style={{ pointerEvents: 'none' }}
             />
+          )}
+          {/* X logo for Twitter/X Post */}
+          {platform === 'Twitter/X Post' && (
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
+              <img
+                src={theme === 'dark' ? '/x-logo-white.png' : '/x-logo-black.png'}
+                alt="X logo watermark"
+                style={{ width: 80, height: 80 }}
+              />
+            </span>
           )}
           {getPlatformIconOverlay(platform, theme)}
           {getFavoriteIconOverlay(favorite)}
