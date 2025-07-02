@@ -1,38 +1,44 @@
 ### website-changes
 changes needed:
 - give option to assign their own category
-- 'please fill in this field' when hovering over social media supported platforms in save page
-- block entry URL that already exist
+- sort categories by date added + date accessed or alphabetical
+- autoselect next category when AI-generated category is deleted via sole-entry delete
+- loading screen should match light/dark mode
+- add the following to save page supported platforms:
+    - youtube shorts logo
+    - instagram reels logo
+    - x logo
+    - linkedin logo
+- if the user is trying to save a URL that already exists in the library, block the request
 - make AI summary optional
-- backend implementation of quick access items show or hide
-- please fill in this field looks ugly
-- block category names that already
+- add login page when trying to access when unauthorized
+- please fill in this field looks ugly on save page
+- block category names that already exist
+- allow to make blank category
 - redesign save page
 - redesign entry view
-- make website logo the dark mode thinkback.ai logo
-- find a way to obtain + save that logo
+- make instagram entry view elements smaller
+- make tiktok entry view elements smaller
+- make website icon the dark mode thinkback.ai logo
+- find a way to obtain + save dark thinkback.ai logo in GOOD quality
 - make animations smoother & faster (maybe framer motion) OR dont have them at all
-- remove show ID Token button
-- remove detect platform button
 - add category delete functionality
     - 'are you sure you want to delete?' modal
     - reassigning entries modal
-- add category rename functionality
-- add functionality to reassign entries to different categories
+    - turn off category edit when delete is complete
+- add category rename functionality when in category edit mode
+- add functionality to reassign entries to different categories wihtin entry view
 - make/do something about entry insertion timing
     - add gen AI style iterative completion thing
-    - fix save success message
-- entry view: platform passthrough
-- entry view: duration pass through
+    - make save success message look better
 - subscribe to tracks/topics (e.g. follow US news, politics, anime updates, etc)
-- redesign entry view page
-- redirect to next category when AI-generated category is deleted
 
 ### ideas:
 - RSS reader for videos/alter media
 
 ### things completed
 - youtube video basic workflow (detect platform, scrape, AI query)
+- reddit posts basic workflow (detect platform, scrape, AI query)
 
 ### things to do
 - Youtube shorts basic workflow (detect platform, scrape, AI query)
@@ -40,7 +46,6 @@ changes needed:
 - instagram posts basic workflow (detect platform, scrape, AI query)
 - linkedin posts basic workflow (detect platform, scrape, AI query)
 - linkedin jobs basic workflow (detect platform, scrape, AI query)
-- reddit posts basic workflow (detect platform, scrape, AI query)
 - tiktok videos basic workflow (detect platform, scrape, AI query)
 - twitter/x posts basic workflow (detect platform, scrape, AI query)
 - youtube video refined workflow (make AI summary optional, title logic, thumbnails)
