@@ -595,7 +595,7 @@ const DashboardPage: React.FC = () => {
                               ? 'border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/60 hover:text-white'
                               : 'border-green-500 bg-green-500/20 text-green-500 hover:bg-green-500/60 hover:text-white'}
                           `}
-                          onClick={() => setQuickAccessVisibility((prev: { Recent: boolean; All: boolean; Favorites: boolean }) => ({ ...prev, [category.name]: !isVisible }))}
+                          onClick={() => setQuickAccessVisibility((prev) => ({ ...prev, [category.name]: !isVisible }))}
                         >
                           {isVisible ? 'HIDE' : 'SHOW'}
                         </button>
@@ -626,20 +626,56 @@ const DashboardPage: React.FC = () => {
                 {/* Platform Quick Access */}
                 {platformList.map((platform) => {
                   const display = platformDisplay[platform] || { name: platform, icon: null };
-                  return (
-                    <div key={platform} className="touch-none flex items-center group">
-                      <button
-                        onClick={() => setSelectedCategory(`platform:${platform}`)}
-                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
-                          ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                          hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white`}
-                      >
-                        <div className="flex items-center space-x-3 text-left w-full">
-                          <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
-                        </div>
-                      </button>
-                    </div>
-                  );
+                  const isVisible = quickAccessVisibility[platform] !== false; // default to true if undefined
+                  if (isQuickAccessEditMode) {
+                    return (
+                      <div key={platform} className="touch-none flex items-center group">
+                        <button
+                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(`platform:${platform}`)}
+                          disabled={isCategoryEditMode || isQuickAccessEditMode}
+                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                            ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                          >
+                          <div className="flex items-center space-x-3 text-left w-full">
+                            <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
+                          </div>
+                        </button>
+                        <button
+                          className={`ml-2 px-3 py-1 min-w-[72px] rounded-full text-xs font-semibold border transition-colors duration-150
+                            ${isVisible
+                              ? 'border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/60 hover:text-white'
+                              : 'border-green-500 bg-green-500/20 text-green-500 hover:bg-green-500/60 hover:text-white'}
+                          `}
+                          onClick={() => setQuickAccessVisibility((prev) => ({ ...prev, [platform]: !isVisible }))}
+                        >
+                          {isVisible ? 'HIDE' : 'SHOW'}
+                        </button>
+                      </div>
+                    );
+                  } else if (isVisible) {
+                    return (
+                      <div key={platform} className="touch-none flex items-center group">
+                        <button
+                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(`platform:${platform}`)}
+                          disabled={isCategoryEditMode || isQuickAccessEditMode}
+                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                            ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                          >
+                          <div className="flex items-center space-x-3 text-left w-full">
+                            <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
+                          </div>
+                        </button>
+                      </div>
+                    );
+                  } else {
+                    return null;
+                  }
                 })}
               </div>
 
