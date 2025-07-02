@@ -242,6 +242,12 @@ const DashboardPage: React.FC = () => {
     entriesToShow = filteredData.filter((item) => item.category_ids && item.category_ids.includes(selectedCategory));
   }
 
+  if (selectedCategory.startsWith('platform:')) {
+    const platform = selectedCategory.replace('platform:', '');
+    mainHeading = platform;
+    entriesToShow = filteredData.filter((item) => normalizePlatformKey(item.platform || '') === platform);
+  }
+
   const ensureUncategorized = async () => {
     let uncategorized = categories.find((cat: Category) => cat.name.trim().toLowerCase() === 'uncategorized');
     if (!uncategorized && currentUser) {
@@ -416,6 +422,38 @@ const DashboardPage: React.FC = () => {
     };
   }, [showCategoryModal]);
 
+  // Helper for platform display name and icon
+  const platformDisplay: { [key: string]: { name: string; icon: React.ReactNode } } = {
+    'YouTube': { name: 'YouTube', icon: <span style={{color:'#FF0000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.228 3.5 12 3.5 12 3.5s-7.228 0-9.391.569A2.994 2.994 0 0 0 .502 6.186C0 8.35 0 12 0 12s0 3.65.502 5.814a2.994 2.994 0 0 0 2.107 2.117C4.772 20.5 12 20.5 12 20.5s7.228 0 9.391-.569a2.994 2.994 0 0 0 2.107-2.117C24 15.65 24 12 24 12s0-3.65-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></span> },
+    'Instagram': { name: 'Instagram', icon: <span style={{color:'#E1306C'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.334 3.608 1.308.974.974 1.246 2.241 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.334 2.633-1.308 3.608-.974.974-2.241 1.246-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.334-3.608-1.308-.974-.974-1.246-2.241-1.308-3.608C2.175 15.647 2.163 15.267 2.163 12s.012-3.584.07-4.85c.062-1.366.334-2.633 1.308-3.608.974-.974 2.241-1.246 3.608-1.308C8.416 2.175 8.796 2.163 12 2.163zm0-2.163C8.741 0 8.332.013 7.052.072 5.771.131 4.659.363 3.678 1.344c-.98.98-1.213 2.092-1.272 3.373C2.013 5.668 2 6.077 2 12c0 5.923.013 6.332.072 7.613.059 1.281.292 2.393 1.272 3.373.98.98 2.092 1.213 3.373 1.272C8.332 23.987 8.741 24 12 24s3.668-.013 4.948-.072c1.281-.059 2.393-.292 3.373-1.272.98-.98 1.213-2.092 1.272-3.373.059-1.281.072-1.69.072-7.613 0-5.923-.013-6.332-.072-7.613-.059-1.281-.292-2.393-1.272-3.373-.98-.98-2.092-1.213-3.373-1.272C15.668.013 15.259 0 12 0z"/><circle cx="12" cy="12" r="3.5"/><circle cx="18.406" cy="5.594" r="1.44"/></svg></span> },
+    'Reddit': { name: 'Reddit', icon: <span style={{color:'#FF4500'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12zm-6.5 2.5c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5.672-1.5 1.5-1.5zm-11 0c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5.672-1.5 1.5-1.5zm11.072 3.219c-1.219.781-3.219 1.281-5.572 1.281s-4.353-.5-5.572-1.281c-.219-.141-.281-.438-.141-.656.141-.219.438-.281.656-.141 1.031.656 2.906 1.219 5.057 1.219s4.025-.563 5.057-1.219c.219-.141.516-.078.656.141.141.219.078.516-.141.656z"/></svg></span> },
+    'TikTok': { name: 'TikTok', icon: <span style={{color:'#000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2v2.5A5.5 5.5 0 0 0 17.5 10H20a8 8 0 1 1-8-8z"/></svg></span> },
+    'X': { name: 'X', icon: <span style={{color:'#000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 2.47a.75.75 0 0 1 1.06 1.06l-5.22 5.22 5.22 5.22a.75.75 0 0 1-1.06 1.06l-5.22-5.22-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22-5.22-5.22A.75.75 0 0 1 6.25 2.47l5.22 5.22 5.22-5.22z"/></svg></span> },
+    'LinkedIn': { name: 'LinkedIn', icon: <span style={{color:'#0077B5'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452H17.21v-5.569c0-1.327-.025-3.037-1.849-3.037-1.851 0-2.132 1.445-2.132 2.939v5.667H9.073V9h3.112v1.561h.045c.434-.823 1.494-1.691 3.073-1.691 3.287 0 3.892 2.164 3.892 4.977v6.605zM5.337 7.433a1.81 1.81 0 1 1 0-3.62 1.81 1.81 0 0 1 0 3.62zM6.956 20.452H3.715V9h3.241v11.452zM22.225 0H1.771C.792 0 0 .771 0 1.723v20.549C0 23.229.792 24 1.771 24h20.451C23.2 24 24 23.229 24 22.271V1.723C24 .771 23.2 0 22.225 0z"/></svg></span> },
+  };
+
+  // Normalize platform keys for grouping (e.g., Twitter/X, YouTube Shorts, etc.)
+  function normalizePlatformKey(platform: string) {
+    const p = platform.trim().toLowerCase();
+    if (p === 'twitter' || p === 'x.com' || p === 'x') return 'X';
+    if (p.includes('youtube')) return 'YouTube';
+    if (p.includes('instagram')) return 'Instagram';
+    if (p.includes('reddit')) return 'Reddit';
+    if (p.includes('tiktok')) return 'TikTok';
+    if (p.includes('linkedin')) return 'LinkedIn';
+    return platform;
+  }
+
+  // Compute platforms with at least one entry (normalized)
+  const platformCounts: { [platform: string]: number } = {};
+  entries.forEach(entry => {
+    if (entry.platform) {
+      const key = normalizePlatformKey(entry.platform);
+      platformCounts[key] = (platformCounts[key] || 0) + 1;
+    }
+  });
+  const platformList = Object.keys(platformCounts).filter(p => platformCounts[p] > 0);
+
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
@@ -584,6 +622,24 @@ const DashboardPage: React.FC = () => {
                   } else {
                     return null;
                   }
+                })}
+                {/* Platform Quick Access */}
+                {platformList.map((platform) => {
+                  const display = platformDisplay[platform] || { name: platform, icon: null };
+                  return (
+                    <div key={platform} className="touch-none flex items-center group">
+                      <button
+                        onClick={() => setSelectedCategory(`platform:${platform}`)}
+                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                          ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                          hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white`}
+                      >
+                        <div className="flex items-center space-x-3 text-left w-full">
+                          <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
+                        </div>
+                      </button>
+                    </div>
+                  );
                 })}
               </div>
 
