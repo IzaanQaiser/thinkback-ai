@@ -55,7 +55,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
           </span>
         );
       case 'Reddit Post':
-        return <span className={baseClass}><FaReddit size={size} className="text-orange-500" /></span>;
+        return <span className={baseClass}><FaReddit size={size} className={theme === 'dark' ? 'text-white' : 'text-black'} /></span>;
       case 'Twitter/X Post':
         return <span className={baseClass}><FaTwitter size={size} className="text-sky-500" /></span>;
       case 'Instagram Reel':
@@ -144,6 +144,14 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
       )}
       {!thumbnail && (
         <div className="relative w-full bg-dark-200 dark:bg-dark-700 rounded-t-xl flex items-center justify-center" style={{ aspectRatio: isPortrait ? portraitAspect : landscapeAspect }}>
+          {/* Reddit watermark overlay */}
+          {platform === 'Reddit Post' && (
+            <FaReddit
+              size={80}
+              className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+              style={{ pointerEvents: 'none' }}
+            />
+          )}
           {getPlatformIconOverlay(platform, theme)}
           {getFavoriteIconOverlay(favorite)}
           {getCarouselIndicator()}
