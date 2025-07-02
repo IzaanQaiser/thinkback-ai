@@ -431,7 +431,7 @@ const DashboardPage: React.FC = () => {
                 {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
               </button>
               <Link to="/save" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
-                <Plus size={16} /><span className="font-medium text-sm hidden sm:inline">Save</span>
+                <Plus size={16} className="text-gray-600 dark:text-white" /><span className="font-medium text-sm hidden sm:inline">Save</span>
                 <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+I</Kbd>
               </Link>
               <Link to="/account" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
@@ -529,7 +529,7 @@ const DashboardPage: React.FC = () => {
                     {isQuickAccessEditMode ? (
                       <Check size={20} className="text-primary-500" />
                     ) : (
-                      <Pencil size={20} />
+                      <Pencil size={20} className="text-gray-600 dark:text-white" />
                     )}
                   </button>
                 </div>
@@ -606,7 +606,7 @@ const DashboardPage: React.FC = () => {
                       `}
                       title={isCategoryEditMode ? 'Exit edit mode' : 'Edit categories'}
                     >
-                      <Pencil size={20} />
+                      <Pencil size={20} className="text-gray-600 dark:text-white" />
                     </button>
                     {isCategoryEditMode ? (
                       <button
@@ -650,7 +650,7 @@ const DashboardPage: React.FC = () => {
                         className="p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
                         title="Add category"
                       >
-                        <Plus size={20} />
+                        <Plus size={20} className="text-gray-600 dark:text-white" />
                       </button>
                     )}
                   </div>
