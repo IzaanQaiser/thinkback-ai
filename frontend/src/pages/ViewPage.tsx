@@ -393,8 +393,8 @@ const ViewPage: React.FC = () => {
               )}
             </div>
 
-            {/* Move Details and Actions here for Instagram or TikTok, but NOT for Reddit */}
-            {(isInstagram || isTikTok) && (
+            {/* Move Details and Actions here for Instagram, TikTok, or Reddit with thumbnail */}
+            {(isInstagram || isTikTok || (isReddit && entry?.thumbnail)) && (
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex-1">
                   {/* Details */}
@@ -425,9 +425,9 @@ const ViewPage: React.FC = () => {
                     </ul>
                   </div>
                 </div>
+                {/* Actions */}
                 <div className="flex-1">
-                  {/* Actions */}
-                  <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-0">
+                  <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mb-4">
                     <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
                     <div className="flex gap-4">
                       <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleFavorite(e)} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
@@ -455,7 +455,7 @@ const ViewPage: React.FC = () => {
           {/* Right Column */}
           <div className="lg:col-span-1 space-y-8">
             {/* Show image in right column for Instagram, TikTok, or Reddit */}
-            {isInstagram ? (
+            {(isInstagram || isTikTok || (isReddit && entry?.thumbnail)) ? (
               <div className="sticky top-32">
                 {entry?.thumbnail && entry?.url && (
                   <a
@@ -472,90 +472,6 @@ const ViewPage: React.FC = () => {
                     />
                   </a>
                 )}
-              </div>
-            ) : isTikTok ? (
-              <div className="sticky top-32">
-                {entry?.thumbnail && entry?.url && (
-                  <a
-                    href={entry.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block mb-3 group"
-                  >
-                    <img
-                      src={getProxiedImageUrl(entry.thumbnail, entry.platform)}
-                      alt={entry.title || 'Entry thumbnail'}
-                      className="w-full rounded-2xl shadow-lg"
-                      style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '1rem' }}
-                    />
-                  </a>
-                )}
-              </div>
-            ) : isReddit ? (
-              <div className="sticky top-32">
-                {entry?.thumbnail && entry?.url && (
-                  <a
-                    href={entry.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block mb-3 group"
-                  >
-                    <img
-                      src={getProxiedImageUrl(entry.thumbnail, entry.platform)}
-                      alt={entry.title || 'Entry thumbnail'}
-                      className="w-full rounded-2xl shadow-lg object-cover"
-                      style={{ aspectRatio: '9/16', maxHeight: '700px', width: '100%' }}
-                    />
-                  </a>
-                )}
-                {/* Details */}
-                <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-4">
-                  <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Details</h2>
-                  <ul className="space-y-4 text-sm">
-                    <li className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        {PlatformIconComponent
-                          ? <PlatformIconComponent size={20} style={{ color: 'currentColor' }} />
-                          : <Play size={20} style={{ color: '#888' }} />
-                        }
-                        <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <FolderIcon size={20} />
-                        <span className="font-medium text-dark-900 dark:text-white">{categoryName}</span>
-                      </span>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Calendar size={20} />
-                        <span className="font-medium text-dark-900 dark:text-white">{formatDateWithOrdinal(entry?.created_at || entry?.savedDate)}</span>
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-                {/* Actions */}
-                <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-4">
-                  <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
-                  <div className="flex gap-4">
-                    <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleFavorite(e)} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
-                      <Star size={20} className={`${isFavorited ? 'fill-current' : ''}`} />
-                      <span className="font-medium text-xs">{isFavorited ? 'Favorited' : 'Favorite'}</span>
-                    </Button>
-                    <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleCopyLink(e)} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
-                      {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
-                      <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
-                    </Button>
-                    <Button
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-2 focus:ring-red-400 focus:outline-none border border-red-500 !text-red-500 dark:!text-red-500 bg-red-500/10 hover:bg-red-500/20"
-                    >
-                      <Trash2 size={20} className="text-red-500 dark:text-red-500" />
-                      <span className="font-medium text-xs !text-red-500 dark:!text-red-500">Delete</span>
-                    </Button>
-                  </div>
-                </div>
               </div>
             ) : (
               <>
