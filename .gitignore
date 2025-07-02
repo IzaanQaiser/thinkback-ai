@@ -3,6 +3,7 @@
 .env*
 .env
 backend/.env
+venv/
 
 # Python
 .venv/
