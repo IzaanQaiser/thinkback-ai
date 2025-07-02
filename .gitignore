@@ -1,6 +1,8 @@
 # General
 .DS_Store
 .env*
+backend/.env
+.env
 
 # Python
 .venv/
@@ -13,6 +15,7 @@ __pycache__/
 # IMPORTANT: This file contains sensitive credentials.
 # Make sure it is NEVER committed to version control.
 infrastructure/credentials/service-account.json
+backend/youtube-mention-to-save/client_secret_738547429797-f4mjii8t5bl6cp3qkfl7v41odkn5h37v.apps.googleusercontent.com.json
 
 # Documentation
 hidden.md

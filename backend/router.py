@@ -55,6 +55,17 @@ class Category(BaseModel):
     id: Optional[str] = None
     name: str
     created_at: datetime = Field(default_factory=datetime.now)
+    ai_generated: bool
+
+
+class Mention(BaseModel):
+    platform: str
+    username: str
+    content_url: Optional[str] = None
+    comment: str
+    timestamp: str
+    comment_id: Optional[str] = None
+    video_id: Optional[str] = None
 
 
 # Existing User and Auth Models
@@ -160,6 +171,10 @@ def create_entry(
     Create a new entry for the logged-in user. If the entry already has AI-enriched fields (title, tags, summary),
     save it directly. Otherwise, enrich it with AI classification.
     """
+    print("\n" + "=" * 60)
+    print("🚀 ENTRY CREATION PROCESS STARTED")
+    print("=" * 60)
+
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
 
@@ -175,6 +190,7 @@ def create_entry(
     try:
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token["uid"]
+        print(f"✅ Authentication successful - UID: {uid}")
     except Exception as e:
         raise HTTPException(
             status_code=401, detail=f"Token verification failed: {str(e)}"
@@ -183,6 +199,11 @@ def create_entry(
     # Always detect platform from URL
     entry_dict = entry.model_dump()
     url = entry_dict.get("url")
+    notes = entry_dict.get("notes", "")
+
+    print(f"📝 Input Data:")
+    print(f"   URL: {url}")
+    print(f"   Notes: {notes}")
 
     def detect_platform(url: str) -> str:
         url = url.lower()
@@ -213,14 +234,28 @@ def create_entry(
     if url:
         platform = detect_platform(str(url))
         entry_dict["platform"] = platform
+        print(f"🔍 Platform Detection: {platform}")
 
     # Always scrape the URL to get metadata (including duration)
     duration = None
+    scraped_title = None
     if url and platform:
+        print(f"🔧 Starting content scraping for {platform}...")
         scraper = get_scraper(platform)
         if scraper:
+            print(f"   Using scraper: {scraper.__class__.__name__}")
             scraped_data = scraper.scrape(url)
-            print(f"[create_entry] Scraped data: {scraped_data}")
+
+            print(f"📊 Scraped Data Summary:")
+            print(f"   Title: {scraped_data.get('title', 'N/A')}")
+            print(f"   Type: {scraped_data.get('type', 'N/A')}")
+            print(
+                f"   Description length: {len(scraped_data.get('description', ''))} chars"
+            )
+            print(f"   Hashtags: {scraped_data.get('hashtags', [])}")
+            print(f"   Mentions: {scraped_data.get('mentions', [])}")
+            print(f"   Thumbnail: {scraped_data.get('thumbnail', 'N/A')}")
+
             if (
                 scraped_data
                 and "metadata" in scraped_data
@@ -229,35 +264,127 @@ def create_entry(
             ):
                 duration = scraped_data["metadata"]["duration"]
                 entry_dict["duration"] = duration
-                print(f"[create_entry] Extracted duration: {duration}")
+                print(f"   Duration: {duration} seconds")
             # Also save thumbnail if present
             if scraped_data.get("thumbnail"):
                 entry_dict["thumbnail"] = scraped_data["thumbnail"]
+                print(f"   ✅ Thumbnail saved")
+            # Save scraped title for later validation
+            scraped_title = scraped_data.get("title")
+            print(f"   ✅ Scraped title: {scraped_title}")
+            # Save description (caption) if present
+            if scraped_data.get("description"):
+                entry_dict["description"] = scraped_data["description"]
+                print(f"   ✅ Description (caption) saved: {entry_dict['description']}")
+        else:
+            print(f"   ❌ No scraper found for platform: {platform}")
 
-    print("[create_entry] entry_dict to be saved:", entry_dict)
-    print(
-        "[create_entry] About to save entry with duration:", entry_dict.get("duration")
-    )
-    # Save initial entry
+    print(f"💾 Saving initial entry to Firebase...")
     result = add_entry_firebase(uid, entry_dict)
     if not result["success"]:
+        print(f"   ❌ Failed to save entry: {result['error']}")
         raise HTTPException(status_code=400, detail=result["error"])
     saved_entry = result["entry"]
+    print(f"   ✅ Entry saved with ID: {saved_entry['id']}")
 
     # Fetch all categories for the user
+    print(f"📂 Fetching user categories...")
     cat_result = get_categories_firebase(uid)
     if not cat_result["success"]:
+        print(f"   ❌ Failed to fetch categories: {cat_result['error']}")
         raise HTTPException(status_code=400, detail=cat_result["error"])
     categories = cat_result["categories"]  # List of dicts with 'id' and 'name'
+    print(f"   ✅ Found {len(categories)} categories")
 
     # Call the classification agent
+    print(f"🤖 Starting AI enrichment...")
     ai_result = classify_entry(saved_entry, categories)
+
+    print(f"🧠 AI Enrichment Results:")
+    print(f"   Category: {ai_result.get('category', {})}")
+    print(f"   AI Title: {ai_result.get('title', 'N/A')}")
+    print(f"   Tags: {ai_result.get('tags', [])}")
+    print(f"   Summary: {ai_result.get('summary', 'N/A')[:100]}...")
+
+    # Helper to check if a title is nonsense/generic
+    def is_nonsense_title(title, platform=None):
+        if not title or not title.strip():
+            return True
+        t = title.strip().lower()
+        generic_titles = [
+            "untitled",
+            "video",
+            "instagram reel",
+            "tiktok",
+            "placeholder",
+            "reel",
+            "post",
+            "shorts",
+            "youtube shorts",
+            "watch",
+            "no title",
+            "",
+            None,
+        ]
+        # Add platform-specific generic titles
+        if platform:
+            if platform.lower() == "youtube shorts":
+                generic_titles += ["shorts", "youtube shorts"]
+            if platform.lower() == "instagram reel":
+                generic_titles += ["instagram reel", "reel"]
+            if platform.lower() == "instagram post":
+                generic_titles += ["instagram post", "post", "instagram"]
+            if platform.lower() == "tiktok video":
+                generic_titles += ["tiktok", "video"]
+        # If title is just a URL
+        if t.startswith("http://") or t.startswith("https://"):
+            return True
+        # If title is too short or matches generic
+        if t in generic_titles or len(t) < 3:
+            return True
+        return False
+
+    # Decide which title to use
+    final_title = ai_result.get("title", "")
+    # For Instagram, use the caption as the title if present
+    if platform and platform.lower() in ["instagram post", "instagram reel"]:
+        caption = scraped_data.get("description", "") if scraped_data else ""
+        if caption and caption.strip():
+            final_title = caption.strip()
+            print(f"📝 Using Instagram caption as title: {final_title}")
+        else:
+            print(f"📝 No caption found, using AI-generated title: {final_title}")
+    elif scraped_title and not is_nonsense_title(scraped_title, platform):
+        final_title = scraped_title
+        print(f"📝 Using scraped title: {final_title}")
+    else:
+        print(f"📝 Using AI-generated title: {final_title}")
+
+    # Truncate hashtags at the end of the title if present
+    def truncate_title_at_trailing_hashtags(title):
+        if not title:
+            return title
+        idx = title.find("#")
+        if idx == -1:
+            return title
+        # If the hashtag is not at the start, truncate at the hashtag
+        if idx > 0:
+            before = title[:idx].rstrip()
+            # Only truncate if the text before the hashtag does not itself start with a hashtag
+            if before and not before.strip().startswith("#"):
+                return before
+        return title
+
+    final_title = truncate_title_at_trailing_hashtags(final_title)
+    print(f"📝 Final title after hashtag truncation: {final_title}")
 
     # Handle category (existing or new)
     category_id = None
     if "id" in ai_result["category"] and ai_result["category"]["id"]:
         # AI returned an existing category ID
         category_id = ai_result["category"]["id"]
+        if "name" in ai_result["category"]:
+            print(f"🏷️ Using existing category: {ai_result['category']['name']}")
     else:
         # AI returned a new category name or "Uncategorized"
         new_cat_name = ai_result["category"]["name"].strip().lower()
@@ -266,19 +393,25 @@ def create_entry(
         )
         if existing:
             category_id = existing["id"]
+            if "name" in existing:
+                print(f"🏷️ Found existing category: {existing['name']}")
         else:
             # Create new category
-            new_cat = {"name": ai_result["category"]["name"]}
+            new_cat = {"name": ai_result["category"]["name"], "ai_generated": True}
+            print(f"🏷️ Creating new category: {new_cat['name']}")
             new_cat_result = add_category_firebase(uid, new_cat)
             if not new_cat_result["success"]:
+                print(f"   ❌ Failed to create category: {new_cat_result['error']}")
                 raise HTTPException(status_code=400, detail=new_cat_result["error"])
             category_id = new_cat_result["category"]["id"]
+            if "name" in new_cat_result["category"]:
+                print(f"   ✅ Category created: {new_cat_result['category']['name']}")
 
-    # Update the entry with AI-enriched fields
+    # Update the entry with AI-enriched fields, but use the chosen title
     update_data = {
         "category_ids": [category_id],
         "tags": ai_result.get("tags", []),
-        "title": ai_result.get("title", ""),
+        "title": final_title,
         "summary": ai_result.get("summary", ""),
         "platform": platform,
         "duration": duration,
@@ -286,9 +419,26 @@ def create_entry(
     # Ensure thumbnail is preserved in update
     if entry_dict.get("thumbnail"):
         update_data["thumbnail"] = entry_dict["thumbnail"]
+
+    print(f"🔄 Updating entry with enriched data...")
+    print(f"   Category ID: {category_id}")
+    print(f"   Tags: {update_data['tags']}")
+    print(f"   Title: {update_data['title']}")
+    print(f"   Summary length: {len(update_data['summary'])} chars")
+
     update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
     if not update_result["success"]:
+        print(f"   ❌ Failed to update entry: {update_result['error']}")
         raise HTTPException(status_code=400, detail=update_result["error"])
+
+    print(f"✅ Entry creation completed successfully!")
+    print(f"📋 Final Entry Summary:")
+    print(f"   ID: {update_result['entry']['id']}")
+    print(f"   Platform: {update_result['entry'].get('platform', 'N/A')}")
+    print(f"   Title: {update_result['entry'].get('title', 'N/A')}")
+    print(f"   Category: {update_result['entry'].get('category_ids', [])}")
+    print(f"   Tags: {update_result['entry'].get('tags', [])}")
+    print("=" * 60)
 
     return update_result["entry"]
 
@@ -350,10 +500,33 @@ def update_user_entry(
         raise HTTPException(
             status_code=401, detail=f"Token verification failed: {str(e)}"
         )
+
+    # Get the current entry to compare category changes
+    current_entries_result = get_entries_firebase(uid)
+    if not current_entries_result["success"]:
+        raise HTTPException(status_code=400, detail=current_entries_result["error"])
+
+    current_entry = next(
+        (e for e in current_entries_result["entries"] if e["id"] == entry_id), None
+    )
+    if not current_entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    # Track categories that might become empty
+    old_category_ids = set(current_entry.get("category_ids", []))
+
     update_data = entry.model_dump(exclude_unset=True)
     result = update_entry_firebase(uid, entry_id, update_data)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
+
+    # Check if categories were removed and clean up empty AI-generated ones
+    new_category_ids = set(update_data.get("category_ids", old_category_ids))
+    removed_category_ids = old_category_ids - new_category_ids
+
+    if removed_category_ids:
+        cleanup_empty_ai_categories(uid, list(removed_category_ids))
+
     return result["entry"]
 
 
@@ -379,10 +552,75 @@ def delete_user_entry(entry_id: str, authorization: Optional[str] = Header(None)
         raise HTTPException(
             status_code=401, detail=f"Token verification failed: {str(e)}"
         )
+
+    # Get the entry before deleting to check its categories
+    entries_result = get_entries_firebase(uid)
+    if not entries_result["success"]:
+        raise HTTPException(status_code=400, detail=entries_result["error"])
+
+    entry_to_delete = next(
+        (e for e in entries_result["entries"] if e["id"] == entry_id), None
+    )
+    if not entry_to_delete:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    # Delete the entry
     result = delete_entry_firebase(uid, entry_id)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
+
+    # Clean up empty AI-generated categories
+    cleanup_empty_ai_categories(uid, entry_to_delete.get("category_ids", []))
+
     return {"message": "Entry deleted successfully."}
+
+
+def cleanup_empty_ai_categories(uid: str, affected_category_ids: list):
+    """
+    Check if any AI-generated categories are now empty after entry deletion and delete them.
+    Only deletes categories that are AI-generated and have no remaining entries.
+    """
+    try:
+        # Get all categories
+        cat_result = get_categories_firebase(uid)
+        if not cat_result["success"]:
+            print(f"Failed to get categories for cleanup: {cat_result['error']}")
+            return
+
+        # Get all entries to check which categories are still in use
+        entries_result = get_entries_firebase(uid)
+        if not entries_result["success"]:
+            print(f"Failed to get entries for cleanup: {entries_result['error']}")
+            return
+
+        categories = cat_result["categories"]
+        entries = entries_result["entries"]
+
+        # Create a set of all category IDs that are still in use
+        categories_in_use = set()
+        for entry in entries:
+            if "category_ids" in entry and entry["category_ids"]:
+                categories_in_use.update(entry["category_ids"])
+
+        # Check each AI-generated category that was affected by the deletion
+        for category in categories:
+            if (
+                category.get("ai_generated", False)
+                and category["id"] in affected_category_ids
+                and category["id"] not in categories_in_use
+            ):
+
+                # This AI-generated category is now empty, delete it
+                delete_result = delete_category_firebase(uid, category["id"])
+                if delete_result["success"]:
+                    print(f"Deleted empty AI-generated category: {category['name']}")
+                else:
+                    print(
+                        f"Failed to delete empty AI-generated category {category['name']}: {delete_result['error']}"
+                    )
+
+    except Exception as e:
+        print(f"Error during category cleanup: {str(e)}")
 
 
 @router.get("/api/entries/{entry_id}", response_model=Entry)
@@ -569,6 +807,7 @@ def create_category(
     if existing:
         return existing
     category_dict = category.model_dump()
+    category_dict["ai_generated"] = False  # User-created category
     result = add_category_firebase(uid, category_dict)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -597,7 +836,12 @@ def get_user_categories(authorization: Optional[str] = Header(None)):
     result = get_categories_firebase(uid)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["error"])
-    return result["categories"]
+    # Fallback: ensure all categories have ai_generated, backfill as False if missing
+    categories = result["categories"]
+    for cat in categories:
+        if "ai_generated" not in cat:
+            cat["ai_generated"] = False
+    return categories
 
 
 @router.put("/api/categories/{category_id}", response_model=Category)
@@ -715,9 +959,14 @@ def scrape_youtube(url: str = Query(...)):
 
 @router.post("/api/enrich-entry")
 def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
+    print(f"\n🔍 ENRICH-ENTRY ENDPOINT CALLED")
+    print(f"   Input data: {data}")
+
     url = data["url"]
     user_notes = data.get("user_notes", "")
-    print(f"[enrich_entry] Incoming URL: {url}")
+
+    print(f"   URL: {url}")
+    print(f"   User notes: {user_notes}")
 
     # Platform detection (reuse frontend logic or implement here)
     def detect_platform(url: str) -> str:
@@ -747,10 +996,16 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
         return "Unknown"
 
     platform = detect_platform(url)
-    print(f"[enrich_entry] Detected platform: {platform}")
+    print(f"   🔍 Detected platform: {platform}")
+
     scraper = get_scraper(platform)
+    print(f"   🔧 Using scraper: {scraper.__class__.__name__ if scraper else 'None'}")
+
     scraped_data = scraper.scrape(url) if scraper else {}
-    print(f"[enrich_entry] Scraped data: {scraped_data}")
+    print(
+        f"   📊 Scraped data keys: {list(scraped_data.keys()) if scraped_data else 'None'}"
+    )
+
     # Get categories for the user (decode from token if available, else fallback)
     try:
         scheme, token = authorization.split()
@@ -758,37 +1013,60 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
             raise HTTPException(status_code=401, detail="Invalid authorization scheme")
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token["uid"]
-    except Exception:
+        print(f"   👤 Authenticated user: {uid}")
+    except Exception as e:
+        print(f"   ⚠️ Authentication failed: {e}")
         uid = None
+
     categories = []
     if uid:
         cat_result = get_categories_firebase(uid)
         if cat_result["success"]:
             categories = cat_result["categories"]
+            print(f"   📂 Found {len(categories)} categories for user")
+        else:
+            print(f"   ❌ Failed to fetch categories: {cat_result['error']}")
+    else:
+        print(f"   ⚠️ No user ID, using empty categories list")
+
     entry_data = aggregate_entry_data(
         url, platform, scraped_data, user_notes, categories
     )
-    print(f"[enrich_entry] Aggregated entry data: {entry_data}")
+    print(f"   📋 Aggregated entry data keys: {list(entry_data.keys())}")
+
     # Promote duration to top-level if present in metadata
     duration = None
     if entry_data.get("metadata") and "duration" in entry_data["metadata"]:
         duration = entry_data["metadata"]["duration"]
         entry_data["duration"] = duration
-    print(
-        f"[enrich_entry] entry_data to be saved (pre-AI, with duration): {entry_data}"
-    )
+        print(f"   ⏱️ Duration promoted: {duration} seconds")
+
     prompt = format_ai_prompt(entry_data)
-    print(f"[enrich_entry] AI prompt: {prompt}")
+    print(f"   🤖 AI prompt length: {len(prompt)} characters")
+
     ai_response = classify_entry(
         entry_data, categories
     )  # classify_entry should call OpenAI and return the AI's JSON response
-    print(f"[enrich_entry] AI response: {ai_response}")
+
+    print(f"   🧠 AI response received:")
+    print(f"     Category: {ai_response.get('category', {})}")
+    print(f"     Title: {ai_response.get('title', 'N/A')}")
+    print(f"     Tags: {ai_response.get('tags', [])}")
+    print(f"     Summary: {ai_response.get('summary', 'N/A')[:50]}...")
+
+    if ai_response and "category" in ai_response and "name" in ai_response["category"]:
+        print(f"category: {ai_response['category']['name']}")
+    print("success")
+
     # Return both the AI response and the scraped data (including thumbnail)
-    return {
+    result = {
         "ai": ai_response,
         "scraped": scraped_data,
         "thumbnail": scraped_data.get("thumbnail"),
     }
+
+    print(f"   ✅ Enrichment completed, returning result")
+    return result
 
 
 @router.post("/api/scrape")
@@ -837,3 +1115,113 @@ def scrape_url(
         }
     scraped_data = scraper.scrape(url)
     return {"success": True, "platform": platform, **scraped_data}
+
+
+@router.post("/api/cleanup-empty-categories")
+def cleanup_empty_categories_endpoint(authorization: Optional[str] = Header(None)):
+    """
+    Manually trigger cleanup of empty AI-generated categories.
+    This is useful for cleaning up existing data or as a maintenance task.
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+
+    try:
+        # Get all categories
+        cat_result = get_categories_firebase(uid)
+        if not cat_result["success"]:
+            raise HTTPException(status_code=400, detail=cat_result["error"])
+
+        # Get all entries to check which categories are still in use
+        entries_result = get_entries_firebase(uid)
+        if not entries_result["success"]:
+            raise HTTPException(status_code=400, detail=entries_result["error"])
+
+        categories = cat_result["categories"]
+        entries = entries_result["entries"]
+
+        # Create a set of all category IDs that are still in use
+        categories_in_use = set()
+        for entry in entries:
+            if "category_ids" in entry and entry["category_ids"]:
+                categories_in_use.update(entry["category_ids"])
+
+        # Find and delete empty AI-generated categories
+        deleted_categories = []
+        for category in categories:
+            if (
+                category.get("ai_generated", False)
+                and category["id"] not in categories_in_use
+            ):
+
+                # This AI-generated category is empty, delete it
+                delete_result = delete_category_firebase(uid, category["id"])
+                if delete_result["success"]:
+                    deleted_categories.append(category["name"])
+                    print(f"Deleted empty AI-generated category: {category['name']}")
+                else:
+                    print(
+                        f"Failed to delete empty AI-generated category {category['name']}: {delete_result['error']}"
+                    )
+
+        return {
+            "message": f"Cleanup completed. Deleted {len(deleted_categories)} empty AI-generated categories.",
+            "deleted_categories": deleted_categories,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
+
+
+@router.post("/api/mentions")
+def process_mention(mention: Mention):
+    """
+    Process incoming mentions from social media platforms.
+    This endpoint receives mentions from bots/monitors and either:
+    1. Saves content directly if user is found via social_identity_links
+    2. Queues for user confirmation if no match found
+    """
+    try:
+        print(
+            f"[MENTION RECEIVED] {mention.platform} - {mention.username}: {mention.comment[:100]}..."
+        )
+
+        # TODO: Implement social identity lookup
+        # For now, just log the mention and return success
+        # In the future, this will:
+        # 1. Look up username in social_identity_links table
+        # 2. If found, create entry for that user
+        # 3. If not found, queue for confirmation
+
+        # Log the mention data
+        mention_data = mention.model_dump()
+        print(f"Mention data: {mention_data}")
+
+        # For now, return success
+        return {
+            "success": True,
+            "message": "Mention received and logged",
+            "mention_id": f"{mention.platform}_{mention.comment_id}_{mention.timestamp}",
+            "status": "logged",  # Will be "saved" or "queued" in future
+        }
+
+    except Exception as e:
+        print(f"Error processing mention: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process mention: {str(e)}"
+        )
