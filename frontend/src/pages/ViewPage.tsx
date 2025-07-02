@@ -240,6 +240,8 @@ const ViewPage: React.FC = () => {
   const isTikTok = entry?.platform?.toLowerCase().includes('tiktok');
   // Add a helper to check if the entry is Reddit
   const isReddit = entry?.platform?.toLowerCase().includes('reddit');
+  // Add a helper to check if the entry is X (Twitter/X)
+  const isX = entry?.platform?.toLowerCase().includes('twitter') || entry?.platform?.toLowerCase().includes('x.com') || entry?.platform?.toLowerCase() === 'x';
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-dark-500 dark:text-dark-400">Loading...</div>;
@@ -403,11 +405,17 @@ const ViewPage: React.FC = () => {
                     <ul className="space-y-4 text-sm">
                       <li className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
-                          {PlatformIconComponent
-                            ? <PlatformIconComponent size={20} style={{ color: 'currentColor' }} />
-                            : <Play size={20} style={{ color: '#888' }} />
-                          }
-                          <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
+                          {isX ? (
+                            <>
+                              <img src="/x-logo-white.png" alt="X logo" style={{ width: 20, height: 20 }} />
+                              <span className="font-medium text-dark-900 dark:text-white">X</span>
+                            </>
+                          ) : (
+                            <>
+                              {PlatformIconComponent ? <PlatformIconComponent size={20} style={{ color: 'currentColor' }} /> : <Play size={20} style={{ color: '#888' }} />}
+                              <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
+                            </>
+                          )}
                         </span>
                       </li>
                       <li className="flex items-center justify-between">
@@ -496,11 +504,17 @@ const ViewPage: React.FC = () => {
                   <ul className="space-y-4 text-sm">
                     <li className="flex items-center justify-between">
                       <span className="flex items-center gap-2">
-                        {PlatformIconComponent
-                          ? <PlatformIconComponent size={20} style={{ color: 'currentColor' }} />
-                          : <Play size={20} style={{ color: '#888' }} />
-                        }
-                        <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
+                        {isX ? (
+                          <>
+                            <img src="/x-logo-white.png" alt="X logo" style={{ width: 20, height: 20 }} />
+                            <span className="font-medium text-dark-900 dark:text-white">X</span>
+                          </>
+                        ) : (
+                          <>
+                            {PlatformIconComponent ? <PlatformIconComponent size={20} style={{ color: 'currentColor' }} /> : <Play size={20} style={{ color: '#888' }} />}
+                            <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
+                          </>
+                        )}
                       </span>
                     </li>
                     <li className="flex items-center justify-between">
@@ -516,7 +530,7 @@ const ViewPage: React.FC = () => {
                       </span>
                     </li>
                     {/* For Reddit, do NOT show duration. For others, show as before. */}
-                    {(!entry?.platform?.toLowerCase().includes('reddit') && !isInstagram) && (
+                    {(isReddit && !isX) && (
                       <li className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           <Clock size={20} />
