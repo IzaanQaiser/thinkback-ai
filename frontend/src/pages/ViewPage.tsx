@@ -567,7 +567,7 @@ const ViewPage: React.FC = () => {
                       </span>
                     </li>
                     {/* For Reddit, do NOT show duration. For others, show as before. */}
-                    {(isReddit && !isX) && (
+                    {(isReddit && !isX && entry?.thumbnail) && (
                       <li className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           <Clock size={20} />
