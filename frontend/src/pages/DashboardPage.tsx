@@ -216,7 +216,9 @@ const DashboardPage: React.FC = () => {
 
   const sidebarCategories: Category[] = [
     ...protectedCategories.map((name) => ({ id: name, name, ai_generated: false })),
-    ...categories.filter((cat: Category) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized'),
+    ...categories
+      .filter((cat: Category) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized')
+      .sort((a, b) => a.name.localeCompare(b.name)),
   ];
 
   let mainHeading = '';
@@ -429,6 +431,7 @@ const DashboardPage: React.FC = () => {
     'Reddit': { name: 'Reddit', icon: <span style={{color:'#FF4500'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12zm-6.5 2.5c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5.672-1.5 1.5-1.5zm-11 0c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5.672-1.5 1.5-1.5zm11.072 3.219c-1.219.781-3.219 1.281-5.572 1.281s-4.353-.5-5.572-1.281c-.219-.141-.281-.438-.141-.656.141-.219.438-.281.656-.141 1.031.656 2.906 1.219 5.057 1.219s4.025-.563 5.057-1.219c.219-.141.516-.078.656.141.141.219.078.516-.141.656z"/></svg></span> },
     'TikTok': { name: 'TikTok', icon: <span style={{color:'#000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2v2.5A5.5 5.5 0 0 0 17.5 10H20a8 8 0 1 1-8-8z"/></svg></span> },
     'X': { name: 'X', icon: <span style={{color:'#000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 2.47a.75.75 0 0 1 1.06 1.06l-5.22 5.22 5.22 5.22a.75.75 0 0 1-1.06 1.06l-5.22-5.22-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22-5.22-5.22A.75.75 0 0 1 6.25 2.47l5.22 5.22 5.22-5.22z"/></svg></span> },
+    'Twitter/X Post': { name: 'X', icon: <span style={{color:'#000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 2.47a.75.75 0 0 1 1.06 1.06l-5.22 5.22 5.22 5.22a.75.75 0 0 1-1.06 1.06l-5.22-5.22-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22-5.22-5.22A.75.75 0 0 1 6.25 2.47l5.22 5.22 5.22-5.22z"/></svg></span> },
     'LinkedIn': { name: 'LinkedIn', icon: <span style={{color:'#0077B5'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452H17.21v-5.569c0-1.327-.025-3.037-1.849-3.037-1.851 0-2.132 1.445-2.132 2.939v5.667H9.073V9h3.112v1.561h.045c.434-.823 1.494-1.691 3.073-1.691 3.287 0 3.892 2.164 3.892 4.977v6.605zM5.337 7.433a1.81 1.81 0 1 1 0-3.62 1.81 1.81 0 0 1 0 3.62zM6.956 20.452H3.715V9h3.241v11.452zM22.225 0H1.771C.792 0 0 .771 0 1.723v20.549C0 23.229.792 24 1.771 24h20.451C23.2 24 24 23.229 24 22.271V1.723C24 .771 23.2 0 22.225 0z"/></svg></span> },
   };
 
