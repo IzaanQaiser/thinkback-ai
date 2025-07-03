@@ -179,8 +179,7 @@ const ViewPage: React.FC = () => {
     };
   }, [navigate, entry]);
 
-  const handleFavorite = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.blur();
+  const handleFavorite = async () => {
     if (!entry || !currentUser) return;
     try {
       const token = await currentUser.getIdToken();
@@ -192,9 +191,8 @@ const ViewPage: React.FC = () => {
     }
   };
 
-  const handleCopyLink = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleCopyLink = () => {
     if (!entry) return;
-    e.currentTarget.blur();
     navigator.clipboard.writeText(entry.url);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
@@ -395,8 +393,8 @@ const ViewPage: React.FC = () => {
               )}
             </div>
 
-            {/* Move Details and Actions here for Instagram, TikTok, or Reddit with thumbnail */}
-            {(isInstagram || isTikTok || (isReddit && entry?.thumbnail)) && (
+            {/* Move Details and Actions here for Instagram, TikTok, Reddit with thumbnail, or X with thumbnail */}
+            {(isInstagram || isTikTok || (isReddit && entry?.thumbnail) || (isX && entry?.thumbnail)) && (
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex-1">
                   {/* Details */}
@@ -438,11 +436,11 @@ const ViewPage: React.FC = () => {
                   <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mb-4">
                     <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
                     <div className="flex gap-4">
-                      <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleFavorite(e)} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
+                      <Button onClick={() => handleFavorite()} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
                         <Star size={20} className={`${isFavorited ? 'fill-current' : ''}`} />
                         <span className="font-medium text-xs">{isFavorited ? 'Favorited' : 'Favorite'}</span>
                       </Button>
-                      <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleCopyLink(e)} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
+                      <Button onClick={() => handleCopyLink()} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
                         {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
                         <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
                       </Button>
@@ -462,8 +460,8 @@ const ViewPage: React.FC = () => {
 
           {/* Right Column */}
           <div className="lg:col-span-1 space-y-8">
-            {/* Show image in right column for Instagram, TikTok, or Reddit */}
-            {(isInstagram || isTikTok || (isReddit && entry?.thumbnail)) ? (
+            {/* Show image in right column for Instagram, TikTok, Reddit, or X with thumbnail */}
+            {(isInstagram || isTikTok || (isReddit && entry?.thumbnail) || (isX && entry?.thumbnail)) ? (
               <div className="sticky top-32">
                 {entry?.thumbnail && entry?.url && (
                   <a
@@ -481,6 +479,54 @@ const ViewPage: React.FC = () => {
                   </a>
                 )}
               </div>
+            ) : isX ? (
+              <>
+                {/* Details */}
+                <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6">
+                  <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Details</h2>
+                  <ul className="space-y-4 text-sm">
+                    <li className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <img src="/x-logo-white.png" alt="X logo" style={{ width: 20, height: 20 }} />
+                        <span className="font-medium text-dark-900 dark:text-white">X</span>
+                      </span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <FolderIcon size={20} />
+                        <span className="font-medium text-dark-900 dark:text-white">{categoryName}</span>
+                      </span>
+                    </li>
+                    <li className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Calendar size={20} />
+                        <span className="font-medium text-dark-900 dark:text-white">{formatDateWithOrdinal(entry?.created_at || entry?.savedDate)}</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                {/* Actions */}
+                <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-4">
+                  <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
+                  <div className="flex gap-4">
+                    <Button onClick={() => handleFavorite()} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
+                      <Star size={20} className={`${isFavorited ? 'fill-current' : ''}`} />
+                      <span className="font-medium text-xs">{isFavorited ? 'Favorited' : 'Favorite'}</span>
+                    </Button>
+                    <Button onClick={() => handleCopyLink()} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
+                      {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
+                      <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
+                    </Button>
+                    <Button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-2 focus:ring-red-400 focus:outline-none border border-red-500 !text-red-500 dark:!text-red-500 bg-red-500/10 hover:bg-red-500/20"
+                    >
+                      <Trash2 size={20} className="text-red-500 dark:text-red-500" />
+                      <span className="font-medium text-xs !text-red-500 dark:!text-red-500">Delete</span>
+                    </Button>
+                  </div>
+                </div>
+              </>
             ) : (
               <>
                 {/* Thumbnail Image */}
@@ -504,17 +550,8 @@ const ViewPage: React.FC = () => {
                   <ul className="space-y-4 text-sm">
                     <li className="flex items-center justify-between">
                       <span className="flex items-center gap-2">
-                        {isX ? (
-                          <>
-                            <img src="/x-logo-white.png" alt="X logo" style={{ width: 20, height: 20 }} />
-                            <span className="font-medium text-dark-900 dark:text-white">X</span>
-                          </>
-                        ) : (
-                          <>
-                            {PlatformIconComponent ? <PlatformIconComponent size={20} style={{ color: 'currentColor' }} /> : <Play size={20} style={{ color: '#888' }} />}
-                            <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
-                          </>
-                        )}
+                        {PlatformIconComponent ? <PlatformIconComponent size={20} style={{ color: 'currentColor' }} /> : <Play size={20} style={{ color: '#888' }} />}
+                        <span className="font-medium text-dark-900 dark:text-white">{platformName}</span>
                       </span>
                     </li>
                     <li className="flex items-center justify-between">
@@ -544,11 +581,11 @@ const ViewPage: React.FC = () => {
                 <div className="bg-dark-100/30 dark:bg-dark-900/40 border border-dark-200/50 dark:border-dark-800/50 rounded-2xl p-6 mt-4">
                   <h2 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">Actions</h2>
                   <div className="flex gap-4">
-                    <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleFavorite(e)} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
+                    <Button onClick={() => handleFavorite()} variant="ghost" className={`flex-1 justify-center flex-col h-20 gap-1 focus:ring-0 ${isFavorited ? 'text-yellow-400' : 'text-inherit'}`}>
                       <Star size={20} className={`${isFavorited ? 'fill-current' : ''}`} />
                       <span className="font-medium text-xs">{isFavorited ? 'Favorited' : 'Favorite'}</span>
                     </Button>
-                    <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleCopyLink(e)} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
+                    <Button onClick={() => handleCopyLink()} variant="ghost" className="flex-1 justify-center flex-col h-20 gap-1 focus:ring-0">
                       {linkCopied ? <Check size={20} className="text-green-500" /> : <ClipboardCopy size={20} />}
                       <span className="font-medium text-xs">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
                     </Button>
