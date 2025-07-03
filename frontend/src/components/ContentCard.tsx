@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Folder, ArrowRight, Star, Images } from 'lucide-react';
+import { Folder, ArrowRight, Star, Images, ExternalLink } from 'lucide-react';
 import { FaYoutube, FaReddit, FaTwitter, FaInstagram, FaTiktok } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -27,7 +27,7 @@ const portraitPlatforms = [
   'TikTok Video',
 ];
 
-const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, tags, favorite, category, thumbnail, platform, isCarousel, carouselCount, description }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, tags, favorite, category, thumbnail, platform, isCarousel, carouselCount, description, url }) => {
   const { theme } = useTheme();
   const isPortrait = portraitPlatforms.includes(platform || '');
   // For portrait platforms, use a taller aspect ratio (9/8) but do NOT set minHeight, so the card size stays consistent.
@@ -120,6 +120,23 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
     return url;
   }
 
+  function getOpenLinkIcon(url?: string) {
+    if (!url) return null;
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-2 right-2 z-20 p-1 rounded-full transition-colors bg-white/70 dark:bg-dark-900/70 hover:bg-primary-100/90 dark:hover:bg-primary-700/80 shadow-md flex items-center justify-center group/open-link"
+        title="Open original link"
+        onClick={e => e.stopPropagation()}
+        style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
+      >
+        <ExternalLink size={22} className="text-dark-700 dark:text-dark-100 group-hover/open-link:text-primary-600 dark:group-hover/open-link:text-primary-300 transition-colors" />
+      </a>
+    );
+  }
+
   return (
     <Link
       to={`/view/${id}`}
@@ -139,6 +156,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
             ...(platform === 'TikTok Video' ? { maxWidth: '430px', maxHeight: '430px', margin: '0 auto' } : {}),
           }}
         >
+          {/* Open Link Icon */}
+          {getOpenLinkIcon(url)}
           <img
             src={getProxiedImageUrl(thumbnail, platform)}
             alt={title}
@@ -162,6 +181,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
       )}
       {!thumbnail && (
         <div className="relative w-full bg-dark-200 dark:bg-dark-700 rounded-t-xl flex items-center justify-center" style={{ aspectRatio: isPortrait ? portraitAspect : landscapeAspect }}>
+          {/* Open Link Icon */}
+          {getOpenLinkIcon(url)}
           {/* Reddit watermark overlay */}
           {platform === 'Reddit Post' && (
             <FaReddit
