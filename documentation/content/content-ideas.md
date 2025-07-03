@@ -1,0 +1,1 @@
+someone sees a tiktok about something they been wanting to do for some time -> they find a more in depth video about it on youtube -> they research more and find a thread about it on X -> get led to a conversation on reddit -> so many different sources and things to save and only one place to save each of them -> bust out thinkback,ai and broski can save it all to one place
