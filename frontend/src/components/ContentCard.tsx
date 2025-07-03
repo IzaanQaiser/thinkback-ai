@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Folder, ArrowRight, Star, Images, ExternalLink } from 'lucide-react';
+import { Folder, ArrowRight, Star, Images, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { FaYoutube, FaReddit, FaTwitter, FaInstagram, FaTiktok } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -29,6 +29,29 @@ const portraitPlatforms = [
 
 const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, tags, favorite, category, thumbnail, platform, isCarousel, carouselCount, description, url }) => {
   const { theme } = useTheme();
+  const [seen, setSeen] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(`entry-seen-${id}`) === 'true';
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    // Listen for storage events to sync seen state across tabs
+    const handler = (e: StorageEvent) => {
+      if (e.key === `entry-seen-${id}`) {
+        setSeen(e.newValue === 'true');
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, [id]);
+
+  function markSeen() {
+    setSeen(true);
+    localStorage.setItem(`entry-seen-${id}`, 'true');
+  }
+
   const isPortrait = portraitPlatforms.includes(platform || '');
   // For portrait platforms, use a taller aspect ratio (9/8) but do NOT set minHeight, so the card size stays consistent.
   const portraitAspect = '9/8';
@@ -129,7 +152,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
         rel="noopener noreferrer"
         className="absolute top-2 right-2 z-20 p-1 rounded-full transition-colors bg-white/70 dark:bg-dark-900/70 hover:bg-primary-100/90 dark:hover:bg-primary-700/80 shadow-md flex items-center justify-center group/open-link"
         title="Open original link"
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); markSeen(); }}
         style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
       >
         <ExternalLink size={22} className="text-dark-700 dark:text-dark-100 group-hover/open-link:text-primary-600 dark:group-hover/open-link:text-primary-300 transition-colors" />
@@ -137,10 +160,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
     );
   }
 
+  function handleCardClick(e: React.MouseEvent) {
+    // Only mark as seen if the card itself is clicked (not the open link icon)
+    markSeen();
+  }
+
   return (
     <Link
       to={`/view/${id}`}
       className="relative block bg-dark-100 dark:bg-dark-800/50 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[380px] flex flex-col"
+      onClick={handleCardClick}
     >
       {/* Thumbnail with overlays */}
       {thumbnail && (
@@ -226,15 +255,30 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
         <div className="flex items-center space-x-2 text-xs text-dark-500 dark:text-dark-400">
           <Folder size={14} />
             <span className="font-medium">{category}</span>
-            {tags && tags.length > 0 && (
-              <span className="ml-2 flex flex-wrap gap-1">
-                <span className="px-2 py-0.5 bg-primary-100/60 dark:bg-dark-800/60 text-primary-800 dark:text-primary-300 rounded-full text-xs font-semibold border border-primary-200/50 dark:border-dark-700/80">#{tags[0]}</span>
-              </span>
-            )}
         </div>
-        <div className="text-xs font-semibold text-primary-500/80 dark:text-primary-400/80 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
-          <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
-          </div>
+        <div>
+          {seen ? (
+            <button
+              type="button"
+              className="uppercase text-xs font-bold text-green-600 dark:text-green-400 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0"
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setSeen(false); localStorage.setItem(`entry-seen-${id}`, 'false'); }}
+              title="Mark as unseen"
+              tabIndex={0}
+            >
+              SEEN
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="uppercase text-xs font-bold text-dark-400 dark:text-dark-500 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0"
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setSeen(true); localStorage.setItem(`entry-seen-${id}`, 'true'); }}
+              title="Mark as seen"
+              tabIndex={0}
+            >
+              UNSEEN
+            </button>
+          )}
+        </div>
         </div>
       </div>
     </Link>
