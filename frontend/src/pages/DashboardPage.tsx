@@ -892,11 +892,13 @@ const DashboardPage: React.FC = () => {
                 {entriesToShow.map((entry) => {
                   // Map the first category ID to its name
                   let categoryName = 'Unknown';
+                  let categoryId = undefined;
                   if (entry.category_ids && entry.category_ids.length > 0 && categoryMap) {
                     const catId = entry.category_ids[0];
                     categoryName = categoryMap[catId] || 'Unknown';
+                    categoryId = catId;
                   }
-                    return (
+                  return (
                     <ContentCard
                       key={entry.id}
                       id={entry.id}
@@ -908,14 +910,28 @@ const DashboardPage: React.FC = () => {
                       favorite={entry.favorite}
                       createdAt={entry.created_at}
                       category={categoryName}
+                      categoryId={categoryId}
+                      categories={categories}
+                      onCategoryChange={async (entryId, newCategoryId) => {
+                        if (!currentUser) return;
+                        const idToken = await currentUser.getIdToken();
+                        await updateEntry(idToken, entryId, { category_ids: [newCategoryId] });
+                        // Update local state
+                        setEntries(prevEntries => prevEntries.map(e =>
+                          e.id === entryId ? { ...e, category_ids: [newCategoryId] } : e
+                        ));
+                        // Navigate to the new category
+                        setSelectedCategory(newCategoryId);
+                        sessionStorage.setItem('lastSelectedCategory', newCategoryId);
+                      }}
                       thumbnail={entry.thumbnail}
                       platform={entry.platform}
                       isCarousel={entry.is_carousel}
                       carouselCount={entry.carousel_count}
                       description={entry.description}
                     />
-                    );
-                  })}
+                  );
+                })}
               </div>
             )}
           </main>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Folder, ArrowRight, Star, Images, ExternalLink, Eye, EyeOff } from 'lucide-react';
-import { FaYoutube, FaReddit, FaTwitter, FaInstagram, FaTiktok } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { Folder, Star, Images, ExternalLink } from 'lucide-react';
+import { FaYoutube, FaReddit, FaInstagram, FaTiktok } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ContentCardProps {
@@ -10,10 +10,12 @@ interface ContentCardProps {
     url: string;
   notes?: string;
   summary?: string;
-  tags?: string[];
   favorite?: boolean;
   createdAt?: string;
     category: string;
+  categoryId?: string;
+  categories?: { id: string; name: string }[];
+  onCategoryChange?: (entryId: string, newCategoryId: string) => void;
   thumbnail?: string;
   platform?: string;
   isCarousel?: boolean;
@@ -27,7 +29,7 @@ const portraitPlatforms = [
   'TikTok Video',
 ];
 
-const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, tags, favorite, category, thumbnail, platform, isCarousel, carouselCount, description, url }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, favorite, category, categoryId, categories, onCategoryChange, thumbnail, platform, isCarousel, carouselCount, description, url }) => {
   const { theme } = useTheme();
   const [seen, setSeen] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -35,6 +37,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
     }
     return false;
   });
+  const [categoryModalOpen, setCategoryModalOpen] = React.useState(false);
+  const [skipNextNavigation, setSkipNextNavigation] = React.useState(false);
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     // Listen for storage events to sync seen state across tabs
@@ -59,16 +64,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
   // Instagram post aspect ratio (used for cropping TikTok thumbnails to match Instagram post size)
   const instagramPostAspect = '1/1'; // square aspect ratio for Instagram posts
 
-  function XLogo({ theme, size = 22 }: { theme: string; size?: number }) {
-    // SVG for X logo, white for dark, black for light
-    return (
-      <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="120" height="120" rx="24" fill={theme === 'dark' ? '#fff' : '#000'} />
-        <path d="M35 35L85 85M85 35L35 85" stroke={theme === 'dark' ? '#000' : '#fff'} strokeWidth="16" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
   function getPlatformIconOverlay(platform?: string, theme?: string) {
     if (!platform) return null;
     const size = 22;
@@ -89,16 +84,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
         );
       case 'Reddit Post':
         return <span className={baseClass}><FaReddit size={size} className={theme === 'dark' ? 'text-white' : 'text-black'} /></span>;
-      case 'Twitter/X Post':
-        return (
-          <span className={baseClass}>
-            <img
-              src={theme === 'dark' ? '/x-logo-white.png' : '/x-logo-black.png'}
-              alt="X logo"
-              style={{ width: size, height: size, borderRadius: '50%' }}
-            />
-          </span>
-        );
       case 'Instagram Reel':
       case 'Instagram Post':
         return <span className={baseClass}><FaInstagram size={size} className={theme === 'dark' ? 'text-white' : 'text-black'} /></span>;
@@ -161,15 +146,42 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
   }
 
   function handleCardClick(e: React.MouseEvent) {
-    // Only mark as seen if the card itself is clicked (not the open link icon)
+    if (categoryModalOpen || skipNextNavigation) {
+      setSkipNextNavigation(false);
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     markSeen();
+    navigate(`/view/${id}`);
+  }
+
+  function handleCategoryClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setCategoryModalOpen(true);
+  }
+
+  function handleCategorySelect(catId: string) {
+    if (catId !== categoryId && onCategoryChange) {
+      onCategoryChange(id, catId);
+    }
+    setCategoryModalOpen(false);
+    setSkipNextNavigation(true);
+  }
+
+  function handleModalClose(e?: React.MouseEvent) {
+    if (e) e.stopPropagation();
+    setCategoryModalOpen(false);
+    setSkipNextNavigation(true);
   }
 
   return (
-    <Link
-      to={`/view/${id}`}
-      className="relative block bg-dark-100 dark:bg-dark-800/50 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[380px] flex flex-col"
+    <div
+      className="relative block bg-dark-100 dark:bg-dark-800/50 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[380px] flex flex-col cursor-pointer"
       onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
     >
       {/* Thumbnail with overlays */}
       {thumbnail && (
@@ -251,16 +263,66 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
             </div>
         </div>
         </div>
-        <div className="pt-4 border-t border-dark-200/80 dark:border-dark-700/50 flex justify-between items-center px-5 pb-5">
-        <div className="flex items-center space-x-2 text-xs text-dark-500 dark:text-dark-400">
+        <div className="pt-4 border-t border-dark-200/80 dark:border-dark-700/50 flex justify-between items-center px-5 pb-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center space-x-2 text-xs text-dark-500 dark:text-dark-400 relative">
           <Folder size={14} />
-            <span className="font-medium">{category}</span>
+          <span
+            className="font-medium cursor-pointer hover:underline transition-transform duration-150 ease-in-out hover:scale-105"
+            onClick={handleCategoryClick}
+            tabIndex={0}
+            title="Change category"
+          >
+            {category}
+          </span>
+          {categoryModalOpen && categories && onCategoryChange && (
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in-fast"
+              onClick={handleModalClose}
+            >
+              <div
+                className="bg-white dark:bg-dark-800 rounded-3xl shadow-2xl w-full max-w-md m-4 px-8 pt-8 pb-6 transform animate-slide-up-fast relative flex flex-col items-center"
+                onClick={e => e.stopPropagation()}
+                style={{ minHeight: '420px' }}
+              >
+                <button
+                  onClick={handleModalClose}
+                  className="absolute top-6 right-6 p-2 rounded-full hover:bg-dark-200 dark:hover:bg-dark-700 transition-colors"
+                  title="Close"
+                >
+                  <svg width="28" height="28" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+                <h3 className="text-2xl font-extrabold text-dark-900 dark:text-white mb-8 text-center tracking-tight">Reassign Category</h3>
+                <div className="w-full flex-1 flex flex-col justify-center items-center">
+                  <div className="w-full max-h-[320px] overflow-y-auto overscroll-contain custom-scrollbar rounded-2xl bg-transparent">
+                    <div className="flex flex-col gap-3">
+                      {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map(cat => (
+                        <button
+                          key={cat.id}
+                          className={`w-full text-left px-6 pr-6 py-3 rounded-xl transition-transform duration-150 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary-400/60 focus:z-10
+                            ${cat.id === categoryId
+                              ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200 font-bold shadow-sm'
+                              : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-800 dark:text-dark-100'}
+                          `}
+                          onClick={() => handleCategorySelect(cat.id)}
+                          disabled={cat.id === categoryId}
+                          style={{ cursor: cat.id === categoryId ? 'default' : 'pointer' }}
+                        >
+                          {cat.name}
+                          {cat.id === categoryId && <span className="ml-3 text-base font-normal opacity-70">(Current)</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div>
           {seen ? (
             <button
               type="button"
-              className="uppercase text-xs font-bold text-green-600 dark:text-green-400 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0"
+              className="uppercase text-xs font-bold text-green-600 dark:text-green-400 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0 transition-transform duration-150 ease-in-out hover:scale-110"
               onClick={e => { e.preventDefault(); e.stopPropagation(); setSeen(false); localStorage.setItem(`entry-seen-${id}`, 'false'); }}
               title="Mark as unseen"
               tabIndex={0}
@@ -270,7 +332,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
           ) : (
             <button
               type="button"
-              className="uppercase text-xs font-bold text-dark-400 dark:text-dark-500 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0"
+              className="uppercase text-xs font-bold text-dark-400 dark:text-dark-500 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0 transition-transform duration-150 ease-in-out hover:scale-110"
               onClick={e => { e.preventDefault(); e.stopPropagation(); setSeen(true); localStorage.setItem(`entry-seen-${id}`, 'true'); }}
               title="Mark as seen"
               tabIndex={0}
@@ -281,7 +343,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, ta
         </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 
