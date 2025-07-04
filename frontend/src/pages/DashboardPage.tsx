@@ -74,6 +74,12 @@ const DashboardPage: React.FC = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameCategoryId, setRenameCategoryId] = useState<string | null>(null);
+  const [renameCategoryName, setRenameCategoryName] = useState('');
+  const [renameLoading, setRenameLoading] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [categoriesToDelete, setCategoriesToDelete] = useState<Category[] | null>(null);
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -547,18 +553,17 @@ const DashboardPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row lg:space-x-8 min-h-screen h-screen">
-          <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0 h-screen overflow-y-auto hide-scrollbar">
+          <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0 h-screen overflow-y-auto hide-scrollbar overflow-x-hidden">
             <div className="sticky top-0 flex flex-col gap-6">
               {/* Quick Access Box - only heading */}
               <div className="flex flex-col space-y-1">
                 <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50 mt-0">
                   <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Quick Access</h2>
                   <button
-                    className={`p-1 rounded-full transition-all duration-150
-                      ${isQuickAccessEditMode
-                        ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
-                        : 'text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
-                    `}
+                    className={isQuickAccessEditMode
+                      ? "p-1 rounded-full border-2 border-blue-500 text-blue-500 bg-transparent transition-all duration-150 flex items-center justify-center w-8 h-8 hover:bg-blue-500 hover:text-white active:bg-blue-600 active:text-white focus:outline-none"
+                      : "p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
+                    }
                     title={isQuickAccessEditMode ? 'Done' : 'Edit Quick Access'}
                     onClick={() => {
                       setIsQuickAccessEditMode((v) => {
@@ -568,7 +573,7 @@ const DashboardPage: React.FC = () => {
                     }}
                   >
                     {isQuickAccessEditMode ? (
-                      <Check size={20} className="text-primary-500" />
+                      <Check size={20} />
                     ) : (
                       <Pencil size={20} className="text-gray-600 dark:text-white" />
                     )}
@@ -683,172 +688,198 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {/* Categories Box - only heading and buttons */}
-              <div className="flex flex-col space-y-1 mt-2">
-                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
-                  <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
+              <div className={`flex flex-col space-y-1 mt-2 relative`}>
+                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-2 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setIsCategoryEditMode((v) => {
-                          if (!v) setIsQuickAccessEditMode(false);
-                          return !v;
-                        });
-                      }}
-                      className={`p-1 rounded-full transition-all duration-150 mr-2
-                        ${isCategoryEditMode
-                          ? 'bg-blue-100 text-primary-500 scale-110 dark:bg-primary-500/10 dark:text-primary-500'
-                          : 'text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110'}
-                      `}
-                      title={isCategoryEditMode ? 'Exit edit mode' : 'Edit categories'}
-                    >
-                      <Pencil size={20} className="text-gray-600 dark:text-white" />
-                    </button>
-                    {isCategoryEditMode ? (
+                    <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isCategoryEditMode && (
                       <button
-                        onClick={async () => {
-                          if (selectedCategoryIds.length === 0) return;
-                          if (!currentUser) return;
-                          const idToken = await currentUser.getIdToken();
-                          // Delete selected categories
-                          for (const catId of selectedCategoryIds) {
-                            await deleteCategory(idToken, catId);
+                        onClick={() => {
+                          // Gather selected categories for confirmation
+                          const cats = categories.filter(cat => selectedCategoryIds.includes(cat.id));
+                          if (cats.length > 0) {
+                            setCategoriesToDelete(cats);
+                            setShowDeleteConfirm(true);
                           }
-                          // Remove affected entries from local state (do NOT call deleteEntry)
-                          setEntries(prev => prev.filter(entry =>
-                            !entry.category_ids || !entry.category_ids.some(catId => selectedCategoryIds.includes(catId))
-                          ));
-                          setCategories(prev => prev.filter(cat => !selectedCategoryIds.includes(cat.id)));
-                          setCategoryMap(prev => {
-                            const newMap = { ...prev };
-                            selectedCategoryIds.forEach(id => { delete newMap[id]; });
-                            return newMap;
-                          });
-                          setSelectedCategoryIds([]);
-                          // Optionally, still re-fetch from backend for consistency
-                          const cats = await fetchCategories(idToken);
-                          setCategories(cats);
-                          const map: { [id: string]: string } = {};
-                          cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
-                          setCategoryMap(map);
-                          const data = await fetchEntries(idToken);
-                          setEntries(data);
                         }}
-                        className={`p-1 rounded-full transition-all duration-150 ${selectedCategoryIds.length === 0 ? 'text-dark-400 bg-dark-100/50 cursor-not-allowed' : 'text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-700'} `}
+                        className={`
+                          flex items-center justify-center
+                          rounded-xl border-2 transition-all duration-150
+                          px-4 py-1
+                          text-sm font-semibold
+                          border-red-500
+                          ${selectedCategoryIds.length === 0
+                            ? 'text-red-400 bg-transparent cursor-not-allowed hover:text-red-500'
+                            : 'text-red-500 bg-transparent hover:bg-red-500 hover:text-white'}
+                        `}
                         title="Delete selected categories"
                         disabled={selectedCategoryIds.length === 0}
                       >
-                        <Trash2 size={20} />
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                    {isCategoryEditMode ? (
+                      <button
+                        onClick={() => setIsCategoryEditMode(false)}
+                        className="p-1 rounded-full border-2 border-blue-500 text-blue-500 bg-transparent transition-all duration-150 flex items-center justify-center w-8 h-8 hover:bg-blue-500 hover:text-white active:bg-blue-600 active:text-white focus:outline-none"
+                        title="Done"
+                      >
+                        <Check size={22} />
                       </button>
                     ) : (
+                      <button
+                        onClick={() => {
+                          setIsCategoryEditMode((v) => {
+                            if (!v) setIsQuickAccessEditMode(false);
+                            return !v;
+                          });
+                        }}
+                        className="p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
+                        title="Edit categories"
+                      >
+                        <Pencil size={18} className="text-gray-600 dark:text-white" />
+                      </button>
+                    )}
+                    {!isCategoryEditMode && (
                       <button
                         onClick={() => setShowCategoryModal(true)}
                         className="p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
                         title="Add category"
                       >
-                        <Plus size={20} className="text-gray-600 dark:text-white" />
+                        <Plus size={18} className="text-gray-600 dark:text-white" />
                       </button>
                     )}
                   </div>
                 </div>
-                {showAddCategory && (
-                  <form
-                    className="flex items-center gap-2 px-3 mb-2"
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      if (newCategoryName.trim()) {
-                        await saveNewCategory();
-                      }
-                    }}
-                    autoComplete="off"
-                  >
-                    <input
-                      type="text"
-                      className="flex-1 px-3 py-1 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      placeholder="New category name"
-                      value={newCategoryName}
-                      autoFocus
-                      onChange={e => setNewCategoryName(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Escape') {
-                          setShowAddCategory(false);
-                          setNewCategoryName('');
-                        }
-                      }}
-                      disabled={addCategoryLoading}
-                    />
-                    {newCategoryName.trim() && (
-                      <button
-                        type="submit"
-                        className="p-1 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20"
-                        title="Save category"
-                        disabled={addCategoryLoading}
-                      >
-                        <Check size={16} />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddCategory(false);
-                        setNewCategoryName('');
-                      }}
-                      className="p-1 rounded-full text-dark-400 hover:text-red-500"
-                      title="Cancel"
-                      disabled={addCategoryLoading}
-                    >
-                      <X size={16} />
-                    </button>
-                  </form>
+                {/* Category List Edit Mode */}
+                {isCategoryEditMode && (
+                  <div className="flex flex-col gap-1 px-2 pb-2">
+                    {sidebarCategories.slice(3).map((category) => {
+                      const isProtected = protectedCategories.includes(category.name);
+                      const isSelected = selectedCategoryIds.includes(category.id);
+                      return (
+                        <div
+                          key={category.id}
+                          className={`flex items-center rounded-lg px-2 py-1 transition-all duration-150 group relative ${isSelected ? 'bg-red-50 dark:bg-red-900/20' : 'hover:bg-dark-100/40 dark:hover:bg-dark-800/40'} ${isProtected ? 'opacity-60 pointer-events-none' : ''}`}
+                        >
+                          {/* Checkbox for selection */}
+                          {!isProtected && (
+                            <button
+                              type="button"
+                              className={`mr-2 w-5 h-5 flex items-center justify-center rounded-full border-2 transition-colors duration-150 ${isSelected ? 'bg-red-500 border-red-500 text-white' : 'border-dark-200 dark:border-dark-700 text-dark-400 dark:text-dark-500 bg-transparent hover:bg-dark-100 dark:hover:bg-dark-800'}`}
+                              onClick={() => {
+                                setSelectedCategoryIds(prev =>
+                                  isSelected ? prev.filter(id => id !== category.id) : [...prev, category.id]
+                                );
+                              }}
+                              aria-pressed={isSelected}
+                              tabIndex={0}
+                            >
+                              {isSelected ? <Check size={13} /> : ''}
+                            </button>
+                          )}
+                          {/* Category Name */}
+                          <span className="font-medium text-sm flex-grow truncate text-dark-700 dark:text-dark-100">{category.name}</span>
+                          {/* Rename button - only show in edit mode */}
+                          {!isProtected && (
+                            <button
+                              type="button"
+                              className="ml-2 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 bg-blue-100 text-primary-500 dark:bg-primary-500/10 dark:text-primary-500 hover:bg-blue-200 hover:text-primary-600 dark:hover:bg-primary-500/20 dark:hover:text-primary-400"
+                              title="Rename category"
+                              onClick={() => {
+                                setRenameCategoryId(category.id);
+                                setRenameCategoryName(category.name);
+                                setShowRenameModal(true);
+                                setRenameError(null);
+                              }}
+                            >
+                              <Pencil size={15} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
-                {sidebarCategories.slice(3).map((category) => {
-                  // For future extensibility, you could add per-category visibility here
-                  // For now, all user/AI categories are always visible
-                  const isProtected = protectedCategories.includes(category.name);
-                  const isSelected = selectedCategoryIds.includes(category.id);
-                  return (
-                    <div key={category.id} className="touch-none">
-                      <div className="flex items-center group">
-                        {isCategoryEditMode && !isProtected && (
+                {/* Normal Category List (not edit mode) */}
+                {!isCategoryEditMode && (
+                  <>
+                    {showAddCategory && (
+                      <form
+                        className="flex items-center gap-2 px-3 mb-2"
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          if (newCategoryName.trim()) {
+                            await saveNewCategory();
+                          }
+                        }}
+                        autoComplete="off"
+                      >
+                        <input
+                          type="text"
+                          className="flex-1 px-3 py-1 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          placeholder="New category name"
+                          value={newCategoryName}
+                          autoFocus
+                          onChange={e => setNewCategoryName(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') {
+                              setShowAddCategory(false);
+                              setNewCategoryName('');
+                            }
+                          }}
+                          disabled={addCategoryLoading}
+                        />
+                        {newCategoryName.trim() && (
                           <button
-                            type="button"
-                            className={`mr-1 w-7 h-7 flex items-center justify-center rounded-full border-2 transition-colors duration-150 ${isSelected ? 'bg-red-500 border-red-500 text-white' : 'border-dark-200 dark:border-dark-700 text-dark-400 dark:text-dark-500 bg-transparent hover:bg-dark-100 dark:hover:bg-dark-800'}`}
-                            onClick={() => {
-                              setSelectedCategoryIds(prev =>
-                                isSelected ? prev.filter(id => id !== category.id) : [...prev, category.id]
-                              );
-                            }}
-                            aria-pressed={isSelected}
-                            tabIndex={0}
+                            type="submit"
+                            className="p-1 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20"
+                            title="Save category"
+                            disabled={addCategoryLoading}
                           >
-                            {isSelected ? <Check size={18} /> : ''}
+                            <Check size={16} />
                           </button>
                         )}
                         <button
-                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
-                          disabled={isCategoryEditMode || isQuickAccessEditMode}
-                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
-                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
+                          type="button"
+                          onClick={() => {
+                            setShowAddCategory(false);
+                            setNewCategoryName('');
+                          }}
+                          className="p-1 rounded-full text-dark-400 hover:text-red-500"
+                          title="Cancel"
+                          disabled={addCategoryLoading}
                         >
-                          <div className="flex items-center space-x-3 text-left w-full">
-                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
-                          </div>
+                          <X size={16} />
                         </button>
-                        {isCategoryEditMode && !isProtected && (
-                          <button
-                            onClick={() => confirmDeleteCategory(category)}
-                            className="ml-2 p-1 rounded-full text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete category"
-                            style={{ display: 'none' }} // Hide the old single delete button
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                      </form>
+                    )}
+                    {sidebarCategories.slice(3).map((category) => {
+                      const isProtected = protectedCategories.includes(category.name);
+                      return (
+                        <div key={category.id} className="touch-none">
+                          <div className="flex items-center group">
+                            <button
+                              onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                              disabled={isCategoryEditMode || isQuickAccessEditMode}
+                              aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                              className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                                ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                                ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
+                            >
+                              <div className="flex items-center space-x-3 text-left w-full">
+                                <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                              </div>
+                            </button>
+                            {/* Rename button hidden in normal mode */}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
               </div>
             </div>
           </aside>
@@ -939,36 +970,77 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Delete Category Confirmation Modal */}
-      {showDeleteConfirm && categoryToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-dark-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">
-              Delete Category
-            </h3>
-            <p className="text-dark-600 dark:text-dark-300 mb-6">
-              Are you sure you want to delete the category "{categoryToDelete.name}"?
-              <br /><br />
-              <span className="text-red-600 dark:text-red-400 font-medium">
-                ⚠️ This will also delete ALL entries in this category permanently.
-              </span>
-              <br /><br />
-              This action cannot be undone.
-            </p>
-            <div className="flex space-x-3">
+      {showDeleteConfirm && (categoryToDelete || (categoriesToDelete && categoriesToDelete.length > 0)) && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 transition-all">
+          <div className="bg-white dark:bg-dark-900 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl border border-dark-200/60 dark:border-dark-700/60 flex flex-col gap-6 animate-fade-in-fast">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-2xl font-extrabold text-dark-900 dark:text-white text-left">
+                  Delete {categoriesToDelete && categoriesToDelete.length > 1 ? 'Categories' : 'Category'}?
+                </h3>
+                <span className="inline-flex items-center px-3 py-1 rounded-full bg-red-500 text-white text-sm font-semibold"><span className="mr-1">⚠️</span>Warning</span>
+              </div>
+              <div className="text-red-500 text-base font-medium mb-2">
+                This will also delete ALL entries in {categoriesToDelete && categoriesToDelete.length > 1 ? 'these categories' : 'this category'} permanently.
+              </div>
+              <div className="text-dark-700 dark:text-dark-200 text-base leading-relaxed mb-2">
+                {categoriesToDelete && categoriesToDelete.length > 1 ? (
+                  <>Are you sure you want to delete <b>{categoriesToDelete.length}</b> categories?</>
+                ) : (
+                  <>Are you sure you want to delete the category "{(categoryToDelete || categoriesToDelete?.[0])?.name}"?</>
+                )}
+              </div>
+              <div className="text-dark-400 dark:text-dark-400 text-sm">This action cannot be undone.</div>
+            </div>
+            <div className="flex gap-4 mt-2">
               <button
                 onClick={() => {
                   setShowDeleteConfirm(false);
                   setCategoryToDelete(null);
+                  setCategoriesToDelete(null);
                 }}
-                className="flex-1 px-4 py-2 rounded-lg border border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors"
+                className="flex-1 px-0 py-0 h-12 rounded-2xl border-2 border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-200 bg-transparent hover:bg-dark-100 dark:hover:bg-dark-800/40 font-semibold text-base transition-all"
               >
                 Cancel
               </button>
               <button
-                onClick={() => handleDeleteCategory(categoryToDelete)}
-                className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                onClick={async () => {
+                  setShowDeleteConfirm(false);
+                  // Bulk delete
+                  if (categoriesToDelete && categoriesToDelete.length > 0) {
+                    if (!currentUser) return;
+                    const idToken = await currentUser.getIdToken();
+                    for (const cat of categoriesToDelete) {
+                      await deleteCategory(idToken, cat.id);
+                    }
+                    setEntries(prev => prev.filter(entry =>
+                      !entry.category_ids || !entry.category_ids.some(catId => categoriesToDelete.map(c => c.id).includes(catId))
+                    ));
+                    setCategories(prev => prev.filter(cat => !categoriesToDelete.map(c => c.id).includes(cat.id)));
+                    setCategoryMap(prev => {
+                      const newMap = { ...prev };
+                      categoriesToDelete.forEach(cat => { delete newMap[cat.id]; });
+                      return newMap;
+                    });
+                    setSelectedCategoryIds([]);
+                    const cats = await fetchCategories(idToken);
+                    setCategories(cats);
+                    const map = {};
+                    cats.forEach((cat) => { map[cat.id] = cat.name; });
+                    setCategoryMap(map);
+                    const data = await fetchEntries(idToken);
+                    setEntries(data);
+                    setCategoriesToDelete(null);
+                    setIsCategoryEditMode(false);
+                  } else if (categoryToDelete) {
+                    // Single delete fallback
+                    await handleDeleteCategory(categoryToDelete);
+                    setCategoryToDelete(null);
+                  }
+                }}
+                className="flex-1 h-12 rounded-2xl border-2 border-red-500 text-red-500 bg-transparent font-bold text-base transition-all shadow-sm hover:bg-red-500 hover:text-white active:bg-red-600 active:text-white focus:outline-none focus:ring-2 focus:ring-red-400"
               >
-                Delete Category & Entries
+                Delete {categoriesToDelete && categoriesToDelete.length > 1 ? 'Categories & Entries' : 'Category & Entries'}
               </button>
             </div>
           </div>
@@ -1064,6 +1136,92 @@ const DashboardPage: React.FC = () => {
                   disabled={addCategoryLoading || !newCategoryName.trim()}
                 >
                   {addCategoryLoading ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Category Modal */}
+      {showRenameModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-dark-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-dark-900 dark:text-white mb-4">
+              Rename Category
+            </h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!renameCategoryName.trim()) {
+                  setRenameError('Category name cannot be empty.');
+                  return;
+                }
+                setRenameLoading(true);
+                setRenameError(null);
+                try {
+                  if (!currentUser || !renameCategoryId) return;
+                  const idToken = await currentUser.getIdToken();
+                  const catObj = categories.find(cat => cat.id === renameCategoryId);
+                  await updateCategory(idToken, renameCategoryId, {
+                    name: renameCategoryName.trim(),
+                    ai_generated: catObj?.ai_generated ?? false,
+                  });
+                  // Refresh categories and entries
+                  const cats = await fetchCategories(idToken);
+                  setCategories(cats);
+                  const map: { [id: string]: string } = {};
+                  cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
+                  setCategoryMap(map);
+                  const data = await fetchEntries(idToken);
+                  setEntries(data);
+                  setShowRenameModal(false);
+                  setRenameCategoryId(null);
+                  setRenameCategoryName('');
+                } catch (err: any) {
+                  setRenameError(err.message || 'Failed to rename category.');
+                } finally {
+                  setRenameLoading(false);
+                }
+              }}
+              autoComplete="off"
+            >
+              <input
+                type="text"
+                className="w-full px-3 py-2 rounded-full border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 mb-4"
+                placeholder="New category name"
+                value={renameCategoryName}
+                autoFocus
+                onChange={e => setRenameCategoryName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    setShowRenameModal(false);
+                    setRenameCategoryId(null);
+                    setRenameCategoryName('');
+                  }
+                }}
+                disabled={renameLoading}
+              />
+              {renameError && <div className="text-red-500 text-sm mb-2">{renameError}</div>}
+              <div className="flex space-x-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRenameModal(false);
+                    setRenameCategoryId(null);
+                    setRenameCategoryName('');
+                  }}
+                  className="flex-1 px-4 py-2 rounded-full border border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors"
+                  disabled={renameLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 rounded-full bg-primary-500 text-white hover:bg-primary-600 transition-colors disabled:opacity-60"
+                  disabled={renameLoading || !renameCategoryName.trim()}
+                >
+                  {renameLoading ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

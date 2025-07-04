@@ -84,6 +84,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
         );
       case 'Reddit Post':
         return <span className={baseClass}><FaReddit size={size} className={theme === 'dark' ? 'text-white' : 'text-black'} /></span>;
+      case 'Twitter/X Post':
+        return (
+          <span className={baseClass}>
+            <img
+              src={theme === 'dark' ? '/x-logo-white.png' : '/x-logo-black.png'}
+              alt="X logo"
+              style={{ width: size, height: size, borderRadius: '50%' }}
+            />
+          </span>
+        );
       case 'Instagram Reel':
       case 'Instagram Post':
         return <span className={baseClass}><FaInstagram size={size} className={theme === 'dark' ? 'text-white' : 'text-black'} /></span>;
