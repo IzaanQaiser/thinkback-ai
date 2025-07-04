@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
-import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory, deleteEntry } from '../services/api';
+import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory, deleteEntry, cleanupEmptyCategories } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
 
@@ -96,6 +96,12 @@ const DashboardPage: React.FC = () => {
         const idToken = await currentUser.getIdToken();
         const data = await fetchEntries(idToken);
         setEntries(data);
+        await cleanupEmptyCategories(idToken);
+        const cats = await fetchCategories(idToken);
+        setCategories(cats);
+        const map: { [id: string]: string } = {};
+        cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
+        setCategoryMap(map);
       } catch (error) {
         alert('Failed to load entries: ' + (error as Error).message);
       } finally {
@@ -114,6 +120,12 @@ const DashboardPage: React.FC = () => {
             const idToken = await currentUser.getIdToken();
             const data = await fetchEntries(idToken);
             setEntries(data);
+            await cleanupEmptyCategories(idToken);
+            const cats = await fetchCategories(idToken);
+            setCategories(cats);
+            const map: { [id: string]: string } = {};
+            cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
+            setCategoryMap(map);
           } catch (error) {
             console.error('Failed to refresh entries:', error);
           }
@@ -256,19 +268,6 @@ const DashboardPage: React.FC = () => {
     entriesToShow = filteredData.filter((item) => normalizePlatformKey(item.platform || '') === platform);
   }
 
-  const ensureUncategorized = async () => {
-    let uncategorized = categories.find((cat: Category) => cat.name.trim().toLowerCase() === 'uncategorized');
-    if (!uncategorized && currentUser) {
-      const idToken = await currentUser.getIdToken();
-      // Create 'Uncategorized' category
-      await updateCategory(idToken, '', 'Uncategorized'); // backend will create if not exists
-      const cats = await fetchCategories(idToken);
-      uncategorized = cats.find((cat: Category) => cat.name.trim().toLowerCase() === 'uncategorized');
-      setCategories(cats);
-    }
-    return uncategorized?.id;
-  };
-
   // Update committedSearchQuery only on search submit
   const handleSearchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -297,15 +296,12 @@ const DashboardPage: React.FC = () => {
 
     try {
       const idToken = await currentUser.getIdToken();
-      const deleteResult = await deleteCategory(idToken, category.id);
-
-      // Get the count of deleted entries from the response
-      const deletedEntriesCount = deleteResult.deleted_entries_count || 0;
+      await deleteCategory(idToken, category.id);
 
       // Optimistically remove deleted categories from state
       setCategories(prev => prev.filter(cat => !selectedCategoryIds.includes(cat.id)));
       setCategoryMap(prev => {
-        const newMap = { ...prev };
+        const newMap: { [key: string]: string } = { ...prev };
         selectedCategoryIds.forEach(id => { delete newMap[id]; });
         return newMap;
       });
@@ -315,11 +311,12 @@ const DashboardPage: React.FC = () => {
       ));
       setSelectedCategoryIds([]);
       // Optionally, still re-fetch from backend for consistency
-      const cats = await fetchCategories(idToken);
-      setCategories(cats);
-      const map: { [id: string]: string } = {};
-      cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
-      setCategoryMap(map);
+      await cleanupEmptyCategories(idToken);
+      const updatedCats = await fetchCategories(idToken);
+      setCategories(updatedCats);
+      const updatedMap: { [key: string]: string } = {};
+      updatedCats.forEach((cat) => { updatedMap[cat.id] = cat.name; });
+      setCategoryMap(updatedMap);
       const data = await fetchEntries(idToken);
       setEntries(data);
 
@@ -336,11 +333,6 @@ const DashboardPage: React.FC = () => {
     } catch (error) {
       alert('Failed to delete category: ' + (error as Error).message);
     }
-  };
-
-  const confirmDeleteCategory = (category: Category) => {
-    setCategoryToDelete(category);
-    setShowDeleteConfirm(true);
   };
 
   // Function to remove a specific entry from local state
@@ -374,15 +366,16 @@ const DashboardPage: React.FC = () => {
       setShowCategoryModal(false);
       setSelectedEntryIds([]);
       // Refresh categories and entries
-      const cats = await fetchCategories(idToken);
-      setCategories(cats);
-      const map: { [id: string]: string } = {};
-      cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
-      setCategoryMap(map);
+      await cleanupEmptyCategories(idToken);
+      const updatedCats = await fetchCategories(idToken);
+      setCategories(updatedCats);
+      const updatedMap: { [key: string]: string } = {};
+      updatedCats.forEach((cat) => { updatedMap[cat.id] = cat.name; });
+      setCategoryMap(updatedMap);
       const data = await fetchEntries(idToken);
       setEntries(data);
-    } catch (err) {
-      console.error('Failed to add category or update entries:', err);
+    } catch (err: unknown) {
+      console.error('Failed to add category or update entries:', err as Error);
     } finally {
       setAddCategoryLoading(false);
     }
@@ -757,33 +750,29 @@ const DashboardPage: React.FC = () => {
                 {isCategoryEditMode && (
                   <div className="flex flex-col gap-1 px-2 pb-2">
                     {sidebarCategories.slice(3).map((category) => {
-                      const isProtected = protectedCategories.includes(category.name);
-                      const isSelected = selectedCategoryIds.includes(category.id);
                       return (
                         <div
                           key={category.id}
-                          className={`flex items-center rounded-lg px-2 py-1 transition-all duration-150 group relative ${isSelected ? 'bg-red-50 dark:bg-red-900/20' : 'hover:bg-dark-100/40 dark:hover:bg-dark-800/40'} ${isProtected ? 'opacity-60 pointer-events-none' : ''}`}
+                          className={`flex items-center rounded-lg px-2 py-1 transition-all duration-150 group relative`}
                         >
                           {/* Checkbox for selection */}
-                          {!isProtected && (
-                            <button
-                              type="button"
-                              className={`mr-2 w-5 h-5 flex items-center justify-center rounded-full border-2 transition-colors duration-150 ${isSelected ? 'bg-red-500 border-red-500 text-white' : 'border-dark-200 dark:border-dark-700 text-dark-400 dark:text-dark-500 bg-transparent hover:bg-dark-100 dark:hover:bg-dark-800'}`}
-                              onClick={() => {
-                                setSelectedCategoryIds(prev =>
-                                  isSelected ? prev.filter(id => id !== category.id) : [...prev, category.id]
-                                );
-                              }}
-                              aria-pressed={isSelected}
-                              tabIndex={0}
-                            >
-                              {isSelected ? <Check size={13} /> : ''}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            className={`mr-2 w-5 h-5 flex items-center justify-center rounded-full border-2 transition-colors duration-150`}
+                            onClick={() => {
+                              setSelectedCategoryIds(prev =>
+                                prev.includes(category.id) ? prev.filter(id => id !== category.id) : [...prev, category.id]
+                              );
+                            }}
+                            aria-pressed={selectedCategoryIds.includes(category.id)}
+                            tabIndex={0}
+                          >
+                            {selectedCategoryIds.includes(category.id) ? <Check size={13} /> : ''}
+                          </button>
                           {/* Category Name */}
                           <span className="font-medium text-sm flex-grow truncate text-dark-700 dark:text-dark-100">{category.name}</span>
                           {/* Rename button - only show in edit mode */}
-                          {!isProtected && (
+                          {!selectedCategoryIds.includes(category.id) && (
                             <button
                               type="button"
                               className="ml-2 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 bg-blue-100 text-primary-500 dark:bg-primary-500/10 dark:text-primary-500 hover:bg-blue-200 hover:text-primary-600 dark:hover:bg-primary-500/20 dark:hover:text-primary-400"
@@ -857,7 +846,6 @@ const DashboardPage: React.FC = () => {
                       </form>
                     )}
                     {sidebarCategories.slice(3).map((category) => {
-                      const isProtected = protectedCategories.includes(category.name);
                       return (
                         <div key={category.id} className="touch-none">
                           <div className="flex items-center group">
@@ -954,6 +942,12 @@ const DashboardPage: React.FC = () => {
                         // Navigate to the new category
                         setSelectedCategory(newCategoryId);
                         sessionStorage.setItem('lastSelectedCategory', newCategoryId);
+                        await cleanupEmptyCategories(idToken);
+                        const updatedCats = await fetchCategories(idToken);
+                        setCategories(updatedCats);
+                        const updatedMap: { [key: string]: string } = {};
+                        updatedCats.forEach((cat) => { updatedMap[cat.id] = cat.name; });
+                        setCategoryMap(updatedMap);
                       }}
                       thumbnail={entry.thumbnail}
                       platform={entry.platform}
@@ -1018,14 +1012,14 @@ const DashboardPage: React.FC = () => {
                     ));
                     setCategories(prev => prev.filter(cat => !categoriesToDelete.map(c => c.id).includes(cat.id)));
                     setCategoryMap(prev => {
-                      const newMap = { ...prev };
+                      const newMap: { [key: string]: string } = { ...prev };
                       categoriesToDelete.forEach(cat => { delete newMap[cat.id]; });
                       return newMap;
                     });
                     setSelectedCategoryIds([]);
                     const cats = await fetchCategories(idToken);
                     setCategories(cats);
-                    const map = {};
+                    const map: { [key: string]: string } = {};
                     cats.forEach((cat) => { map[cat.id] = cat.name; });
                     setCategoryMap(map);
                     const data = await fetchEntries(idToken);
@@ -1170,16 +1164,16 @@ const DashboardPage: React.FC = () => {
                   // Refresh categories and entries
                   const cats = await fetchCategories(idToken);
                   setCategories(cats);
-                  const map: { [id: string]: string } = {};
-                  cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
-                  setCategoryMap(map);
+                  const updatedMap: { [key: string]: string } = {};
+                  cats.forEach((cat: Category) => { updatedMap[cat.id] = cat.name; });
+                  setCategoryMap(updatedMap);
                   const data = await fetchEntries(idToken);
                   setEntries(data);
                   setShowRenameModal(false);
                   setRenameCategoryId(null);
                   setRenameCategoryName('');
-                } catch (err: any) {
-                  setRenameError(err.message || 'Failed to rename category.');
+                } catch (err: unknown) {
+                  setRenameError(err instanceof Error ? err.message : 'Failed to rename category.');
                 } finally {
                   setRenameLoading(false);
                 }
