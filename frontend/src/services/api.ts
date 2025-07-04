@@ -119,14 +119,14 @@ export async function deleteEntry(idToken: string, entryId: string): Promise<any
   return await response.json();
 }
 
-export async function updateCategory(idToken: string, categoryId: string, newName: string): Promise<any> {
+export async function updateCategory(idToken: string, categoryId: string, updateData: any): Promise<any> {
   const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ name: newName }),
+    body: JSON.stringify(updateData),
   });
   if (!response.ok) {
     const errorData = await response.json();
