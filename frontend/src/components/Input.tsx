@@ -10,6 +10,7 @@ interface InputProps {
   required?: boolean;
   endIcon?: React.ReactNode;
   onEndIconClick?: () => void;
+  disabled?: boolean;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -21,7 +22,8 @@ const Input: React.FC<InputProps> = ({
   className = '',
   required = false,
   endIcon,
-  onEndIconClick
+  onEndIconClick,
+  disabled = false
 }) => {
   return (
     <div className={`${className}`}>
@@ -38,6 +40,7 @@ const Input: React.FC<InputProps> = ({
           value={value}
           onChange={onChange}
           required={required}
+          disabled={disabled}
           className="w-full pl-4 pr-16 py-3 border border-dark-300 dark:border-dark-700/60 rounded-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white/50 dark:bg-dark-800/60 backdrop-blur-sm shadow-sm text-dark-900 dark:text-dark-100 placeholder-dark-500"
         />
         {endIcon && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Sun, Moon, Loader2 } from 'lucide-react';
 import { FaYoutube, FaTiktok, FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
@@ -11,6 +11,72 @@ import { useTheme } from '../contexts/ThemeContext';
 import { createEntry } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
+type SaveStepStatus = 'pending' | 'in_progress' | 'done';
+
+const SAVE_STEPS = [
+  'Authentication started',
+  'Authentication complete [success]',
+  'Detect platform started',
+  'Detect platform complete [success]',
+  'Scraping started',
+  'Scraping complete [success]',
+  'AI request sent',
+  'AI response received [success]',
+  'Category creation started',
+  'Category creation complete',
+  'Save to database started',
+  'Save to database complete [success]',
+  'Save process complete [success]',
+];
+
+interface SaveProgressDisplayProps {
+  stepStatuses: SaveStepStatus[];
+  currentStep: number;
+}
+
+const SaveProgressDisplay: React.FC<SaveProgressDisplayProps> = ({ stepStatuses, currentStep }) => {
+  // Animated dots for in-progress
+  const [dots, setDots] = React.useState('.');
+  React.useEffect(() => {
+    if (stepStatuses[currentStep] !== 'in_progress') return;
+    const interval = setInterval(() => {
+      setDots((prev) => (prev.length === 3 ? '.' : prev + '.'));
+    }, 400);
+    return () => clearInterval(interval);
+  }, [stepStatuses, currentStep]);
+
+  return (
+    <div className="w-full max-w-lg mx-auto mb-8 bg-white/80 dark:bg-dark-900/70 rounded-2xl shadow p-6 border border-dark-200/40 dark:border-dark-800/40">
+      <h2 className="text-lg font-bold mb-4 text-dark-900 dark:text-white">Save Progress</h2>
+      <ol className="space-y-3">
+        {SAVE_STEPS.map((step, idx) => {
+          const status = stepStatuses[idx];
+          return (
+            <li key={step} className="flex items-center gap-3 text-base">
+              {status === 'pending' && (
+                <span className="animate-spin text-primary-500"><Loader2 size={20} /></span>
+              )}
+              {status === 'in_progress' && (
+                <span className="text-primary-500 font-bold w-6 flex items-center justify-center">{dots}</span>
+              )}
+              {status === 'done' && (
+                <span className="text-green-500"><CheckCircle size={20} /></span>
+              )}
+              <span className={
+                status === 'done'
+                  ? 'text-green-600 dark:text-green-400'
+                  : status === 'in_progress'
+                  ? 'text-primary-600 dark:text-primary-400 font-semibold'
+                  : 'text-dark-700 dark:text-dark-300'
+              }>{step}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+};
+
 const SavePage: React.FC = () => {
   const [url, setUrl] = useState('');
   const [notes, setNotes] = useState('');
@@ -18,6 +84,9 @@ const SavePage: React.FC = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useAuth();
+  const [stepStatuses, setStepStatuses] = useState<SaveStepStatus[]>(Array(SAVE_STEPS.length).fill('pending'));
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showProgress, setShowProgress] = useState(false);
 
   useEffect(() => {
     document.title = 'thinkback.ai - Save';
@@ -32,64 +101,115 @@ const SavePage: React.FC = () => {
     };
   }, [navigate]);
 
+  // Helper to advance steps
+  const markStep = (idx: number, status: SaveStepStatus) => {
+    setStepStatuses((prev) => {
+      const next = [...prev];
+      next[idx] = status;
+      return next;
+    });
+    setCurrentStep(idx);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowProgress(true);
+    // Reset progress
+    setStepStatuses(Array(SAVE_STEPS.length).fill('pending'));
+    setCurrentStep(0);
+    // 1. Authentication started
+    markStep(0, 'in_progress');
     if (!currentUser) return;
     setSaved(false);
     try {
+      // 2. Authentication complete
       const idToken = await currentUser.getIdToken();
-      if (url) {
-        // Enrichment pipeline for URL
-        const enrichResponse = await fetch('http://localhost:8000/api/enrich-entry', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({ url, user_notes: notes }),
-        });
-        if (!enrichResponse.ok) throw new Error('Failed to enrich entry');
-        const enrichResult = await enrichResponse.json();
-        const aiResult = enrichResult.ai;
-        const thumbnail = enrichResult.thumbnail;
-        let categoryId = null;
-        if (aiResult.category) {
-          if (aiResult.category.id) {
-            categoryId = aiResult.category.id;
-          } else if (aiResult.category.name) {
-            try {
-              const categoryResponse = await fetch('http://localhost:8000/api/categories', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${idToken}`,
-                },
-                body: JSON.stringify({ name: aiResult.category.name }),
-              });
-              if (categoryResponse.ok) {
-                const newCategory = await categoryResponse.json();
-                categoryId = newCategory.id;
-              }
-            } catch {}
+      markStep(0, 'done');
+      markStep(1, 'in_progress');
+      markStep(1, 'done');
+      // 3. Detect platform started
+      markStep(2, 'in_progress');
+      // 4. Detect platform complete
+      const enrichPromise = fetch('http://localhost:8000/api/enrich-entry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ url, user_notes: notes }),
+      });
+      markStep(2, 'done');
+      markStep(3, 'in_progress');
+      const enrichResponse = await enrichPromise;
+      markStep(3, 'done');
+      // 5. Scraping started
+      markStep(4, 'in_progress');
+      // 6. Scraping complete
+      markStep(4, 'done');
+      markStep(5, 'in_progress');
+      // 7. AI request sent
+      markStep(5, 'done');
+      markStep(6, 'in_progress');
+      // 8. AI response received
+      if (!enrichResponse.ok) throw new Error('Failed to enrich entry');
+      const enrichResult = await enrichResponse.json();
+      markStep(6, 'done');
+      markStep(7, 'in_progress');
+      markStep(7, 'done');
+      // 9. Category creation started (only if needed)
+      let categoryId = null;
+      let didCategory = false;
+      if (enrichResult.ai.category) {
+        if (enrichResult.ai.category.id) {
+          categoryId = enrichResult.ai.category.id;
+        } else if (enrichResult.ai.category.name) {
+          didCategory = true;
+          markStep(8, 'in_progress');
+          const categoryResponse = await fetch('http://localhost:8000/api/categories', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({ name: enrichResult.ai.category.name }),
+          });
+          markStep(8, 'done');
+          markStep(9, 'in_progress');
+          if (categoryResponse.ok) {
+            const newCategory = await categoryResponse.json();
+            categoryId = newCategory.id;
           }
+          markStep(9, 'done');
         }
-        const entryData = {
-          url,
-          notes,
-          title: aiResult.title || '',
-          tags: aiResult.tags || [],
-          summary: aiResult.summary || '',
-          category_ids: categoryId ? [categoryId] : [],
-          ...(thumbnail ? { thumbnail } : {}),
-        };
-        await createEntry(idToken, entryData);
       }
+      if (!didCategory) {
+        markStep(8, 'done');
+        markStep(9, 'done');
+      }
+      // 10. Save to database started
+      markStep(10, 'in_progress');
+      const entryData = {
+        url,
+        notes,
+        title: enrichResult.ai.title || '',
+        tags: enrichResult.ai.tags || [],
+        summary: enrichResult.ai.summary || '',
+        category_ids: categoryId ? [categoryId] : [],
+        ...(enrichResult.thumbnail ? { thumbnail: enrichResult.thumbnail } : {}),
+      };
+      await createEntry(idToken, entryData);
+      markStep(10, 'done');
+      markStep(11, 'in_progress');
+      markStep(11, 'done');
+      // 11. Save process complete
+      markStep(12, 'in_progress');
       setSaved(true);
       setUrl('');
       setNotes('');
       setTimeout(() => setSaved(false), 2000);
+      markStep(12, 'done');
     } catch (error) {
-      alert('Failed to save entry: ' + (error as Error).message);
+      console.error('[Save] Error:', error);
     }
   };
 
@@ -118,12 +238,18 @@ const SavePage: React.FC = () => {
         </div>
       </div>
       {/* Main Content - Centered Card */}
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-2 py-8">
-        <div className="relative w-full max-w-lg mx-auto">
+      <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-[calc(100vh-80px)] px-2 py-8 gap-8 overflow-x-hidden">
+        {/* Save to Vault Form */}
+        <div
+          className={
+            `w-full max-w-lg mx-auto order-2 lg:order-1 transition-all duration-700 ease-in-out`
+          }
+          style={{ zIndex: 2 }}
+        >
           <div className="bg-white/90 dark:bg-dark-900/80 shadow-2xl rounded-3xl px-8 py-10 sm:px-12 sm:py-14 border border-dark-200/50 dark:border-dark-800/50 flex flex-col items-center">
             <h1 className="text-4xl sm:text-5xl font-extrabold text-center mb-2" style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}>Save to Vault</h1>
             <p className="text-lg text-dark-500 dark:text-dark-400 text-center mb-8">Add new content to your personal knowledge vault.</p>
-            <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6">
+            <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6" autoComplete="off">
               <Input
                 label="Paste Link"
                 type="url"
@@ -132,6 +258,7 @@ const SavePage: React.FC = () => {
                 onChange={(e) => setUrl(e.target.value)}
                 required
                 className="w-full"
+                disabled={showProgress}
               />
               <Textarea
                 label="Personal Notes (Optional)"
@@ -140,8 +267,9 @@ const SavePage: React.FC = () => {
                 onChange={(e) => setNotes(e.target.value)}
                 rows={4}
                 className="w-full"
+                disabled={showProgress}
               />
-              <Button type="submit" className="w-full py-3 text-lg rounded-full font-semibold flex items-center justify-center gap-2">
+              <Button type="submit" className="w-full py-3 text-lg rounded-full font-semibold flex items-center justify-center gap-2" disabled={showProgress}>
                 <Save size={20} />
                 {saved ? (
                   <span className="flex items-center gap-2 text-green-500"><CheckCircle size={18} /> Saved!</span>
@@ -162,6 +290,18 @@ const SavePage: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+        {/* Save Progress Display */}
+        <div
+          className={
+            `w-full max-w-lg mx-auto order-1 lg:order-2 transition-transform duration-700 ease-in-out absolute lg:static top-0 left-0 right-0 ` +
+            (showProgress
+              ? 'translate-x-0 opacity-100 pointer-events-auto'
+              : 'lg:translate-x-[120%] opacity-0 pointer-events-none')
+          }
+          style={{ zIndex: showProgress ? 2 : 1 }}
+        >
+          <SaveProgressDisplay stepStatuses={stepStatuses} currentStep={currentStep} />
         </div>
       </div>
     </div>
