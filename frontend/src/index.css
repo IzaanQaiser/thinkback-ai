@@ -62,3 +62,27 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
 .hide-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+/* Premium modal scrollbar for category reassignment modal */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  border-radius: 8px;
+  background: #232b36; /* Match dark modal bg */
+  transition: opacity 0.2s;
+  opacity: 0;
+}
+.custom-scrollbar:hover::-webkit-scrollbar,
+.custom-scrollbar:active::-webkit-scrollbar,
+.custom-scrollbar:focus::-webkit-scrollbar {
+  opacity: 1;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 8px;
+  margin: 4px;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #374151 #232b36;
+  padding-right: 8px;
+}
