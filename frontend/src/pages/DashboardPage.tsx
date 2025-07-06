@@ -499,7 +499,8 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
+    <div className="fixed inset-0 w-full h-full bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white flex flex-col">
+      {/* Sticky Navbar */}
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
         <div className="max-w-screen-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -525,8 +526,9 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-screen-2xl mx-auto px-6 py-10">
-        <div className="mb-8">
+      {/* Sticky Search Bar */}
+      <div className="sticky top-[64px] z-20 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/30 dark:border-dark-800/30">
+        <div className="max-w-screen-2xl mx-auto px-6 py-4">
           <div className="relative">
             <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
@@ -535,7 +537,6 @@ const DashboardPage: React.FC = () => {
               </div>
               <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
             </div>
-
             {/* Search Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <div
@@ -586,310 +587,314 @@ const DashboardPage: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
 
-        <div className="flex flex-col lg:flex-row lg:space-x-8 min-h-screen h-screen">
-          <aside className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0 h-screen overflow-y-auto hide-scrollbar overflow-x-hidden">
-            <div className="sticky top-0 flex flex-col gap-6">
-              {/* Quick Access Box - only heading */}
-              <div className="flex flex-col space-y-1">
-                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50 mt-0">
-                  <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Quick Access</h2>
-                  <button
-                    className={isQuickAccessEditMode
-                      ? "p-1 rounded-full border-2 border-blue-500 text-blue-500 bg-transparent transition-all duration-150 flex items-center justify-center w-8 h-8 hover:bg-blue-500 hover:text-white active:bg-blue-600 active:text-white focus:outline-none"
-                      : "p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
-                    }
-                    title={isQuickAccessEditMode ? 'Done' : 'Edit Quick Access'}
-                    onClick={() => {
-                      setIsQuickAccessEditMode((v) => {
-                        if (!v) setIsCategoryEditMode(false);
-                        return !v;
-                      });
-                    }}
-                  >
-                    {isQuickAccessEditMode ? (
-                      <Check size={20} />
-                    ) : (
-                      <Pencil size={20} className="text-gray-600 dark:text-white" />
-                    )}
-                  </button>
-                </div>
-                {sidebarCategories.slice(0, 3).map((category) => {
-                  const isVisible = quickAccessVisibility[category.name as 'Recent' | 'All' | 'Favorites'];
-                  if (isQuickAccessEditMode) {
-                    return (
-                      <div key={category.id} className="touch-none flex items-center group">
-                        <button
-                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
-                          disabled={isCategoryEditMode || isQuickAccessEditMode}
-                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
-                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
-                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
-                        >
-                          <div className="flex items-center space-x-3 text-left w-full">
-                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
-                          </div>
-                        </button>
-                        <button
-                          className={`ml-2 px-3 py-1 min-w-[72px] rounded-full text-xs font-semibold border transition-colors duration-150
-                            ${isVisible
-                              ? 'border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/60 hover:text-white'
-                              : 'border-green-500 bg-green-500/20 text-green-500 hover:bg-green-500/60 hover:text-white'}
-                          `}
-                          onClick={() => setQuickAccessVisibility((prev) => ({ ...prev, [category.name]: !isVisible }))}
-                        >
-                          {isVisible ? 'HIDE' : 'SHOW'}
-                        </button>
-                      </div>
-                    );
-                  } else if (isVisible) {
-                    return (
-                      <div key={category.id} className="touch-none flex items-center group">
-                        <button
-                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
-                          disabled={isCategoryEditMode || isQuickAccessEditMode}
-                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
-                            ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
-                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
-                        >
-                          <div className="flex items-center space-x-3 text-left w-full">
-                            <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
-                          </div>
-                        </button>
-                      </div>
-                    );
-                  } else {
-                    return null;
+      {/* Main Content Layout: Sidebar + Entry Section */}
+      <div className="flex flex-1 min-h-0 max-w-screen-2xl mx-auto w-full px-6 py-0 gap-8">
+        {/* Sidebar: Quick Access & Categories */}
+        <aside className="w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8">
+          <div className="flex flex-col gap-6">
+            {/* Quick Access Box - only heading */}
+            <div className="flex flex-col space-y-1">
+              <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50 mt-0">
+                <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Quick Access</h2>
+                <button
+                  className={isQuickAccessEditMode
+                    ? "p-1 rounded-full border-2 border-blue-500 text-blue-500 bg-transparent transition-all duration-150 flex items-center justify-center w-8 h-8 hover:bg-blue-500 hover:text-white active:bg-blue-600 active:text-white focus:outline-none"
+                    : "p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
                   }
-                })}
-                {/* Platform Quick Access */}
-                {platformList.map((platform) => {
-                  const display = platformDisplay[platform] || { name: platform, icon: null };
-                  const isVisible = quickAccessVisibility[platform] !== false; // default to true if undefined
-                  if (isQuickAccessEditMode) {
-                    return (
-                      <div key={platform} className="touch-none flex items-center group">
-                        <button
-                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(`platform:${platform}`)}
-                          disabled={isCategoryEditMode || isQuickAccessEditMode}
-                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
-                            ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
-                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
-                          >
-                          <div className="flex items-center space-x-3 text-left w-full">
-                            <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
-                          </div>
-                        </button>
-                        <button
-                          className={`ml-2 px-3 py-1 min-w-[72px] rounded-full text-xs font-semibold border transition-colors duration-150
-                            ${isVisible
-                              ? 'border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/60 hover:text-white'
-                              : 'border-green-500 bg-green-500/20 text-green-500 hover:bg-green-500/60 hover:text-white'}
-                          `}
-                          onClick={() => setQuickAccessVisibility((prev) => ({ ...prev, [platform]: !isVisible }))}
-                        >
-                          {isVisible ? 'HIDE' : 'SHOW'}
-                        </button>
-                      </div>
-                    );
-                  } else if (isVisible) {
-                    return (
-                      <div key={platform} className="touch-none flex items-center group">
-                        <button
-                          onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(`platform:${platform}`)}
-                          disabled={isCategoryEditMode || isQuickAccessEditMode}
-                          aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                          className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
-                            ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
-                            ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
-                            ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
-                          >
-                          <div className="flex items-center space-x-3 text-left w-full">
-                            <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
-                          </div>
-                        </button>
-                      </div>
-                    );
-                  } else {
-                    return null;
-                  }
-                })}
+                  title={isQuickAccessEditMode ? 'Done' : 'Edit Quick Access'}
+                  onClick={() => {
+                    setIsQuickAccessEditMode((v) => {
+                      if (!v) setIsCategoryEditMode(false);
+                      return !v;
+                    });
+                  }}
+                >
+                  {isQuickAccessEditMode ? (
+                    <Check size={20} />
+                  ) : (
+                    <Pencil size={20} className="text-gray-600 dark:text-white" />
+                  )}
+                </button>
               </div>
-
-              {/* Categories Box - only heading and buttons */}
-              <div className={`flex flex-col space-y-1 mt-2 relative`}>
-                <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-2 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isCategoryEditMode && (
+              {sidebarCategories.slice(0, 3).map((category) => {
+                const isVisible = quickAccessVisibility[category.name as 'Recent' | 'All' | 'Favorites'];
+                if (isQuickAccessEditMode) {
+                  return (
+                    <div key={category.id} className="touch-none flex items-center group">
                       <button
-                        onClick={() => {
-                          // Gather selected categories for confirmation
-                          const cats = categories.filter(cat => selectedCategoryIds.includes(cat.id));
-                          if (cats.length > 0) {
-                            setCategoriesToDelete(cats);
-                            setShowDeleteConfirm(true);
-                          }
-                        }}
-                        className={`
-                          flex items-center justify-center
-                          rounded-xl border-2 transition-all duration-150
-                          px-4 py-1
-                          text-sm font-semibold
-                          border-red-500
-                          ${selectedCategoryIds.length === 0
-                            ? 'text-red-400 bg-transparent cursor-not-allowed hover:text-red-500'
-                            : 'text-red-500 bg-transparent hover:bg-red-500 hover:text-white'}
-                        `}
-                        title="Delete selected categories"
-                        disabled={selectedCategoryIds.length === 0}
+                        onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                        disabled={isCategoryEditMode || isQuickAccessEditMode}
+                        aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                          ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                          ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                          ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
                       >
-                        <Trash2 size={18} />
-                      </button>
-                    )}
-                    {isCategoryEditMode ? (
-                      <button
-                        onClick={() => setIsCategoryEditMode(false)}
-                        className="p-1 rounded-full border-2 border-blue-500 text-blue-500 bg-transparent transition-all duration-150 flex items-center justify-center w-8 h-8 hover:bg-blue-500 hover:text-white active:bg-blue-600 active:text-white focus:outline-none"
-                        title="Done"
-                      >
-                        <Check size={22} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setIsCategoryEditMode((v) => {
-                            if (!v) setIsQuickAccessEditMode(false);
-                            return !v;
-                          });
-                        }}
-                        className="p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
-                        title="Edit categories"
-                      >
-                        <Pencil size={18} className="text-gray-600 dark:text-white" />
-                      </button>
-                    )}
-                    {!isCategoryEditMode && (
-                      <button
-                        onClick={() => setShowCategoryModal(true)}
-                        className="p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
-                        title="Add category"
-                      >
-                        <Plus size={18} className="text-gray-600 dark:text-white" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {/* Category List Edit Mode */}
-                {isCategoryEditMode && (
-                  <div className="flex flex-col gap-1 px-2 pb-2">
-                    {sidebarCategories.slice(3).map((category) => {
-                      return (
-                        <div
-                          key={category.id}
-                          className={`flex items-center rounded-lg px-2 py-1 transition-all duration-150 group relative`}
-                        >
-                          {/* Checkbox for selection */}
-                          <button
-                            type="button"
-                            className={`mr-2 w-5 h-5 flex items-center justify-center rounded-full border-2 transition-colors duration-150`}
-                            onClick={() => {
-                              setSelectedCategoryIds(prev =>
-                                prev.includes(category.id) ? prev.filter(id => id !== category.id) : [...prev, category.id]
-                              );
-                            }}
-                            aria-pressed={selectedCategoryIds.includes(category.id)}
-                            tabIndex={0}
-                          >
-                            {selectedCategoryIds.includes(category.id) ? <Check size={13} /> : ''}
-                          </button>
-                          {/* Category Name */}
-                          <span className="font-medium text-sm flex-grow truncate text-dark-700 dark:text-dark-100">{category.name}</span>
-                          {/* Rename button - only show in edit mode */}
-                          {!selectedCategoryIds.includes(category.id) && (
-                            <button
-                              type="button"
-                              className="ml-2 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 bg-blue-100 text-primary-500 dark:bg-primary-500/10 dark:text-primary-500 hover:bg-blue-200 hover:text-primary-600 dark:hover:bg-primary-500/20 dark:hover:text-primary-400"
-                              title="Rename category"
-                              onClick={() => {
-                                setRenameCategoryId(category.id);
-                                setRenameCategoryName(category.name);
-                                setShowRenameModal(true);
-                                setRenameError(null);
-                              }}
-                            >
-                              <Pencil size={15} />
-                            </button>
-                          )}
+                        <div className="flex items-center space-x-3 text-left w-full">
+                          <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {/* Normal Category List (not edit mode) */}
-                {!isCategoryEditMode && (
-                  <>
-                    {showAddCategory && (
-                      <form
-                        className="flex items-center gap-2 px-3 mb-2"
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          if (newCategoryName.trim()) {
-                            await saveNewCategory();
-                          }
-                        }}
-                        autoComplete="off"
+                      </button>
+                      <button
+                        className={`ml-2 px-3 py-1 min-w-[72px] rounded-full text-xs font-semibold border transition-colors duration-150
+                          ${isVisible
+                            ? 'border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/60 hover:text-white'
+                            : 'border-green-500 bg-green-500/20 text-green-500 hover:bg-green-500/60 hover:text-white'}
+                        `}
+                        onClick={() => setQuickAccessVisibility((prev: Record<string, boolean>) => ({ ...prev, [category.name]: !isVisible }))}
                       >
-                        <input
-                          type="text"
-                          className="flex-1 px-3 py-1 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                          placeholder="New category name"
-                          value={newCategoryName}
-                          autoFocus
-                          onChange={e => setNewCategoryName(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Escape') {
-                              setShowAddCategory(false);
-                              setNewCategoryName('');
-                            }
-                          }}
-                          disabled={addCategoryLoading}
-                        />
-                        {newCategoryName.trim() && (
-                          <button
-                            type="submit"
-                            className="p-1 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20"
-                            title="Save category"
-                            disabled={addCategoryLoading}
-                          >
-                            <Check size={16} />
-                          </button>
-                        )}
+                        {isVisible ? 'HIDE' : 'SHOW'}
+                      </button>
+                    </div>
+                  );
+                } else if (isVisible) {
+                  return (
+                    <div key={category.id} className="touch-none flex items-center group">
+                      <button
+                        onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                        disabled={isCategoryEditMode || isQuickAccessEditMode}
+                        aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                          ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                          ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                          ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                      >
+                        <div className="flex items-center space-x-3 text-left w-full">
+                          <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
+                        </div>
+                      </button>
+                    </div>
+                  );
+                } else {
+                  return null;
+                }
+              })}
+              {/* Platform Quick Access */}
+              {platformList.map((platform) => {
+                const display = platformDisplay[platform] || { name: platform, icon: null };
+                const isVisible = quickAccessVisibility[platform] !== false; // default to true if undefined
+                if (isQuickAccessEditMode) {
+                  return (
+                    <div key={platform} className="touch-none flex items-center group">
+                      <button
+                        onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(`platform:${platform}`)}
+                        disabled={isCategoryEditMode || isQuickAccessEditMode}
+                        aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                          ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                          ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                          ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                        >
+                        <div className="flex items-center space-x-3 text-left w-full">
+                          <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
+                        </div>
+                      </button>
+                      <button
+                        className={`ml-2 px-3 py-1 min-w-[72px] rounded-full text-xs font-semibold border transition-colors duration-150
+                          ${isVisible
+                            ? 'border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/60 hover:text-white'
+                            : 'border-green-500 bg-green-500/20 text-green-500 hover:bg-green-500/60 hover:text-white'}
+                        `}
+                        onClick={() => setQuickAccessVisibility((prev: Record<string, boolean>) => ({ ...prev, [platform]: !isVisible }))}
+                      >
+                        {isVisible ? 'HIDE' : 'SHOW'}
+                      </button>
+                    </div>
+                  );
+                } else if (isVisible) {
+                  return (
+                    <div key={platform} className="touch-none flex items-center group">
+                      <button
+                        onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(`platform:${platform}`)}
+                        disabled={isCategoryEditMode || isQuickAccessEditMode}
+                        aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
+                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                          ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
+                          ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
+                          ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
+                        >
+                        <div className="flex items-center space-x-3 text-left w-full">
+                          <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
+                        </div>
+                      </button>
+                    </div>
+                  );
+                } else {
+                  return null;
+                }
+              })}
+            </div>
+
+            {/* Categories Box - only heading and buttons */}
+            <div className={`flex flex-col space-y-1 mt-2 relative`}>
+              <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-2 mt-2 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xs text-dark-500 dark:text-dark-400 font-semibold uppercase tracking-wider">Categories</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isCategoryEditMode && (
+                    <button
+                      onClick={() => {
+                        // Gather selected categories for confirmation
+                        const cats = categories.filter(cat => selectedCategoryIds.includes(cat.id));
+                        if (cats.length > 0) {
+                          setCategoriesToDelete(cats);
+                          setShowDeleteConfirm(true);
+                        }
+                      }}
+                      className={`
+                        flex items-center justify-center
+                        rounded-xl border-2 transition-all duration-150
+                        px-4 py-1
+                        text-sm font-semibold
+                        border-red-500
+                        ${selectedCategoryIds.length === 0
+                          ? 'text-red-400 bg-transparent cursor-not-allowed hover:text-red-500'
+                          : 'text-red-500 bg-transparent hover:bg-red-500 hover:text-white'}
+                      `}
+                      title="Delete selected categories"
+                      disabled={selectedCategoryIds.length === 0}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  {isCategoryEditMode ? (
+                    <button
+                      onClick={() => setIsCategoryEditMode(false)}
+                      className="p-1 rounded-full border-2 border-blue-500 text-blue-500 bg-transparent transition-all duration-150 flex items-center justify-center w-8 h-8 hover:bg-blue-500 hover:text-white active:bg-blue-600 active:text-white focus:outline-none"
+                      title="Done"
+                    >
+                      <Check size={22} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setIsCategoryEditMode((v) => {
+                          if (!v) setIsQuickAccessEditMode(false);
+                          return !v;
+                        });
+                      }}
+                      className="p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
+                      title="Edit categories"
+                    >
+                      <Pencil size={18} className="text-gray-600 dark:text-white" />
+                    </button>
+                  )}
+                  {!isCategoryEditMode && (
+                    <button
+                      onClick={() => setShowCategoryModal(true)}
+                      className="p-1 rounded-full transition-all duration-150 text-white hover:bg-blue-100 hover:text-primary-500 hover:scale-110 dark:text-white dark:hover:bg-primary-500/10 dark:hover:text-primary-500 dark:hover:scale-110"
+                      title="Add category"
+                    >
+                      <Plus size={18} className="text-gray-600 dark:text-white" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {/* Category List Edit Mode */}
+              {isCategoryEditMode && (
+                <div className="flex flex-col gap-1 px-2 pb-2">
+                  {sidebarCategories.slice(3).map((category) => {
+                    return (
+                      <div
+                        key={category.id}
+                        className={`flex items-center rounded-lg px-2 py-1 transition-all duration-150 group relative`}
+                      >
+                        {/* Checkbox for selection */}
                         <button
                           type="button"
+                          className={`mr-2 w-5 h-5 flex items-center justify-center rounded-full border-2 transition-colors duration-150`}
                           onClick={() => {
+                            setSelectedCategoryIds(prev =>
+                              prev.includes(category.id) ? prev.filter(id => id !== category.id) : [...prev, category.id]
+                            );
+                          }}
+                          aria-pressed={selectedCategoryIds.includes(category.id)}
+                          tabIndex={0}
+                        >
+                          {selectedCategoryIds.includes(category.id) ? <Check size={13} /> : ''}
+                        </button>
+                        {/* Category Name */}
+                        <span className="font-medium text-sm flex-grow truncate text-dark-700 dark:text-dark-100">{category.name}</span>
+                        {/* Rename button - only show in edit mode */}
+                        {!selectedCategoryIds.includes(category.id) && (
+                          <button
+                            type="button"
+                            className="ml-2 w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 bg-blue-100 text-primary-500 dark:bg-primary-500/10 dark:text-primary-500 hover:bg-blue-200 hover:text-primary-600 dark:hover:bg-primary-500/20 dark:hover:text-primary-400"
+                            title="Rename category"
+                            onClick={() => {
+                              setRenameCategoryId(category.id);
+                              setRenameCategoryName(category.name);
+                              setShowRenameModal(true);
+                              setRenameError(null);
+                            }}
+                          >
+                            <Pencil size={15} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {/* Normal Category List (not edit mode) */}
+              {!isCategoryEditMode && (
+                <>
+                  {showAddCategory && (
+                    <form
+                      className="flex items-center gap-2 px-3 mb-2"
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (newCategoryName.trim()) {
+                          await saveNewCategory();
+                        }
+                      }}
+                      autoComplete="off"
+                    >
+                      <input
+                        type="text"
+                        className="flex-1 px-3 py-1 rounded-lg border border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-900 text-dark-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="New category name"
+                        value={newCategoryName}
+                        autoFocus
+                        onChange={e => setNewCategoryName(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Escape') {
                             setShowAddCategory(false);
                             setNewCategoryName('');
-                          }}
-                          className="p-1 rounded-full text-dark-400 hover:text-red-500"
-                          title="Cancel"
+                          }
+                        }}
+                        disabled={addCategoryLoading}
+                      />
+                      {newCategoryName.trim() && (
+                        <button
+                          type="submit"
+                          className="p-1 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20"
+                          title="Save category"
                           disabled={addCategoryLoading}
                         >
-                          <X size={16} />
+                          <Check size={16} />
                         </button>
-                      </form>
-                    )}
-                    {sidebarCategories.slice(3).map((category) => {
-                      return (
-                        <div key={category.id} className="touch-none">
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddCategory(false);
+                          setNewCategoryName('');
+                        }}
+                        className="p-1 rounded-full text-dark-400 hover:text-red-500"
+                        title="Cancel"
+                        disabled={addCategoryLoading}
+                      >
+                        <X size={16} />
+                      </button>
+                    </form>
+                  )}
+                  {sidebarCategories.slice(3).map((category) => {
+                    return (
+                      <React.Fragment key={category.id}>
+                        <div className="touch-none">
                           <div className="flex items-center group">
                             <button
                               onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
@@ -906,109 +911,116 @@ const DashboardPage: React.FC = () => {
                             {/* Rename button hidden in normal mode */}
                           </div>
                         </div>
-                      );
-                    })}
-                  </>
-                )}
-              </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </>
+              )}
             </div>
-          </aside>
-
-          <main className="flex-1 h-screen overflow-y-auto hide-scrollbar">
-            {mainHeading && <h2 className="text-2xl font-bold mb-8">{mainHeading}</h2>}
-            {loading ? (
-              <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>
-            ) : entriesToShow.length === 0 ? (
-              selectedCategory === 'Favorites' ? (
-                <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
-                  <span className="mb-6">
-                    <svg width="72" height="72" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-dark-400 dark:text-dark-500">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" />
-                    </svg>
-                  </span>
-                  <div className="text-2xl font-semibold mb-2">No favorites yet.</div>
-                  <div className="text-base text-dark-400 dark:text-dark-500 text-center max-w-xs">
-                    Click the <span className="inline align-text-bottom"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="inline text-dark-400 dark:text-dark-500 relative top-[2px]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" /></svg></span> icon on any entry to add it to your Favorites!
-                  </div>
+          </div>
+        </aside>
+        {/* Main Entry Section */}
+        <main className="flex-1 h-full overflow-y-auto hide-scrollbar pt-8 pb-8">
+          {mainHeading && (
+            <h2
+              className="text-2xl sm:text-3xl font-extrabold text-center mb-6"
+              style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}
+            >
+              {mainHeading}
+            </h2>
+          )}
+          {loading ? (
+            <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>
+          ) : entriesToShow.length === 0 ? (
+            selectedCategory === 'Favorites' ? (
+              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                <span className="mb-6">
+                  <svg width="72" height="72" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-dark-400 dark:text-dark-500">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" />
+                  </svg>
+                </span>
+                <div className="text-2xl font-semibold mb-2">No favorites yet.</div>
+                <div className="text-base text-dark-400 dark:text-dark-500 text-center max-w-xs">
+                  Click the <span className="inline align-text-bottom"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="inline text-dark-400 dark:text-dark-500 relative top-[2px]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" /></svg></span> icon on any entry to add it to your Favorites!
                 </div>
-              ) : selectedCategory === 'Recent' ? (
-                <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
-                  <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
-                  <div className="text-2xl font-semibold mb-2">No entries added in the last 8 hours.</div>
-                  <div className="text-base text-dark-400 dark:text-dark-500">
-                    Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
-                  <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
-                  <div className="text-2xl font-semibold mb-2">No entries found.</div>
-                  <div className="text-base text-dark-400 dark:text-dark-500">
-                    Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {entriesToShow.map((entry) => {
-                  // Map the first category ID to its name
-                  let categoryName = 'Unknown';
-                  let categoryId = undefined;
-                  if (entry.category_ids && entry.category_ids.length > 0 && categoryMap) {
-                    const catId = entry.category_ids[0];
-                    categoryName = categoryMap[catId] || 'Unknown';
-                    categoryId = catId;
-                  }
-                  return (
-                    <div
-                      key={entry.id}
-                      ref={(el) => {
-                        cardRefs.current[entry.id] = el;
-                      }}
-                    >
-                      <ContentCard
-                        id={entry.id}
-                        title={entry.title || 'Untitled'}
-                        url={entry.url}
-                        notes={entry.notes}
-                        summary={entry.summary}
-                        favorite={entry.favorite}
-                        createdAt={entry.created_at}
-                        category={categoryName}
-                        categoryId={categoryId}
-                        categories={categories}
-                        onCategoryChange={async (entryId, newCategoryId) => {
-                          if (!currentUser) return;
-                          const idToken = await currentUser.getIdToken();
-                          await updateEntry(idToken, entryId, { category_ids: [newCategoryId] });
-                          // Update local state
-                          setEntries((prev: Entry[]) => prev.map((e: Entry) =>
-                            e.id === entryId ? { ...e, category_ids: [newCategoryId] } : e
-                          ));
-                          // Navigate to the new category
-                          setSelectedCategory(newCategoryId);
-                          sessionStorage.setItem('lastSelectedCategory', newCategoryId);
-                          await cleanupEmptyCategories(idToken);
-                          const updatedCats = await fetchCategories(idToken);
-                          setCategories(updatedCats);
-                          const updatedMap: { [key: string]: string } = {};
-                          updatedCats.forEach((cat) => { updatedMap[cat.id] = cat.name; });
-                          setCategoryMap(updatedMap);
-                        }}
-                        thumbnail={entry.thumbnail}
-                        platform={entry.platform}
-                        isCarousel={entry.is_carousel}
-                        carouselCount={entry.carousel_count}
-                        description={entry.description}
-                        expandSummary={expandedSummaries[entry.id] || false}
-                      />
-                    </div>
-                  );
-                })}
               </div>
-            )}
-          </main>
-        </div>
+            ) : selectedCategory === 'Recent' ? (
+              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
+                <div className="text-2xl font-semibold mb-2">No entries added in the last 8 hours.</div>
+                <div className="text-base text-dark-400 dark:text-dark-500">
+                  Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+                <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
+                <div className="text-2xl font-semibold mb-2">No entries found.</div>
+                <div className="text-base text-dark-400 dark:text-dark-500">
+                  Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {entriesToShow.map((entry) => {
+                // Map the first category ID to its name
+                let categoryName = 'Unknown';
+                let categoryId = undefined;
+                if (entry.category_ids && entry.category_ids.length > 0 && categoryMap) {
+                  const catId = entry.category_ids[0];
+                  categoryName = categoryMap[catId] || 'Unknown';
+                  categoryId = catId;
+                }
+                return (
+                  <div
+                    key={entry.id}
+                    ref={(el) => {
+                      cardRefs.current[entry.id] = el;
+                    }}
+                  >
+                    <ContentCard
+                      id={entry.id}
+                      title={entry.title || 'Untitled'}
+                      url={entry.url}
+                      notes={entry.notes}
+                      summary={entry.summary}
+                      favorite={entry.favorite}
+                      createdAt={entry.created_at}
+                      category={categoryName}
+                      categoryId={categoryId}
+                      categories={categories}
+                      onCategoryChange={async (entryId, newCategoryId) => {
+                        if (!currentUser) return;
+                        const idToken = await currentUser.getIdToken();
+                        await updateEntry(idToken, entryId, { category_ids: [newCategoryId] });
+                        // Update local state
+                        setEntries((prev: Entry[]) => prev.map((e: Entry) =>
+                          e.id === entryId ? { ...e, category_ids: [newCategoryId] } : e
+                        ));
+                        // Navigate to the new category
+                        setSelectedCategory(newCategoryId);
+                        sessionStorage.setItem('lastSelectedCategory', newCategoryId);
+                        await cleanupEmptyCategories(idToken);
+                        const updatedCats = await fetchCategories(idToken);
+                        setCategories(updatedCats);
+                        const updatedMap: { [key: string]: string } = {};
+                        updatedCats.forEach((cat) => { updatedMap[cat.id] = cat.name; });
+                        setCategoryMap(updatedMap);
+                      }}
+                      thumbnail={entry.thumbnail}
+                      platform={entry.platform}
+                      isCarousel={entry.is_carousel}
+                      carouselCount={entry.carousel_count}
+                      description={entry.description}
+                      expandSummary={expandedSummaries[entry.id] || false}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </main>
       </div>
 
       {/* Delete Category Confirmation Modal */}
