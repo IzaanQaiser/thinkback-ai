@@ -21,6 +21,7 @@ interface ContentCardProps {
   isCarousel?: boolean;
   carouselCount?: number;
   description?: string;
+  expandSummary?: boolean;
 }
 
 const portraitPlatforms = [
@@ -29,7 +30,7 @@ const portraitPlatforms = [
   'TikTok Video',
 ];
 
-const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, favorite, category, categoryId, categories, onCategoryChange, thumbnail, platform, isCarousel, carouselCount, description, url }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, favorite, category, categoryId, categories, onCategoryChange, thumbnail, platform, isCarousel, carouselCount, description, url, expandSummary }) => {
   const { theme } = useTheme();
   const [seen, setSeen] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -188,7 +189,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
 
   return (
     <div
-      className="relative block bg-dark-100 dark:bg-dark-800/50 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[380px] flex flex-col cursor-pointer"
+      className="relative block bg-dark-100 dark:bg-dark-800/50 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[380px] flex flex-col h-full cursor-pointer"
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
@@ -258,20 +259,22 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
         </div>
       )}
       <div className="flex flex-col flex-1 justify-between h-full">
-        <div className="flex-1 p-5">
-      <div className="flex items-start space-x-4">
-            <div className="flex-grow">
+        <div className="flex-1 p-5 flex flex-col">
+          <div className="flex items-start space-x-4 h-full">
+            <div className="flex-grow flex flex-col flex-1 min-h-0 h-full">
               <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-3">{title}</h3>
               {platform && platform.toLowerCase().includes('instagram') && description && (
                 <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2 mb-1">
                   {description}
                 </p>
               )}
-              <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2">
-                {summary || notes}
-              </p>
+              <div className="flex-1 min-h-0 flex flex-col">
+                <p className={`text-sm text-dark-600 dark:text-dark-400 flex-1 min-h-0 overflow-hidden ${expandSummary ? '' : 'line-clamp-2'}`}>
+                  {summary || notes}
+                </p>
+              </div>
             </div>
-        </div>
+          </div>
         </div>
         <div className="pt-4 border-t border-dark-200/80 dark:border-dark-700/50 flex justify-between items-center px-5 pb-5" onClick={e => e.stopPropagation()}>
         <div className="flex items-center space-x-2 text-xs text-dark-500 dark:text-dark-400 relative">
