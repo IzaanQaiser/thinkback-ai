@@ -8,7 +8,7 @@ import Textarea from '../components/Textarea';
 import Button from '../components/Button';
 import Kbd from '../components/Kbd';
 import { useTheme } from '../contexts/ThemeContext';
-import { createEntry } from '../services/api';
+import { createEntry, fetchEntry, fetchCategories } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 type SaveStepStatus = 'pending' | 'in_progress' | 'done';
@@ -46,16 +46,17 @@ const SaveProgressDisplay: React.FC<SaveProgressDisplayProps> = ({ stepStatuses,
         {SAVE_STEPS.map((step, idx) => {
           const status = stepStatuses[idx];
           return (
-            <li key={step} className="flex items-center gap-3 text-base">
-              {status === 'pending' && (
-                <span className="animate-spin text-primary-500"><Loader2 size={20} /></span>
-              )}
-              {status === 'in_progress' && (
-                <span className="text-primary-500 font-bold w-6 flex items-center justify-center">{dots}</span>
-              )}
-              {status === 'done' && (
-                <span className="text-green-500"><CheckCircle size={20} /></span>
-              )}
+            <li key={step} className="flex items-center gap-3 text-base relative">
+              <span className="w-6 h-6 flex items-center justify-center relative">
+                {status === 'pending' && <Loader2 size={20} className="animate-spin text-primary-500" />}
+                {status === 'in_progress' && (
+                  <>
+                    <Loader2 size={20} className="invisible" />
+                    <span className="absolute inset-0 flex items-center justify-center text-primary-500 font-bold font-mono text-lg">{dots}</span>
+                  </>
+                )}
+                {status === 'done' && <CheckCircle size={20} className="text-green-500" />}
+              </span>
               <span className={
                 status === 'done'
                   ? 'text-green-600 dark:text-green-400'
@@ -82,6 +83,9 @@ const SavePage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const [lastSavedEntry, setLastSavedEntry] = useState<{ title?: string; category?: string; platform?: string; tags?: string[] } | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
 
   useEffect(() => {
     document.title = 'thinkback.ai - Save';
@@ -122,6 +126,7 @@ const SavePage: React.FC = () => {
     markStep(0, 'in_progress');
     if (!currentUser) return;
     setSaved(false);
+    setLastSavedEntry(null);
     try {
       const idToken = await currentUser.getIdToken();
       markStep(0, 'done');
@@ -148,11 +153,14 @@ const SavePage: React.FC = () => {
       // 4. Classification (category assignment)
       let categoryId = null;
       let didCategory = false;
+      let categoryName = '';
       if (enrichResult.ai.category) {
         if (enrichResult.ai.category.id) {
           categoryId = enrichResult.ai.category.id;
+          categoryName = enrichResult.ai.category.name || '';
         } else if (enrichResult.ai.category.name) {
           didCategory = true;
+          categoryName = enrichResult.ai.category.name;
           const categoryResponse = await fetch('http://localhost:8000/api/categories', {
             method: 'POST',
             headers: {
@@ -179,14 +187,36 @@ const SavePage: React.FC = () => {
         category_ids: categoryId ? [categoryId] : [],
         ...(enrichResult.thumbnail ? { thumbnail: enrichResult.thumbnail } : {}),
       };
-      await createEntry(idToken, entryData);
+      const savedEntry = await createEntry(idToken, entryData);
+      // Fetch the actual saved entry for accurate info
+      let entryForSummary = savedEntry;
+      if (!savedEntry.title || !savedEntry.category || !savedEntry.tags) {
+        entryForSummary = await fetchEntry(idToken, savedEntry.id);
+      }
+      // Fetch categories and build categoryMap
+      const cats = await fetchCategories(idToken);
+      setCategories(cats);
+      const map: { [id: string]: string } = {};
+      cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+      setCategoryMap(map);
+      // Resolve category name using category_ids
+      let summaryCategory = 'Uncategorized';
+      if (entryForSummary.category_ids && entryForSummary.category_ids.length > 0) {
+        const catId = entryForSummary.category_ids[0];
+        summaryCategory = map[catId] || 'Uncategorized';
+      }
       markStep(5, 'done');
       markStep(6, 'in_progress');
       // 6. Save Process
       setSaved(true);
+      setLastSavedEntry({
+        title: entryForSummary.title,
+        category: summaryCategory,
+        platform: entryForSummary.platform,
+        tags: entryForSummary.tags,
+      });
       setUrl('');
       setNotes('');
-      setTimeout(() => setSaved(false), 2000);
       markStep(6, 'done');
     } catch (error) {
       console.error('[Save] Error:', error);
@@ -194,7 +224,7 @@ const SavePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
       {/* Sticky Header/Navbar */}
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -217,16 +247,11 @@ const SavePage: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* Main Content - Centered Card */}
-      <div className="relative flex flex-col lg:flex-row items-center justify-center min-h-[calc(100vh-80px)] px-2 py-8 gap-8 overflow-x-hidden">
-        {/* Save to Vault Form */}
-        <div
-          className={
-            `w-full max-w-lg mx-auto order-2 lg:order-1 transition-all duration-700 ease-in-out`
-          }
-          style={{ zIndex: 2 }}
-        >
-          <div className="bg-white/90 dark:bg-dark-900/80 shadow-2xl rounded-3xl px-8 py-10 sm:px-12 sm:py-14 border border-dark-200/50 dark:border-dark-800/50 flex flex-col items-center">
+      {/* Main Content - Centered and Balanced */}
+      <div className="flex-1 flex items-start justify-center px-4 py-8">
+        <div className="flex flex-col lg:flex-row items-start justify-center gap-10 w-full max-w-5xl">
+          {/* Save to Vault Form */}
+          <div className="w-full max-w-md bg-white/90 dark:bg-dark-900/80 shadow-2xl rounded-3xl px-8 py-10 border border-dark-200/50 dark:border-dark-800/50 flex flex-col items-center">
             <h1 className="text-4xl sm:text-5xl font-extrabold text-center mb-2" style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}>Save to Vault</h1>
             <p className="text-lg text-dark-500 dark:text-dark-400 text-center mb-8">Add new content to your personal knowledge vault.</p>
             <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6" autoComplete="off">
@@ -252,11 +277,7 @@ const SavePage: React.FC = () => {
               />
               <Button type="submit" className="w-full py-3 text-lg rounded-full font-semibold flex items-center justify-center gap-2" disabled={showProgress}>
                 <Save size={20} />
-                {saved ? (
-                  <span className="flex items-center gap-2 text-green-500"><CheckCircle size={18} /> Saved!</span>
-                ) : (
-                  'Save to Vault'
-                )}
+                Save to Vault
               </Button>
             </form>
             {/* Supported Platforms */}
@@ -271,18 +292,35 @@ const SavePage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-        {/* Save Progress Display */}
-        <div
-          className={
-            `w-full max-w-lg mx-auto order-1 lg:order-2 transition-transform duration-700 ease-in-out absolute lg:static top-0 left-0 right-0 ` +
-            (showProgress
-              ? 'translate-x-0 opacity-100 pointer-events-auto'
-              : 'lg:translate-x-[120%] opacity-0 pointer-events-none')
-          }
-          style={{ zIndex: showProgress ? 2 : 1 }}
-        >
-          <SaveProgressDisplay stepStatuses={stepStatuses} currentStep={currentStep} />
+          {/* Save Progress Display - no box styling */}
+          <div className="w-full max-w-md flex flex-col items-start">
+            <SaveProgressDisplay stepStatuses={stepStatuses} currentStep={currentStep} />
+            {saved && (
+              <div className="w-full mt-6">
+                <div className="flex items-center gap-2 text-green-500 text-base font-semibold animate-fade-in-out mb-2">
+                  <CheckCircle size={20} /> Saved!
+                </div>
+                {lastSavedEntry && (
+                  <div className="rounded-2xl bg-green-100/60 dark:bg-green-900/20 border border-green-300/40 dark:border-green-800/40 p-5 mt-2">
+                    <div className="font-bold text-lg text-dark-900 dark:text-white mb-1">{lastSavedEntry.title}</div>
+                    <div className="text-sm text-dark-700 dark:text-dark-300 mb-1">
+                      <span className="font-semibold">Category:</span> {lastSavedEntry.category || 'Uncategorized'}
+                    </div>
+                    {lastSavedEntry.platform && (
+                      <div className="text-sm text-dark-700 dark:text-dark-300 mb-1">
+                        <span className="font-semibold">Platform:</span> {lastSavedEntry.platform}
+                      </div>
+                    )}
+                    {lastSavedEntry.tags && lastSavedEntry.tags.length > 0 && (
+                      <div className="text-sm text-dark-700 dark:text-dark-300">
+                        <span className="font-semibold">Tags:</span> {lastSavedEntry.tags.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
