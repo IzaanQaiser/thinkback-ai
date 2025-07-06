@@ -21,6 +21,8 @@ from datetime import datetime
 from ai import classify_entry, aggregate_entry_data, format_ai_prompt
 from scrapers.youtube import YouTubeScraper
 from scraper_factory import get_scraper
+import re
+from rapidfuzz import fuzz
 
 router = APIRouter()
 
@@ -378,6 +380,26 @@ def create_entry(
     final_title = truncate_title_at_trailing_hashtags(final_title)
     print(f"📝 Final title after hashtag truncation: {final_title}")
 
+    # Add normalization and fuzzy matching helpers
+
+    def normalize_category(name):
+        name = name.strip().lower()
+        # Remove trailing 's' for simple plural (e.g., motorsports -> motorsport)
+        if name.endswith("s") and not name.endswith("ss"):
+            name = name[:-1]
+        # Remove non-alphanumeric characters (optional, for even more robustness)
+        name = re.sub(r"[^a-z0-9 ]", "", name)
+        return name
+
+    def find_similar_category(new_cat_name, categories, threshold=90):
+        norm_new = normalize_category(new_cat_name)
+        for cat in categories:
+            norm_existing = normalize_category(cat["name"])
+            score = fuzz.ratio(norm_new, norm_existing)
+            if score >= threshold:
+                return cat
+        return None
+
     # Handle category (existing or new)
     category_id = None
     if "id" in ai_result["category"] and ai_result["category"]["id"]:
@@ -387,17 +409,16 @@ def create_entry(
             print(f"🏷️ Using existing category: {ai_result['category']['name']}")
     else:
         # AI returned a new category name or "Uncategorized"
-        new_cat_name = ai_result["category"]["name"].strip().lower()
-        existing = next(
-            (c for c in categories if c["name"].strip().lower() == new_cat_name), None
-        )
+        new_cat_name = ai_result["category"]["name"].strip()
+        # Use robust normalization and fuzzy matching
+        existing = find_similar_category(new_cat_name, categories)
         if existing:
             category_id = existing["id"]
             if "name" in existing:
-                print(f"🏷️ Found existing category: {existing['name']}")
+                print(f"🏷️ Found similar existing category: {existing['name']}")
         else:
             # Create new category
-            new_cat = {"name": ai_result["category"]["name"], "ai_generated": True}
+            new_cat = {"name": new_cat_name, "ai_generated": True}
             print(f"🏷️ Creating new category: {new_cat['name']}")
             new_cat_result = add_category_firebase(uid, new_cat)
             if not new_cat_result["success"]:

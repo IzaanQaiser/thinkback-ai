@@ -71,6 +71,8 @@ const DashboardPage: React.FC = () => {
     }
     return { Recent: true, All: true, Favorites: true };
   });
+  const [expandedSummaries, setExpandedSummaries] = useState<{ [key: string]: boolean }>({});
+  const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -455,6 +457,39 @@ const DashboardPage: React.FC = () => {
     }
   });
   const platformList = Object.keys(platformCounts).filter(p => platformCounts[p] > 0);
+
+  // Row-based tallest card detection for summary expansion
+  useEffect(() => {
+    if (entriesToShow.length === 0) return;
+
+    // Use a small delay to ensure all cards are rendered
+    const timeoutId = setTimeout(() => {
+      // Group cards by row using offsetTop
+      const rowMap: { [rowTop: number]: { id: string; height: number }[] } = {};
+      entriesToShow.forEach(entry => {
+        const cardElement = cardRefs.current[entry.id];
+        if (cardElement) {
+          const top = cardElement.offsetTop;
+          const height = cardElement.offsetHeight;
+          if (!rowMap[top]) rowMap[top] = [];
+          rowMap[top].push({ id: entry.id, height });
+        }
+      });
+
+      // For each row, find the tallest height
+      const newExpandedSummaries: { [key: string]: boolean } = {};
+      Object.values(rowMap).forEach(rowCards => {
+        const maxHeight = Math.max(...rowCards.map(c => c.height));
+        rowCards.forEach(card => {
+          // Only the tallest card(s) in the row get expandSummary=false
+          newExpandedSummaries[card.id] = card.height < maxHeight;
+        });
+      });
+      setExpandedSummaries(newExpandedSummaries);
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [entriesToShow]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
@@ -918,43 +953,49 @@ const DashboardPage: React.FC = () => {
                     categoryId = catId;
                   }
                   return (
-                    <ContentCard
+                    <div
                       key={entry.id}
-                      id={entry.id}
-                      title={entry.title || 'Untitled'}
-                      url={entry.url}
-                      notes={entry.notes}
-                      summary={entry.summary}
-                      tags={entry.tags || []}
-                      favorite={entry.favorite}
-                      createdAt={entry.created_at}
-                      category={categoryName}
-                      categoryId={categoryId}
-                      categories={categories}
-                      onCategoryChange={async (entryId, newCategoryId) => {
-                        if (!currentUser) return;
-                        const idToken = await currentUser.getIdToken();
-                        await updateEntry(idToken, entryId, { category_ids: [newCategoryId] });
-                        // Update local state
-                        setEntries(prevEntries => prevEntries.map(e =>
+                      ref={(el) => {
+                        cardRefs.current[entry.id] = el;
+                      }}
+                    >
+                      <ContentCard
+                        id={entry.id}
+                        title={entry.title || 'Untitled'}
+                        url={entry.url}
+                        notes={entry.notes}
+                        summary={entry.summary}
+                        favorite={entry.favorite}
+                        createdAt={entry.created_at}
+                        category={categoryName}
+                        categoryId={categoryId}
+                        categories={categories}
+                        onCategoryChange={async (entryId, newCategoryId) => {
+                          if (!currentUser) return;
+                          const idToken = await currentUser.getIdToken();
+                          await updateEntry(idToken, entryId, { category_ids: [newCategoryId] });
+                          // Update local state
+                                                  setEntries((prevEntries: Entry[]) => prevEntries.map((e: Entry) =>
                           e.id === entryId ? { ...e, category_ids: [newCategoryId] } : e
                         ));
-                        // Navigate to the new category
-                        setSelectedCategory(newCategoryId);
-                        sessionStorage.setItem('lastSelectedCategory', newCategoryId);
-                        await cleanupEmptyCategories(idToken);
-                        const updatedCats = await fetchCategories(idToken);
-                        setCategories(updatedCats);
-                        const updatedMap: { [key: string]: string } = {};
-                        updatedCats.forEach((cat) => { updatedMap[cat.id] = cat.name; });
-                        setCategoryMap(updatedMap);
-                      }}
-                      thumbnail={entry.thumbnail}
-                      platform={entry.platform}
-                      isCarousel={entry.is_carousel}
-                      carouselCount={entry.carousel_count}
-                      description={entry.description}
-                    />
+                          // Navigate to the new category
+                          setSelectedCategory(newCategoryId);
+                          sessionStorage.setItem('lastSelectedCategory', newCategoryId);
+                          await cleanupEmptyCategories(idToken);
+                          const updatedCats = await fetchCategories(idToken);
+                          setCategories(updatedCats);
+                          const updatedMap: { [key: string]: string } = {};
+                          updatedCats.forEach((cat) => { updatedMap[cat.id] = cat.name; });
+                          setCategoryMap(updatedMap);
+                        }}
+                        thumbnail={entry.thumbnail}
+                        platform={entry.platform}
+                        isCarousel={entry.is_carousel}
+                        carouselCount={entry.carousel_count}
+                        description={entry.description}
+                        expandSummary={expandedSummaries[entry.id] || false}
+                      />
+                    </div>
                   );
                 })}
               </div>
@@ -1007,7 +1048,7 @@ const DashboardPage: React.FC = () => {
                     for (const cat of categoriesToDelete) {
                       await deleteCategory(idToken, cat.id);
                     }
-                    setEntries(prev => prev.filter(entry =>
+                    setEntries((prev: Entry[]) => prev.filter((entry: Entry) =>
                       !entry.category_ids || !entry.category_ids.some(catId => categoriesToDelete.map(c => c.id).includes(catId))
                     ));
                     setCategories(prev => prev.filter(cat => !categoriesToDelete.map(c => c.id).includes(cat.id)));
@@ -1032,7 +1073,7 @@ const DashboardPage: React.FC = () => {
                     setCategoryToDelete(null);
                   }
                 }}
-                className="flex-1 h-12 rounded-2xl border-2 border-red-500 text-red-500 bg-transparent font-bold text-base transition-all shadow-sm hover:bg-red-500 hover:text-white active:bg-red-600 active:text-white focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="flex-1 h-12 rounded-2xl border-2 border-red-500 text-red-500 bg-transparent font-bold text-sm transition-all shadow-sm hover:bg-red-500 hover:text-white active:bg-red-600 active:text-white focus:outline-none focus:ring-2 focus:ring-red-400 whitespace-nowrap min-w-[320px] px-8"
               >
                 Delete {categoriesToDelete && categoriesToDelete.length > 1 ? 'Categories & Entries' : 'Category & Entries'}
               </button>

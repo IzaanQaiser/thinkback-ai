@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Sun, Moon, Loader2 } from 'lucide-react';
 import { FaYoutube, FaTiktok, FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
@@ -14,19 +14,13 @@ import { useAuth } from '../contexts/AuthContext';
 type SaveStepStatus = 'pending' | 'in_progress' | 'done';
 
 const SAVE_STEPS = [
-  'Authentication started',
-  'Authentication complete [success]',
-  'Detect platform started',
-  'Detect platform complete [success]',
-  'Scraping started',
-  'Scraping complete [success]',
-  'AI request sent',
-  'AI response received [success]',
-  'Category creation started',
-  'Category creation complete',
-  'Save to database started',
-  'Save to database complete [success]',
-  'Save process complete [success]',
+  'Authentication',
+  'Platform Detection',
+  'Scraping',
+  'AI Pipeline',
+  'Classification',
+  'Save to Database',
+  'Save Process',
 ];
 
 interface SaveProgressDisplayProps {
@@ -87,6 +81,7 @@ const SavePage: React.FC = () => {
   const [stepStatuses, setStepStatuses] = useState<SaveStepStatus[]>(Array(SAVE_STEPS.length).fill('pending'));
   const [currentStep, setCurrentStep] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
+  const urlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.title = 'thinkback.ai - Save';
@@ -101,6 +96,13 @@ const SavePage: React.FC = () => {
     };
   }, [navigate]);
 
+  useEffect(() => {
+    if (urlInputRef.current && !showProgress) {
+      urlInputRef.current.focus();
+      urlInputRef.current.select();
+    }
+  }, [showProgress]);
+
   // Helper to advance steps
   const markStep = (idx: number, status: SaveStepStatus) => {
     setStepStatuses((prev) => {
@@ -114,22 +116,17 @@ const SavePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowProgress(true);
-    // Reset progress
     setStepStatuses(Array(SAVE_STEPS.length).fill('pending'));
     setCurrentStep(0);
-    // 1. Authentication started
+    // 1. Authentication
     markStep(0, 'in_progress');
     if (!currentUser) return;
     setSaved(false);
     try {
-      // 2. Authentication complete
       const idToken = await currentUser.getIdToken();
       markStep(0, 'done');
       markStep(1, 'in_progress');
-      markStep(1, 'done');
-      // 3. Detect platform started
-      markStep(2, 'in_progress');
-      // 4. Detect platform complete
+      // 2. Platform Detection
       const enrichPromise = fetch('http://localhost:8000/api/enrich-entry', {
         method: 'POST',
         headers: {
@@ -138,25 +135,17 @@ const SavePage: React.FC = () => {
         },
         body: JSON.stringify({ url, user_notes: notes }),
       });
+      markStep(1, 'done');
+      markStep(2, 'in_progress');
+      const enrichResponse = await enrichPromise;
       markStep(2, 'done');
       markStep(3, 'in_progress');
-      const enrichResponse = await enrichPromise;
-      markStep(3, 'done');
-      // 5. Scraping started
-      markStep(4, 'in_progress');
-      // 6. Scraping complete
-      markStep(4, 'done');
-      markStep(5, 'in_progress');
-      // 7. AI request sent
-      markStep(5, 'done');
-      markStep(6, 'in_progress');
-      // 8. AI response received
+      // 3. AI Pipeline (enrichment)
       if (!enrichResponse.ok) throw new Error('Failed to enrich entry');
       const enrichResult = await enrichResponse.json();
-      markStep(6, 'done');
-      markStep(7, 'in_progress');
-      markStep(7, 'done');
-      // 9. Category creation started (only if needed)
+      markStep(3, 'done');
+      markStep(4, 'in_progress');
+      // 4. Classification (category assignment)
       let categoryId = null;
       let didCategory = false;
       if (enrichResult.ai.category) {
@@ -164,7 +153,6 @@ const SavePage: React.FC = () => {
           categoryId = enrichResult.ai.category.id;
         } else if (enrichResult.ai.category.name) {
           didCategory = true;
-          markStep(8, 'in_progress');
           const categoryResponse = await fetch('http://localhost:8000/api/categories', {
             method: 'POST',
             headers: {
@@ -173,21 +161,15 @@ const SavePage: React.FC = () => {
             },
             body: JSON.stringify({ name: enrichResult.ai.category.name }),
           });
-          markStep(8, 'done');
-          markStep(9, 'in_progress');
           if (categoryResponse.ok) {
             const newCategory = await categoryResponse.json();
             categoryId = newCategory.id;
           }
-          markStep(9, 'done');
         }
       }
-      if (!didCategory) {
-        markStep(8, 'done');
-        markStep(9, 'done');
-      }
-      // 10. Save to database started
-      markStep(10, 'in_progress');
+      markStep(4, 'done');
+      markStep(5, 'in_progress');
+      // 5. Save to Database
       const entryData = {
         url,
         notes,
@@ -198,16 +180,14 @@ const SavePage: React.FC = () => {
         ...(enrichResult.thumbnail ? { thumbnail: enrichResult.thumbnail } : {}),
       };
       await createEntry(idToken, entryData);
-      markStep(10, 'done');
-      markStep(11, 'in_progress');
-      markStep(11, 'done');
-      // 11. Save process complete
-      markStep(12, 'in_progress');
+      markStep(5, 'done');
+      markStep(6, 'in_progress');
+      // 6. Save Process
       setSaved(true);
       setUrl('');
       setNotes('');
       setTimeout(() => setSaved(false), 2000);
-      markStep(12, 'done');
+      markStep(6, 'done');
     } catch (error) {
       console.error('[Save] Error:', error);
     }
@@ -259,6 +239,7 @@ const SavePage: React.FC = () => {
                 required
                 className="w-full"
                 disabled={showProgress}
+                ref={urlInputRef}
               />
               <Textarea
                 label="Personal Notes (Optional)"
