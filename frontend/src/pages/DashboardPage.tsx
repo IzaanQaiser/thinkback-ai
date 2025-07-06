@@ -301,14 +301,14 @@ const DashboardPage: React.FC = () => {
       await deleteCategory(idToken, category.id);
 
       // Optimistically remove deleted categories from state
-      setCategories(prev => prev.filter(cat => !selectedCategoryIds.includes(cat.id)));
-      setCategoryMap(prev => {
+      setCategories((prev: Category[]) => prev.filter(cat => !selectedCategoryIds.includes(cat.id)));
+      setCategoryMap((prev: { [key: string]: string }) => {
         const newMap: { [key: string]: string } = { ...prev };
         selectedCategoryIds.forEach(id => { delete newMap[id]; });
         return newMap;
       });
       // Remove affected entries from local state (do NOT call deleteEntry)
-      setEntries(prev => prev.filter(entry =>
+      setEntries((prev: Entry[]) => prev.filter(entry =>
         !entry.category_ids || !entry.category_ids.some(catId => selectedCategoryIds.includes(catId))
       ));
       setSelectedCategoryIds([]);
@@ -490,6 +490,13 @@ const DashboardPage: React.FC = () => {
 
     return () => clearTimeout(timeoutId);
   }, [entriesToShow]);
+
+  useEffect(() => {
+    (window as any).setCategoriesFromOutside = (cats: Category[]) => setCategories(cats);
+    return () => {
+      delete (window as any).setCategoriesFromOutside;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
@@ -975,9 +982,9 @@ const DashboardPage: React.FC = () => {
                           const idToken = await currentUser.getIdToken();
                           await updateEntry(idToken, entryId, { category_ids: [newCategoryId] });
                           // Update local state
-                                                  setEntries((prevEntries: Entry[]) => prevEntries.map((e: Entry) =>
-                          e.id === entryId ? { ...e, category_ids: [newCategoryId] } : e
-                        ));
+                          setEntries((prev: Entry[]) => prev.map((e: Entry) =>
+                            e.id === entryId ? { ...e, category_ids: [newCategoryId] } : e
+                          ));
                           // Navigate to the new category
                           setSelectedCategory(newCategoryId);
                           sessionStorage.setItem('lastSelectedCategory', newCategoryId);
@@ -1051,8 +1058,8 @@ const DashboardPage: React.FC = () => {
                     setEntries((prev: Entry[]) => prev.filter((entry: Entry) =>
                       !entry.category_ids || !entry.category_ids.some(catId => categoriesToDelete.map(c => c.id).includes(catId))
                     ));
-                    setCategories(prev => prev.filter(cat => !categoriesToDelete.map(c => c.id).includes(cat.id)));
-                    setCategoryMap(prev => {
+                    setCategories((prev: Category[]) => prev.filter(cat => !categoriesToDelete.map(c => c.id).includes(cat.id)));
+                    setCategoryMap((prev: { [key: string]: string }) => {
                       const newMap: { [key: string]: string } = { ...prev };
                       categoriesToDelete.forEach(cat => { delete newMap[cat.id]; });
                       return newMap;

@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Folder, Star, Images, ExternalLink } from 'lucide-react';
+import { Folder, Star, Images, ExternalLink, Trash2 } from 'lucide-react';
 import { FaYoutube, FaReddit, FaInstagram, FaTiktok } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ContentCardProps {
     id: string;
@@ -41,6 +42,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
   const [categoryModalOpen, setCategoryModalOpen] = React.useState(false);
   const [skipNextNavigation, setSkipNextNavigation] = React.useState(false);
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+  const [deleteLoading, setDeleteLoading] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     // Listen for storage events to sync seen state across tabs
@@ -187,6 +192,40 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
     setSkipNextNavigation(true);
   }
 
+  async function handleDeleteEntry() {
+    if (!currentUser) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const idToken = await currentUser.getIdToken();
+      // @ts-ignore
+      const { deleteEntry, cleanupEmptyCategories, fetchCategories } = await import('../services/api');
+      await deleteEntry(idToken, id);
+      // Remove from dashboard state
+      if (typeof window !== 'undefined' && (window as any).removeEntryFromState) {
+        (window as any).removeEntryFromState(id);
+      }
+      // If this was the last entry in its category, trigger cleanup and update categories
+      if (categoryId && categories) {
+        const entriesInCategory = (window as any).getEntriesByCategoryId
+          ? (window as any).getEntriesByCategoryId(categoryId)
+          : null;
+        if (!entriesInCategory || entriesInCategory.length <= 1) {
+          await cleanupEmptyCategories(idToken);
+          if ((window as any).setCategoriesFromOutside) {
+            const updatedCats = await fetchCategories(idToken);
+            (window as any).setCategoriesFromOutside(updatedCats);
+          }
+        }
+      }
+      setShowDeleteModal(false);
+    } catch (err: any) {
+      setDeleteError(err.message || 'Failed to delete entry.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
   return (
     <div
       className="relative block bg-dark-100 dark:bg-dark-800/50 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[380px] flex flex-col h-full cursor-pointer"
@@ -331,7 +370,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
             </div>
           )}
         </div>
-        <div>
+        <div className="flex items-center gap-3">
           {seen ? (
             <button
               type="button"
@@ -353,9 +392,49 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
               UNSEEN
             </button>
           )}
+          {/* Delete Icon Button - now in bottom bar */}
+          <button
+            className="ml-2 p-1 rounded-full bg-white/80 dark:bg-dark-900/80 hover:bg-red-100 dark:hover:bg-red-900/80 transition-colors shadow-md flex items-center justify-center"
+            title="Delete entry"
+            onClick={e => { e.preventDefault(); e.stopPropagation(); setShowDeleteModal(true); }}
+            style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
+          >
+            <Trash2 size={18} className="text-white" />
+          </button>
         </div>
         </div>
       </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in-fast" onClick={() => setShowDeleteModal(false)}>
+          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md m-8 p-6 transform animate-slide-up-fast" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+                <Trash2 size={24} className="text-red-500" />
+              </div>
+              <h2 className="text-xl font-bold text-dark-900 dark:text-white">Delete Entry?</h2>
+            </div>
+            <p className="text-sm text-dark-600 dark:text-dark-300 mb-4">Are you sure you want to permanently delete "{title}"? This action cannot be undone.</p>
+            {deleteError && <div className="bg-red-500/10 text-red-500 dark:text-red-400 p-3 rounded-lg text-sm mb-3">{deleteError}</div>}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                className="px-4 py-2 rounded-full border border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-60"
+                onClick={handleDeleteEntry}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
