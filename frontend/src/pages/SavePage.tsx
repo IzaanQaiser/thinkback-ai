@@ -41,7 +41,12 @@ const SaveProgressDisplay: React.FC<SaveProgressDisplayProps> = ({ stepStatuses,
 
   return (
     <div className="w-full max-w-lg mx-auto mb-8 bg-white/80 dark:bg-dark-900/70 rounded-2xl shadow p-6 border border-dark-200/40 dark:border-dark-800/40">
-      <h2 className="text-lg font-bold mb-4 text-dark-900 dark:text-white">Save Progress</h2>
+      <h2
+        className="text-2xl sm:text-3xl font-extrabold text-center mb-2"
+        style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}
+      >
+        Save Progress
+      </h2>
       <ol className="space-y-3">
         {SAVE_STEPS.map((step, idx) => {
           const status = stepStatuses[idx];
@@ -282,8 +287,8 @@ const SavePage: React.FC = () => {
             </form>
             {/* Supported Platforms */}
             <div className="mt-10 flex flex-col items-center w-full">
-              <div className="text-sm text-dark-400 dark:text-dark-500 mb-2">Supported platforms</div>
-              <div className="flex items-center justify-center gap-6 text-2xl text-dark-400 dark:text-dark-500">
+              <div className="text-sm text-dark-400 dark:text-dark-500 mb-2 tracking-wider uppercase">Supported Platforms</div>
+              <div className="flex items-center justify-center gap-6 text-2xl text-dark-400 dark:text-dark-500 mt-4">
                 <FaYoutube />
                 <FaTiktok />
                 <FaReddit />

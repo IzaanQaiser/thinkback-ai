@@ -2,6 +2,8 @@ from dotenv import load_dotenv
 from typing import List, Dict, Any
 import textwrap
 import re
+from langdetect import detect
+from google.cloud import translate_v2 as translate
 
 load_dotenv()
 import os
@@ -9,6 +11,20 @@ import json
 from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+def ensure_english(text):
+    try:
+        if not text:
+            return text
+        if detect(text) != "en":
+            translate_client = translate.Client()
+            result = translate_client.translate(text, target_language="en")
+            return result["translatedText"]
+        return text
+    except Exception as e:
+        print(f"[Translation] Error: {e}")
+        return text
 
 
 def classify_entry(entry, categories):
@@ -54,6 +70,9 @@ def classify_entry(entry, categories):
             print(f"     Title: {result.get('title', 'N/A')}")
             print(f"     Tags: {result.get('tags', [])}")
             print(f"     Summary: {result.get('summary', 'N/A')[:50]}...")
+            # Ensure English for title and summary
+            result["title"] = ensure_english(result.get("title", ""))
+            result["summary"] = ensure_english(result.get("summary", ""))
             return result
         except Exception as e:
             print(f"   ⚠️ JSON parsing failed: {e}")
@@ -63,6 +82,9 @@ def classify_entry(entry, categories):
                 try:
                     result = json.loads(match.group(0))
                     print(f"   ✅ JSON extracted with regex")
+                    # Ensure English for title and summary
+                    result["title"] = ensure_english(result.get("title", ""))
+                    result["summary"] = ensure_english(result.get("summary", ""))
                     return result
                 except Exception as e2:
                     print(f"   ❌ Regex extraction also failed: {e2}")
