@@ -32,5 +32,5 @@ RUN mkdir -p /workspace/infrastructure/credentials
 # Expose the port
 EXPOSE 8080
 
-# Start the FastAPI app
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Start the FastAPI app using uvicorn
+CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8080}

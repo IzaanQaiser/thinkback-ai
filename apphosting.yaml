@@ -1,0 +1,32 @@
+runtime: python311
+entrypoint: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+
+env_variables:
+  PORT: "8080"
+
+build_env:
+  - name: GOOGLE_RUNTIME_VERSION
+    value: "python311"
+
+# Specify the source directory for the backend
+source:
+  dir: "backend"
+
+# Build configuration
+build:
+  steps:
+    - name: "gcr.io/cloud-builders/docker"
+      args: ["build", "-t", "thinkback-backend", "."]
+    - name: "gcr.io/cloud-builders/docker"
+      args: ["tag", "thinkback-backend", "gcr.io/$PROJECT_ID/thinkback-backend:$COMMIT_SHA"]
+
+# Service configuration
+service:
+  name: "thinkback-backend"
+  port: 8080
+  cpu: 1
+  memory: 512Mi
+  max_instances: 10
+  min_instances: 0
+  concurrency: 80
+  timeout_seconds: 300
