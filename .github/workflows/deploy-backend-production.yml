@@ -1,0 +1,36 @@
+name: Deploy Backend to Cloud Run (Production)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/thinkback-backend/thinkback-backend-production:${{ github.sha }} .
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/thinkback-backend/thinkback-backend-production:${{ github.sha }}
+
+      - name: Deploy to Cloud Run (production)
+        run: |
+          gcloud run deploy thinkback-backend-production \
+            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/thinkback-backend/thinkback-backend-production:${{ github.sha }} \
+            --region ${{ secrets.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --set-env-vars ${{ secrets.BACKEND_ENV_VARS_PRODUCTION }} 
