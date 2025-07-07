@@ -26,6 +26,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the entire project (including backend folder)
 COPY . .
 
+# Add backend to Python path for module imports
+ENV PYTHONPATH=/workspace/backend
+
 # Create directory for credentials (if not already present)
 RUN mkdir -p /workspace/infrastructure/credentials
 
