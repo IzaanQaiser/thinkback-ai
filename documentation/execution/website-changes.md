@@ -1,9 +1,6 @@
 ### website-changes
 changes needed:
-- automatically focus on URL input when save page is rendered
-- make personal notes feature work
 - auto-delete toggle (choose if you want a category autodeleted or not)
-- sort categories by date added + date accessed or alphabetical
 - autoselect next category when AI-generated category is deleted via sole-entry delete
 - loading screen should match light/dark mode
 - add the following to save page supported platforms:
