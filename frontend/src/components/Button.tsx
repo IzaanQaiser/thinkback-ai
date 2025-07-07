@@ -9,7 +9,7 @@ type ButtonProps = {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'login';
   disabled?: boolean;
 };
-// test 1
+// test
 const Button: React.FC<ButtonProps> = ({
   children,
   onClick,
