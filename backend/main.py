@@ -35,7 +35,9 @@ app = FastAPI(
 # CORS (Cross-Origin Resource Sharing)
 origins = [
     "http://localhost",
-    "http://localhost:5173",  # React frontend
+    "http://localhost:5173",
+    "https://thinkback.ca",  # Production frontend
+    "https://guacamole.thinkback.ca",  # Staging frontend (if needed)
 ]
 
 app.add_middleware(
