@@ -30,3 +30,6 @@ service:
   min_instances: 0
   concurrency: 80
   timeout_seconds: 300
+
+run:
+  dockerfile: Dockerfile
