@@ -33,4 +33,4 @@ RUN mkdir -p /workspace/infrastructure/credentials
 EXPOSE 8080
 
 # Start the FastAPI app
-CMD ["python", "backend/main.py"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
