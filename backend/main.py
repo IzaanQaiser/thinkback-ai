@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from router import router
 from firebase import initialize_firebase
 import re
+from starlette.responses import Response
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 # Always load .env from project root (one level up from backend/)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -45,6 +47,29 @@ origins = [
 
 # Custom CORS middleware to allow all preview subdomains for both staging and testing
 class CustomCORSMiddleware(CORSMiddleware):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        headers = dict(scope.get("headers") or [])
+        origin = None
+        for k, v in headers.items():
+            if k == b"origin":
+                origin = v.decode()
+                break
+        if origin and self.is_allowed_origin(origin):
+            # Patch the CORS headers for allowed origins
+            async def send_wrapper(message):
+                if message["type"] == "http.response.start":
+                    headers = dict(message["headers"])
+                    headers[b"access-control-allow-origin"] = origin.encode()
+                    headers[b"access-control-allow-credentials"] = b"true"
+                    message["headers"] = list(headers.items())
+                await send(message)
+            await super().__call__(scope, receive, send_wrapper)
+        else:
+            await super().__call__(scope, receive, send)
+
     def is_allowed_origin(self, origin: str) -> bool:
         if origin in origins:
             return True
