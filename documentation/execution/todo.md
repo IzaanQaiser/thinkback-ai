@@ -14,7 +14,7 @@
 - fix instagram pipeline
 - make linkedin pipeline
 - make running on localhost work again
-- youtube saving cookie thing
+- youtube saving cookie thing 
 
 
 ### youtube cookie stuff
