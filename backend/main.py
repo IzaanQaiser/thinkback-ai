@@ -8,6 +8,7 @@ from firebase import initialize_firebase
 import re
 from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.middleware.cors import ALL_METHODS
 
 # Always load .env from project root (one level up from backend/)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -46,19 +47,47 @@ origins = [
 ]
 
 # Custom CORS middleware to allow all preview subdomains for both staging and testing
-class CustomCORSMiddleware(CORSMiddleware):
+class CustomCORSMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
+
+        # Extract origin from headers
         headers = dict(scope.get("headers") or [])
         origin = None
         for k, v in headers.items():
             if k == b"origin":
                 origin = v.decode()
                 break
-        if origin and self.is_allowed_origin(origin):
-            # Patch the CORS headers for allowed origins
+
+        # Check if origin is allowed
+        is_allowed = False
+        if origin in origins:
+            is_allowed = True
+        elif origin and (re.match(r"^https://[a-z0-9-]+\.thinkback-ai-staging\.pages\.dev$", origin) or 
+                        re.match(r"^https://[a-z0-9-]+\.thinkback-ai-testing\.pages\.dev$", origin)):
+            is_allowed = True
+
+        # Handle OPTIONS preflight requests
+        if scope["method"] == "OPTIONS":
+            response_headers = {}
+            if is_allowed and origin:
+                response_headers.update({
+                    "access-control-allow-origin": origin,
+                    "access-control-allow-credentials": "true",
+                    "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+                    "access-control-allow-headers": "*",
+                })
+            response = Response(status_code=200, headers=response_headers)
+            await response(scope, receive, send)
+            return
+
+        # For non-OPTIONS requests, add CORS headers if origin is allowed
+        if is_allowed and origin:
             async def send_wrapper(message):
                 if message["type"] == "http.response.start":
                     headers = dict(message["headers"])
@@ -66,27 +95,11 @@ class CustomCORSMiddleware(CORSMiddleware):
                     headers[b"access-control-allow-credentials"] = b"true"
                     message["headers"] = list(headers.items())
                 await send(message)
-            await super().__call__(scope, receive, send_wrapper)
+            await self.app(scope, receive, send_wrapper)
         else:
-            await super().__call__(scope, receive, send)
+            await self.app(scope, receive, send)
 
-    def is_allowed_origin(self, origin: str) -> bool:
-        if origin in origins:
-            return True
-        # Allow all preview subdomains for staging and testing
-        if re.match(r"^https://[a-z0-9-]+\\.thinkback-ai-staging\\.pages\\.dev$", origin):
-            return True
-        if re.match(r"^https://[a-z0-9-]+\\.thinkback-ai-testing\\.pages\\.dev$", origin):
-            return True
-        return False
-
-app.add_middleware(
-    CustomCORSMiddleware,
-    allow_origins=origins,  # This is still required for the base class
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CustomCORSMiddleware)
 
 # Include router
 app.include_router(router)
