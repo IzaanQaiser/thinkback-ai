@@ -247,7 +247,8 @@ def create_entry(
         if scraper:
             print(f"   Using scraper: {scraper.__class__.__name__}")
             scraped_data = scraper.scrape(url)
-
+            if scraped_data and "error" in scraped_data:
+                raise HTTPException(status_code=400, detail=f"YouTube scrape error: {scraped_data['error']}")
             print(f"📊 Scraped Data Summary:")
             print(f"   Title: {scraped_data.get('title', 'N/A')}")
             print(f"   Type: {scraped_data.get('type', 'N/A')}")
@@ -1023,6 +1024,8 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
     print(f"   🔧 Using scraper: {scraper.__class__.__name__ if scraper else 'None'}")
 
     scraped_data = scraper.scrape(url) if scraper else {}
+    if scraped_data and "error" in scraped_data:
+        raise HTTPException(status_code=400, detail=f"YouTube scrape error: {scraped_data['error']}")
     print(
         f"   📊 Scraped data keys: {list(scraped_data.keys()) if scraped_data else 'None'}"
     )

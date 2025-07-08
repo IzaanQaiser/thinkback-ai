@@ -32,6 +32,9 @@ ENV PYTHONPATH=/workspace/backend
 # Create directory for credentials (if not already present)
 RUN mkdir -p /workspace/infrastructure/credentials
 
+# NOTE: youtube-cookies.txt must be present at backend/credentials/youtube-cookies.txt at build time.
+# It is recommended to inject this file via CI/CD secrets (see GitHub Actions workflow).
+
 # Expose the port
 EXPOSE 8080
 

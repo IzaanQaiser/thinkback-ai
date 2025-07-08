@@ -25,3 +25,5 @@ documentation/releases/v0.1/day-one/images
 frontend/node_modules
 frontend/dist
 frontend/.vite
+
+backend/credentials/youtube-cookies.txt

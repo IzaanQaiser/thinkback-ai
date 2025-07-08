@@ -3,6 +3,7 @@ import yt_dlp
 import requests
 import json
 import re
+import os
 
 
 def vtt_to_text(vtt_content: str) -> str:
@@ -39,52 +40,58 @@ def is_shorts_url(url: str) -> bool:
 
 class YouTubeScraper(BaseScraper):
     def scrape(self, url: str) -> dict:
+        # Path to the cookies file (relative to this file)
+        cookies_path = os.path.join(os.path.dirname(__file__), "../credentials/youtube-cookies.txt")
         ydl_opts = {
             "quiet": True,
             "skip_download": True,
             "writesubtitles": True,
             "writeautomaticsub": True,
+            "cookiefile": cookies_path,
         }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            title = info.get("title")
-            description = info.get("description")
-            metadata = {
-                "uploader": info.get("uploader"),
-                "upload_date": info.get("upload_date"),
-                "duration": info.get("duration"),
-                "view_count": info.get("view_count"),
-                "like_count": info.get("like_count"),
-                "channel_id": info.get("channel_id"),
-                "categories": info.get("categories"),
-                "tags": info.get("tags"),
-            }
-            transcript = None
-            subtitles = info.get("subtitles") or info.get("automatic_captions")
-            if subtitles:
-                for lang in ["en", "en-US", "en-GB"]:
-                    if lang in subtitles:
-                        captions_url = subtitles[lang][0]["url"]
-                        resp = requests.get(captions_url)
-                        if resp.ok:
-                            content = resp.text
-                            # Try to parse as JSON, else treat as VTT
-                            if content.strip().startswith("{"):
-                                transcript = youtube_json_to_text(content)
-                            else:
-                                transcript = vtt_to_text(content)
-                        break
-            thumbnail = info.get("thumbnail")
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                title = info.get("title")
+                description = info.get("description")
+                metadata = {
+                    "uploader": info.get("uploader"),
+                    "upload_date": info.get("upload_date"),
+                    "duration": info.get("duration"),
+                    "view_count": info.get("view_count"),
+                    "like_count": info.get("like_count"),
+                    "channel_id": info.get("channel_id"),
+                    "categories": info.get("categories"),
+                    "tags": info.get("tags"),
+                }
+                transcript = None
+                subtitles = info.get("subtitles") or info.get("automatic_captions")
+                if subtitles:
+                    for lang in ["en", "en-US", "en-GB"]:
+                        if lang in subtitles:
+                            captions_url = subtitles[lang][0]["url"]
+                            resp = requests.get(captions_url)
+                            if resp.ok:
+                                content = resp.text
+                                # Try to parse as JSON, else treat as VTT
+                                if content.strip().startswith("{"):
+                                    transcript = youtube_json_to_text(content)
+                                else:
+                                    transcript = vtt_to_text(content)
+                            break
+                thumbnail = info.get("thumbnail")
 
-            # Determine content type
-            content_type = "shorts" if is_shorts_url(url) else "video"
+                # Determine content type
+                content_type = "shorts" if is_shorts_url(url) else "video"
 
-            return {
-                "url": url,
-                "title": title,
-                "description": description,
-                "type": content_type,
-                "metadata": metadata,
-                "transcript": transcript,
-                "thumbnail": thumbnail,
-            }
+                return {
+                    "url": url,
+                    "title": title,
+                    "description": description,
+                    "type": content_type,
+                    "metadata": metadata,
+                    "transcript": transcript,
+                    "thumbnail": thumbnail,
+                }
+        except Exception as e:
+            return {"error": str(e)}

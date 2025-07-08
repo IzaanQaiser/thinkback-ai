@@ -92,6 +92,8 @@ const SavePage: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     document.title = 'thinkback.ai - Save';
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -137,7 +139,7 @@ const SavePage: React.FC = () => {
       markStep(0, 'done');
       markStep(1, 'in_progress');
       // 2. Platform Detection
-      const enrichPromise = fetch('http://localhost:8000/api/enrich-entry', {
+      const enrichPromise = fetch(`${API_URL}/api/enrich-entry`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,7 +168,7 @@ const SavePage: React.FC = () => {
         } else if (enrichResult.ai.category.name) {
           didCategory = true;
           categoryName = enrichResult.ai.category.name;
-          const categoryResponse = await fetch('http://localhost:8000/api/categories', {
+          const categoryResponse = await fetch(`${API_URL}/api/categories`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
