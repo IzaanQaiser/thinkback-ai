@@ -32,7 +32,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS (Cross-Origin Resource Sharing)
+# CORS (Cross-Origin Resource Sharing )
 origins = [
     "http://localhost",
     "http://localhost:5173",
