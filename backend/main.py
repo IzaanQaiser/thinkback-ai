@@ -39,16 +39,19 @@ origins = [
     "http://localhost:5173",
     "https://thinkback.ca",  # Production frontend
     "https://guacamole.thinkback.ca",  # Staging frontend (if needed)
+    "https://thinkback-ai-staging.pages.dev",
     "https://thinkback-ai-testing.pages.dev"
 ]
 
-# Custom CORS middleware to allow all preview subdomains
+# Custom CORS middleware to allow all preview subdomains for both staging and testing
 class CustomCORSMiddleware(CORSMiddleware):
     def is_allowed_origin(self, origin: str) -> bool:
         if origin in origins:
             return True
-        # Allow all preview subdomains for staging
+        # Allow all preview subdomains for staging and testing
         if re.match(r"^https://[a-z0-9-]+\\.thinkback-ai-staging\\.pages\\.dev$", origin):
+            return True
+        if re.match(r"^https://[a-z0-9-]+\\.thinkback-ai-testing\\.pages\\.dev$", origin):
             return True
         return False
 
