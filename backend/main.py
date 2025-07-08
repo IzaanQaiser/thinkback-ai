@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from router import router
 from firebase import initialize_firebase
+import re
 
 # Always load .env from project root (one level up from backend/)
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -41,9 +42,19 @@ origins = [
     "https://thinkback-ai-staging.pages.dev"
 ]
 
+# Custom CORS middleware to allow all preview subdomains
+class CustomCORSMiddleware(CORSMiddleware):
+    def is_allowed_origin(self, origin: str) -> bool:
+        if origin in origins:
+            return True
+        # Allow all preview subdomains for staging
+        if re.match(r"^https://[a-z0-9-]+\\.thinkback-ai-staging\\.pages\\.dev$", origin):
+            return True
+        return False
+
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
+    CustomCORSMiddleware,
+    allow_origins=origins,  # This is still required for the base class
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
