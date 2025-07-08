@@ -3,6 +3,7 @@ import yt_dlp
 import requests
 import json
 import re
+import os
 
 
 def vtt_to_text(vtt_content: str) -> str:
@@ -39,11 +40,14 @@ def is_shorts_url(url: str) -> bool:
 
 class YouTubeScraper(BaseScraper):
     def scrape(self, url: str) -> dict:
+        # Path to the cookies file (relative to this file)
+        cookies_path = os.path.join(os.path.dirname(__file__), "../credentials/youtube-cookies.txt")
         ydl_opts = {
             "quiet": True,
             "skip_download": True,
             "writesubtitles": True,
             "writeautomaticsub": True,
+            "cookiefile": cookies_path,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
