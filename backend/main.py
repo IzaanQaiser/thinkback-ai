@@ -39,7 +39,7 @@ origins = [
     "http://localhost:5173",
     "https://thinkback.ca",  # Production frontend
     "https://guacamole.thinkback.ca",  # Staging frontend (if needed)
-    "https://thinkback-ai-staging.pages.dev"
+    "https://thinkback-ai-testing.pages.dev"
 ]
 
 # Custom CORS middleware to allow all preview subdomains
