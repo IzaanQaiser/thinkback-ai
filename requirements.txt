@@ -56,7 +56,6 @@ typing-inspection==0.4.1
 typing_extensions==4.14.0
 urllib3==2.4.0
 uvicorn==0.34.3
-yarl==1.20.0
 zipp==3.22.0
 zmq==0.0.0
 google-api-python-client==2.174.0

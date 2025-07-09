@@ -1,4 +1,3 @@
-import yt_dlp
 import re
 import requests
 import json
@@ -399,104 +398,98 @@ class RedditScraper(BaseScraper):
 
         # Fallback to yt-dlp
         print(f"   🔄 JSON API failed, trying yt-dlp...")
-        ydl_opts = {
-            "quiet": True,
-            "skip_download": True,
-            "extract_flat": False,
-            "no_warnings": True,
-            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        }
+        raise NotImplementedError("yt_dlp-based Reddit scraping removed. Implement alternative if needed.")
 
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                print(f"   📥 Fetching Reddit post data via yt-dlp...")
-                info = ydl.extract_info(url, download=False)
+        # try:
+        #     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        #         print(f"   📥 Fetching Reddit post data via yt-dlp...")
+        #         info = ydl.extract_info(url, download=False)
 
-                if not info:
-                    print(f"   ❌ Failed to extract info from Reddit URL")
-                    return self._get_fallback_result(
-                        url, "Failed to extract info", url_title
-                    )
+        #         if not info:
+        #             print(f"   ❌ Failed to extract info from Reddit URL")
+        #             return self._get_fallback_result(
+        #                 url, "Failed to extract info", url_title
+        #             )
 
-                print(f"   ✅ Reddit post data extracted successfully via yt-dlp")
+        #         print(f"   ✅ Reddit post data extracted successfully via yt-dlp")
 
-                # Extract title and clean it
-                title = info.get("title", "")
-                cleaned_title = clean_reddit_title(title)
-                print(f"   📝 Original title: {title}")
-                print(f"   📝 Cleaned title: {cleaned_title}")
+        #         # Extract title and clean it
+        #         title = info.get("title", "")
+        #         cleaned_title = clean_reddit_title(title)
+        #         print(f"   📝 Original title: {title}")
+        #         print(f"   📝 Cleaned title: {cleaned_title}")
 
-                # Extract description (self text for text posts)
-                description = info.get("description", "")
-                if description:
-                    # Clean up description
-                    description = re.sub(r"\s+", " ", description).strip()
-                    print(f"   📄 Description length: {len(description)} chars")
+        #         # Extract description (self text for text posts)
+        #         description = info.get("description", "")
+        #         if description:
+        #             # Clean up description
+        #             description = re.sub(r"\s+", " ", description).strip()
+        #             print(f"   📄 Description length: {len(description)} chars")
 
-                # Extract metadata
-                metadata = extract_reddit_metadata(info)
-                print(f"   📊 Metadata extracted:")
-                print(f"     Subreddit: {metadata.get('subreddit', 'N/A')}")
-                print(f"     Author: {metadata.get('author', 'N/A')}")
-                print(f"     Score: {metadata.get('score', 'N/A')}")
-                print(f"     Comments: {metadata.get('comment_count', 'N/A')}")
-                print(f"     Is video: {metadata.get('is_video', False)}")
-                print(f"     Is self post: {metadata.get('is_self', False)}")
+        #         # Extract metadata
+        #         metadata = extract_reddit_metadata(info)
+        #         print(f"   📊 Metadata extracted:")
+        #         print(f"     Subreddit: {metadata.get('subreddit', 'N/A')}")
+        #         print(f"     Author: {metadata.get('author', 'N/A')}")
+        #         print(f"     Score: {metadata.get('score', 'N/A')}")
+        #         print(f"     Comments: {metadata.get('comment_count', 'N/A')}")
+        #         print(f"     Is video: {metadata.get('is_video', False)}")
+        #         print(f"     Is self post: {metadata.get('is_self', False)}")
 
-                # Get thumbnail
-                thumbnail = get_best_media_url(info)
-                if thumbnail:
-                    print(f"   🖼️ Thumbnail found: {thumbnail}")
-                else:
-                    print(f"   🖼️ No thumbnail available")
+        #         # Get thumbnail
+        #         thumbnail = get_best_media_url(info)
+        #         if thumbnail:
+        #             print(f"   🖼️ Thumbnail found: {thumbnail}")
+        #         else:
+        #             print(f"   🖼️ No thumbnail available")
 
-                # Determine content type
-                content_type = "video" if metadata.get("is_video") else "post"
-                if metadata.get("is_gallery"):
-                    content_type = "gallery"
-                elif metadata.get("is_self"):
-                    content_type = "text"
+        #         # Determine content type
+        #         content_type = "video" if metadata.get("is_video") else "post"
+        #         if metadata.get("is_gallery"):
+        #             content_type = "gallery"
+        #         elif metadata.get("is_self"):
+        #             content_type = "text"
 
-                print(f"   📋 Content type: {content_type}")
+        #         print(f"   📋 Content type: {content_type}")
 
-                # Extract hashtags and mentions from title and description
-                hashtags = []
-                mentions = []
+        #         # Extract hashtags and mentions from title and description
+        #         hashtags = []
+        #         mentions = []
 
-                # Look for hashtags in title and description
-                combined_text = f"{cleaned_title} {description}"
-                hashtag_pattern = r"#\w+"
-                hashtags = re.findall(hashtag_pattern, combined_text)
+        #         # Look for hashtags in title and description
+        #         combined_text = f"{cleaned_title} {description}"
+        #         hashtag_pattern = r"#\w+"
+        #         hashtags = re.findall(hashtag_pattern, combined_text)
 
-                # Look for Reddit mentions (u/username)
-                mention_pattern = r"u/\w+"
-                mentions = re.findall(mention_pattern, combined_text)
+        #         # Look for Reddit mentions (u/username)
+        #         mention_pattern = r"u/\w+"
+        #         mentions = re.findall(mention_pattern, combined_text)
 
-                if hashtags:
-                    print(f"   🏷️ Extracted hashtags: {hashtags}")
-                if mentions:
-                    print(f"   👥 Extracted mentions: {mentions}")
+        #         if hashtags:
+        #             print(f"   🏷️ Extracted hashtags: {hashtags}")
+        #         if mentions:
+        #             print(f"   👥 Extracted mentions: {mentions}")
 
-                result = {
-                    "url": url,
-                    "title": cleaned_title or title,  # Use cleaned title if available
-                    "description": description,
-                    "type": content_type,
-                    "metadata": metadata,
-                    "transcript": None,  # Reddit posts don't have transcripts
-                    "thumbnail": thumbnail,
-                    "hashtags": hashtags,
-                    "mentions": mentions,
-                }
+        #         result = {
+        #             "url": url,
+        #             "title": cleaned_title or title,  # Use cleaned title if available
+        #             "description": description,
+        #             "type": content_type,
+        #             "metadata": metadata,
+        #             "transcript": None,  # Reddit posts don't have transcripts
+        #             "thumbnail": thumbnail,
+        #             "hashtags": hashtags,
+        #             "mentions": mentions,
+        #         }
 
-                print(f"   ✅ Reddit scraping completed successfully")
-                return result
+        #         print(f"   ✅ Reddit scraping completed successfully")
+        #         return result
 
-        except Exception as e:
-            error_msg = f"Error scraping Reddit URL: {str(e)}"
-            print(f"   ❌ {error_msg}")
-            return self._get_fallback_result(url, error_msg, url_title)
-        return self._get_fallback_result(url, "All scraping methods failed", url_title)
+        # except Exception as e:
+        #     error_msg = f"Error scraping Reddit URL: {str(e)}"
+        #     print(f"   ❌ {error_msg}")
+        #     return self._get_fallback_result(url, error_msg, url_title)
+        # return self._get_fallback_result(url, "All scraping methods failed", url_title)
 
     def _get_fallback_result(
         self, url: str, error: str = "Unknown error", url_title: Optional[str] = None
