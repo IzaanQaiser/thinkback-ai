@@ -1,33 +1,27 @@
 from .base import BaseScraper
-import yt_dlp
 import requests
 import json
 import re
-import os
+from urllib.parse import urlparse, parse_qs
 
 
-def vtt_to_text(vtt_content: str) -> str:
-    lines = vtt_content.splitlines()
-    text_lines = []
-    for line in lines:
-        # Skip VTT headers, timestamps, and empty lines
-        if line.strip() == "" or "-->" in line or line.startswith("WEBVTT"):
-            continue
-        text_lines.append(line.strip())
-    return " ".join(text_lines)
-
-
-def youtube_json_to_text(json_str: str) -> str:
-    try:
-        data = json.loads(json_str)
-        text = []
-        for event in data.get("events", []):
-            for seg in event.get("segs", []):
-                if "utf8" in seg:
-                    text.append(seg["utf8"])
-        return "".join(text)
-    except Exception:
-        return ""
+def extract_video_id(url: str) -> str:
+    """Extract YouTube video ID from various URL formats."""
+    # Handle youtu.be URLs
+    if "youtu.be/" in url:
+        return url.split("youtu.be/")[1].split("?")[0]
+    
+    # Handle youtube.com URLs
+    if "youtube.com/watch" in url:
+        parsed = urlparse(url)
+        query_params = parse_qs(parsed.query)
+        return query_params.get("v", [""])[0]
+    
+    # Handle youtube.com/shorts URLs
+    if "youtube.com/shorts/" in url:
+        return url.split("youtube.com/shorts/")[1].split("?")[0]
+    
+    return ""
 
 
 def is_shorts_url(url: str) -> bool:
@@ -40,58 +34,87 @@ def is_shorts_url(url: str) -> bool:
 
 class YouTubeScraper(BaseScraper):
     def scrape(self, url: str) -> dict:
-        # Path to the cookies file (relative to this file)
-        cookies_path = os.path.join(os.path.dirname(__file__), "../credentials/youtube-cookies.txt")
-        ydl_opts = {
-            "quiet": True,
-            "skip_download": True,
-            "writesubtitles": True,
-            "writeautomaticsub": True,
-            "cookiefile": cookies_path,
+        """
+        Simple YouTube content scraping using only oEmbed API.
+        No authentication required, no transcript extraction.
+        """
+        print(f"🔍 Starting YouTube scraping for: {url}")
+        
+        video_id = extract_video_id(url)
+        if not video_id:
+            print(f"❌ Could not extract video ID from URL: {url}")
+            return {"error": "Could not extract video ID from URL"}
+        
+        print(f"📹 Video ID: {video_id}")
+        
+        # Initialize result structure
+        result = {
+            "url": url,
+            "title": None,
+            "channel": None,
+            "description": None,
+            "thumbnail": None,
+            "type": "shorts" if is_shorts_url(url) else "video",
+            "metadata": {}
         }
+        
+        # Use oEmbed API to get metadata
+        print("🔄 Fetching metadata via oEmbed API...")
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                title = info.get("title")
-                description = info.get("description")
-                metadata = {
-                    "uploader": info.get("uploader"),
-                    "upload_date": info.get("upload_date"),
-                    "duration": info.get("duration"),
-                    "view_count": info.get("view_count"),
-                    "like_count": info.get("like_count"),
-                    "channel_id": info.get("channel_id"),
-                    "categories": info.get("categories"),
-                    "tags": info.get("tags"),
+            oembed_url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+            print(f"   📡 Requesting: {oembed_url}")
+            
+            response = requests.get(oembed_url, timeout=10)
+            print(f"   📊 Response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                oembed_data = response.json()
+                print(f"   ✅ oEmbed data received successfully")
+                
+                # Extract data from oEmbed response
+                result["title"] = oembed_data.get("title")
+                result["channel"] = oembed_data.get("author_name")
+                result["thumbnail"] = oembed_data.get("thumbnail_url")
+                
+                # oEmbed doesn't provide description, so we'll leave it as None
+                # This is a limitation of the oEmbed API
+                
+                print(f"   📝 Title: {result['title']}")
+                print(f"   👤 Channel: {result['channel']}")
+                print(f"   🖼️ Thumbnail: {result['thumbnail']}")
+                
+                # Add some basic metadata
+                result["metadata"] = {
+                    "author_url": oembed_data.get("author_url"),
+                    "provider_name": oembed_data.get("provider_name"),
+                    "provider_url": oembed_data.get("provider_url"),
+                    "width": oembed_data.get("width"),
+                    "height": oembed_data.get("height"),
+                    "html": oembed_data.get("html"),  # Embed HTML
                 }
-                transcript = None
-                subtitles = info.get("subtitles") or info.get("automatic_captions")
-                if subtitles:
-                    for lang in ["en", "en-US", "en-GB"]:
-                        if lang in subtitles:
-                            captions_url = subtitles[lang][0]["url"]
-                            resp = requests.get(captions_url)
-                            if resp.ok:
-                                content = resp.text
-                                # Try to parse as JSON, else treat as VTT
-                                if content.strip().startswith("{"):
-                                    transcript = youtube_json_to_text(content)
-                                else:
-                                    transcript = vtt_to_text(content)
-                            break
-                thumbnail = info.get("thumbnail")
-
-                # Determine content type
-                content_type = "shorts" if is_shorts_url(url) else "video"
-
-                return {
-                    "url": url,
-                    "title": title,
-                    "description": description,
-                    "type": content_type,
-                    "metadata": metadata,
-                    "transcript": transcript,
-                    "thumbnail": thumbnail,
-                }
+                
+                print(f"   ✅ YouTube scraping completed successfully")
+                print(f"   🎯 Final result:")
+                print(f"      Title: {result.get('title', 'N/A')}")
+                print(f"      Channel: {result.get('channel', 'N/A')}")
+                print(f"      Type: {result.get('type', 'N/A')}")
+                print(f"      Thumbnail: {'✅' if result.get('thumbnail') else '❌'}")
+                
+                return result
+            else:
+                print(f"   ❌ oEmbed failed with status {response.status_code}")
+                print(f"   📄 Response content: {response.text[:200]}...")
+                return {"error": f"oEmbed API failed with status {response.status_code}"}
+                
+        except requests.exceptions.Timeout:
+            print(f"   ❌ oEmbed request timed out")
+            return {"error": "oEmbed request timed out"}
+        except requests.exceptions.RequestException as e:
+            print(f"   ❌ oEmbed request failed: {str(e)}")
+            return {"error": f"oEmbed request failed: {str(e)}"}
+        except json.JSONDecodeError as e:
+            print(f"   ❌ Failed to parse oEmbed JSON response: {str(e)}")
+            return {"error": f"Invalid JSON response from oEmbed API"}
         except Exception as e:
-            return {"error": str(e)}
+            print(f"   ❌ Unexpected error during oEmbed request: {str(e)}")
+            return {"error": f"Unexpected error: {str(e)}"}

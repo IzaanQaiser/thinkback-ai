@@ -44,6 +44,7 @@ class Entry(BaseModel):
     summary: Optional[str] = None  # AI-generated summary
     thumbnail: Optional[str] = None  # Add thumbnail field
     duration: Optional[int] = None  # Duration in seconds
+    channel: Optional[str] = None  # YouTube channel name
 
 
 class Collection(BaseModel):
@@ -251,12 +252,10 @@ def create_entry(
                 raise HTTPException(status_code=400, detail=f"YouTube scrape error: {scraped_data['error']}")
             print(f"📊 Scraped Data Summary:")
             print(f"   Title: {scraped_data.get('title', 'N/A')}")
+            print(f"   Channel: {scraped_data.get('channel', 'N/A')}")
             print(f"   Type: {scraped_data.get('type', 'N/A')}")
-            print(
-                f"   Description length: {len(scraped_data.get('description', ''))} chars"
-            )
-            print(f"   Hashtags: {scraped_data.get('hashtags', [])}")
-            print(f"   Mentions: {scraped_data.get('mentions', [])}")
+            description = scraped_data.get('description', '')
+            print(f"   Description length: {len(description) if description else 0} chars")
             print(f"   Thumbnail: {scraped_data.get('thumbnail', 'N/A')}")
 
             if (
@@ -279,6 +278,10 @@ def create_entry(
             if scraped_data.get("description"):
                 entry_dict["description"] = scraped_data["description"]
                 print(f"   ✅ Description (caption) saved: {entry_dict['description']}")
+            # Save channel information if present
+            if scraped_data.get("channel"):
+                entry_dict["channel"] = scraped_data["channel"]
+                print(f"   ✅ Channel saved: {entry_dict['channel']}")
         else:
             print(f"   ❌ No scraper found for platform: {platform}")
 
@@ -301,13 +304,25 @@ def create_entry(
 
     # Call the classification agent
     print(f"🤖 Starting AI enrichment...")
-    ai_result = classify_entry(saved_entry, categories)
+    
+    # For YouTube content, run AI classification but skip summary generation
+    if platform and platform.lower() in ["youtube video", "youtube shorts"]:
+        print(f"   📺 YouTube content detected - running AI classification without summary")
+        # Run AI classification but modify the result to remove summary
+        ai_result = classify_entry(saved_entry, categories)
+        # Remove summary for YouTube content
+        ai_result["summary"] = ""
+    else:
+        ai_result = classify_entry(saved_entry, categories)
 
     print(f"🧠 AI Enrichment Results:")
     print(f"   Category: {ai_result.get('category', {})}")
     print(f"   AI Title: {ai_result.get('title', 'N/A')}")
     print(f"   Tags: {ai_result.get('tags', [])}")
-    print(f"   Summary: {ai_result.get('summary', 'N/A')[:100]}...")
+    if ai_result.get('summary'):
+        print(f"   Summary: {ai_result.get('summary', 'N/A')[:100]}...")
+    else:
+        print(f"   Summary: Skipped (YouTube content)")
 
     # Helper to check if a title is nonsense/generic
     def is_nonsense_title(title, platform=None):

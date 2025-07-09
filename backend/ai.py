@@ -127,10 +127,17 @@ def aggregate_entry_data(
 
 
 def format_ai_prompt(entry: Dict[str, Any]) -> str:
-    # Truncate transcript if too long for prompt
-    transcript = entry.get("transcript") or ""
-    if transcript and len(transcript) > 2000:
-        transcript = transcript[:2000] + "..."
+    # For YouTube content, skip transcript processing
+    platform = entry.get("platform", "").lower()
+    if "youtube" in platform:
+        transcript = ""  # No transcript for YouTube
+        print(f"   📺 YouTube content detected - skipping transcript processing")
+    else:
+        # Truncate transcript if too long for prompt
+        transcript = entry.get("transcript") or ""
+        if transcript and len(transcript) > 2000:
+            transcript = transcript[:2000] + "..."
+    
     # Format categories for display with IDs
     categories_str = "\n".join(
         f"- {cat['name']} (ID: {cat['id']})" for cat in entry.get("categories", [])
@@ -139,11 +146,10 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     metadata = entry.get("metadata") or {}
     metadata_str = ", ".join(f"{k}: {v}" for k, v in metadata.items() if v)
 
-    # Add Instagram-specific guidance
-    platform = entry.get("platform", "").lower()
-    instagram_guidance = ""
+    # Add platform-specific guidance
+    platform_guidance = ""
     if "instagram" in platform:
-        instagram_guidance = """
+        platform_guidance = """
     INSTAGRAM-SPECIFIC GUIDANCE:
     - Instagram posts often have hashtags and mentions - focus on the core content
     - Look for the main message or theme beyond hashtags
@@ -154,8 +160,30 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
       * "New recipe for chocolate cake 🍰 #food #baking #dessert" → "Food" (not "Baking Recipes")
       * "Motivational quote about success #motivation #success #inspiration" → "Motivation" (not "Inspirational Quotes")
     """
+    elif "youtube" in platform:
+        platform_guidance = """
+    YOUTUBE-SPECIFIC GUIDANCE:
+    - Focus on the video title and channel information
+    - Use the video title as the primary source for categorization
+    - Consider the channel name as context for the content type
+    - No transcript available, so rely on title and metadata
+    - Examples:
+      * "How to Make Perfect Pasta" → "Cooking" (not "Pasta Tutorial")
+      * "NBA Highlights 2024" → "Basketball" (not "NBA Highlights")
+      * "React Tutorial for Beginners" → "Programming" (not "React Tutorial")
+    """
 
+    # Determine if we should generate summary based on platform
+    should_generate_summary = "youtube" not in platform.lower()
+    
     # Compose prompt
+    if should_generate_summary:
+        summary_instruction = "4. Generate a 3-5 sentence summary of the content that captures the key points and main takeaways."
+        summary_key = "summary (string with 3-5 sentences)"
+    else:
+        summary_instruction = "4. Skip summary generation for this content type."
+        summary_key = "summary (empty string)"
+    
     prompt = textwrap.dedent(
         f"""
     You are an AI assistant for a knowledge management app. Given the following entry and the list of existing categories, do the following:
@@ -164,7 +192,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
        - Create a NEW category name (1-2 words) that best describes the content topic/genre
     2. Generate a concise, specific title (4-5 words max) that captures the core topic of the content. Make it more specific and relevant than the original title.
     3. Generate up to 3 relevant tags.
-    4. Generate a 3-5 sentence summary of the content that captures the key points and main takeaways.
+    {summary_instruction}
 
     CATEGORIZATION RULES:
     - PREFER BROADER, SIMPLER categories over specific ones
@@ -178,7 +206,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
       * "Physics tutorial" → "Physics" (not "Physics Education")
       * "React programming guide" → "Programming" (not "React Tutorial")
       * "Tech company analysis" → "Technology" (not "Tech Analysis")
-    {instagram_guidance}
+    {platform_guidance}
 
     Entry:
     URL: {entry.get("url")}
@@ -195,7 +223,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
 
     IMPORTANT: Choose the BROADEST appropriate category that still accurately describes the content. Prefer simple, general categories over specific ones. If none of the existing categories match well (less than 50% similarity), create a NEW category name that best describes this content.
 
-    Respond in JSON with keys: category (object with id if matching existing category, or name if suggesting new category), title, tags (list of strings), summary (string with 3-5 sentences).
+    Respond in JSON with keys: category (object with id if matching existing category, or name if suggesting new category), title, tags (list of strings), {summary_key}.
     """
     )
     return prompt
