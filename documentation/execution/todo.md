@@ -3,18 +3,20 @@
 
 - buy cursor subscription ($46.54/month)
 - buy thinkback.ai domain ($134.62/year)
-- set up sendgrid
-- fix github thinkback logo in github authentication
-- github login issues
-- email login issues
-- fix thinkback name in google authentication
-- make help button better/have it lead to a youtube demo
+- allow people to have other (allowed) contacts send them and save content to their library
 
+### Working Alhamdulilah:
+- youtube shorts 
+- youtube videos
+- reddit post
+- x posts (but the title is not passing through)
 
-- fix instagram pipeline
-- make linkedin pipeline
-- make running on localhost work again
-- youtube saving cookie thing 
+### Not Working Alhamdulilah
+- TikToks
+- instagram posts
+- instagram reels
+- linkedin posts
+- linkedin jobs
 
 
 ### youtube cookie stuff
