@@ -159,6 +159,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
       // Remove protocol for images.weserv.nl
       return `https://images.weserv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//, ''))}`;
     }
+    // For YouTube thumbnails, we can use a proxy to potentially crop letterboxing
+    if (platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video'))) {
+      // Use images.weserv.nl with cropping parameters to remove letterboxing
+      const cleanUrl = url.replace(/^https?:\/\//, '');
+      return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&w=1280&h=720&fit=cover&output=jpg`;
+    }
     return url;
   }
 
@@ -293,10 +299,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              objectPosition: (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram'))) ? 'center' : undefined,
+              objectPosition: (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram'))) ? 'center' : 
+                (platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video'))) ? 'center' : undefined,
               borderRadius: platform === 'TikTok Video' ? '0 0 0.75rem 0.75rem' : '0.75rem',
               padding: undefined,
               margin: undefined,
+              // For YouTube videos, try to crop out letterboxing by focusing on the center
+              ...(platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) ? {
+                objectPosition: 'center',
+                objectFit: 'cover',
+              } : {}),
             }}
             loading="lazy"
           />
