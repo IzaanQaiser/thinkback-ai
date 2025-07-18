@@ -23,7 +23,6 @@
 
 
 - phase zero (160725 - 170725):
-    - Fix landing page copy, hooks, layout, responsiveness
     - Optimize SEO metadata (title, description, Open Graph image)
     - Create/clean up bios on:
         - LinkedIn
@@ -35,8 +34,6 @@
     - List out target subreddits and LinkedIn groups
     - pre-launch post on text socails
         - reddit
-        - X
-        - Linkedin
     - Record 30-sec MVP demo video from localhost
     - Embed demo video on landing page
 
