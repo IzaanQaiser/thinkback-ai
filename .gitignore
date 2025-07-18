@@ -20,7 +20,7 @@ backend/youtube-mention-to-save/client_secret_738547429797-f4mjii8t5bl6cp3qkfl7v
 # Documentation
 hidden.md
 documentation/releases/v0.1/day-one/images
-
+documentation/execution
 # Frontend
 frontend/node_modules
 frontend/dist

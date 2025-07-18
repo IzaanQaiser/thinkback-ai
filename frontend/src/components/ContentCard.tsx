@@ -17,12 +17,14 @@ interface ContentCardProps {
   categoryId?: string;
   categories?: { id: string; name: string }[];
   onCategoryChange?: (entryId: string, newCategoryId: string) => void;
+  onFavoriteToggle?: (entryId: string, newFavoriteState: boolean) => void;
   thumbnail?: string;
   platform?: string;
   isCarousel?: boolean;
   carouselCount?: number;
   description?: string;
   expandSummary?: boolean;
+  channel?: string;
 }
 
 const portraitPlatforms = [
@@ -31,7 +33,7 @@ const portraitPlatforms = [
   'TikTok Video',
 ];
 
-const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, favorite, category, categoryId, categories, onCategoryChange, thumbnail, platform, isCarousel, carouselCount, description, url, expandSummary }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, favorite, category, categoryId, categories, onCategoryChange, onFavoriteToggle, thumbnail, platform, isCarousel, carouselCount, description, url, expandSummary, channel }) => {
   const { theme } = useTheme();
   const [seen, setSeen] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -63,12 +65,29 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
     localStorage.setItem(`entry-seen-${id}`, 'true');
   }
 
+  // Check if this is a non-landscape portrait that should match YouTube Shorts format
   const isPortrait = portraitPlatforms.includes(platform || '');
+  const isYouTubeShorts = platform === 'YouTube Shorts';
+  
+  // All non-landscape portraits (except YouTube Shorts) should match YouTube Shorts format
+  const shouldUseShortsFormat = isPortrait && !isYouTubeShorts;
+  
   // For portrait platforms, use a taller aspect ratio (9/8) but do NOT set minHeight, so the card size stays consistent.
   const portraitAspect = '9/8';
   const landscapeAspect = '16/9';
   // Instagram post aspect ratio (used for cropping TikTok thumbnails to match Instagram post size)
   const instagramPostAspect = '1/1'; // square aspect ratio for Instagram posts
+  
+  // Debug logging
+  console.log('ContentCard Debug:', {
+    platform,
+    isPortrait,
+    isYouTubeShorts,
+    shouldUseShortsFormat,
+    portraitAspect,
+    landscapeAspect,
+    instagramPostAspect
+  });
 
   function getPlatformIconOverlay(platform?: string, theme?: string) {
     if (!platform) return null;
@@ -141,6 +160,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
       // Remove protocol for images.weserv.nl
       return `https://images.weserv.nl/?url=${encodeURIComponent(url.replace(/^https?:\/\//, ''))}`;
     }
+    // For YouTube thumbnails, we can use a proxy to potentially crop letterboxing
+    if (platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video'))) {
+      // Use images.weserv.nl with cropping parameters to remove letterboxing
+      const cleanUrl = url.replace(/^https?:\/\//, '');
+      return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&w=1280&h=720&fit=cover&output=jpg`;
+    }
     return url;
   }
 
@@ -169,7 +194,18 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
       return;
     }
     markSeen();
-    navigate(`/view/${id}`);
+    // Open the original URL instead of navigating to view page
+    if (url) {
+      window.open(url, '_blank');
+    }
+  }
+
+  function handleFavoriteToggle(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onFavoriteToggle) {
+      onFavoriteToggle(id, !favorite);
+    }
   }
 
   function handleCategoryClick(e: React.MouseEvent) {
@@ -238,13 +274,19 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
         <div
           className={`relative w-full${platform === 'TikTok Video' ? '' : ''}`}
           style={{
-            aspectRatio:
-              (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram')))
+            aspectRatio: (() => {
+              const ratio = shouldUseShortsFormat
+                ? portraitAspect  // Use YouTube Shorts format for all non-landscape portraits except YouTube Shorts
+                : (platform === 'TikTok Video' || platform === 'Instagram Post')
                 ? instagramPostAspect
                 : isPortrait
                 ? portraitAspect
-                : landscapeAspect,
-            ...(platform === 'TikTok Video' ? { maxWidth: '430px', maxHeight: '430px', margin: '0 auto' } : {}),
+                : landscapeAspect;
+              console.log('Aspect Ratio Debug:', { platform, ratio, shouldUseShortsFormat });
+              return ratio;
+            })(),
+            maxHeight: '300px',
+            ...(platform === 'TikTok Video' ? { margin: '0 auto' } : {}),
           }}
         >
           {/* Open Link Icon */}
@@ -255,13 +297,19 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
             className={`w-full h-full object-cover${platform === 'TikTok Video' ? ' rounded-b-xl' : ' rounded-t-xl'}`}
             style={{
               display: 'block',
-              width: platform === 'TikTok Video' ? '430px' : '100%',
-              height: platform === 'TikTok Video' ? '430px' : '100%',
+              width: '100%',
+              height: '100%',
               objectFit: 'cover',
-              objectPosition: (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram'))) ? 'center' : undefined,
+              objectPosition: (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram'))) ? 'center' : 
+                (platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video'))) ? 'center' : undefined,
               borderRadius: platform === 'TikTok Video' ? '0 0 0.75rem 0.75rem' : '0.75rem',
               padding: undefined,
               margin: undefined,
+              // For YouTube videos, try to crop out letterboxing by focusing on the center
+              ...(platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) ? {
+                objectPosition: 'center',
+                objectFit: 'cover',
+              } : {}),
             }}
             loading="lazy"
           />
@@ -271,7 +319,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
         </div>
       )}
       {!thumbnail && (
-        <div className="relative w-full bg-dark-200 dark:bg-dark-700 rounded-t-xl flex items-center justify-center" style={{ aspectRatio: isPortrait ? portraitAspect : landscapeAspect }}>
+        <div className="relative w-full bg-dark-200 dark:bg-dark-700 rounded-t-xl flex items-center justify-center" style={{ aspectRatio: shouldUseShortsFormat ? portraitAspect : (isPortrait ? portraitAspect : landscapeAspect) }}>
           {/* Open Link Icon */}
           {getOpenLinkIcon(url)}
           {/* Reddit watermark overlay */}
@@ -302,6 +350,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
           <div className="flex items-start space-x-4 h-full">
             <div className="flex-grow flex flex-col flex-1 min-h-0 h-full">
               <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-3">{title}</h3>
+              {/* Display channel name for YouTube videos and TikTok videos */}
+              {platform && ((platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) || platform.toLowerCase().includes('tiktok')) && channel && (
+                <p className="text-sm text-dark-500 dark:text-dark-400 mb-1 font-medium">
+                  {channel}
+                </p>
+              )}
               {platform && platform.toLowerCase().includes('instagram') && description && (
                 <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2 mb-1">
                   {description}
@@ -392,9 +446,21 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
               UNSEEN
             </button>
           )}
+          {/* Favorite Toggle Button */}
+          <button
+            className="p-1 rounded-full bg-white/80 dark:bg-dark-900/80 hover:bg-yellow-100 dark:hover:bg-yellow-900/80 transition-colors shadow-md flex items-center justify-center"
+            title={favorite ? "Remove from favorites" : "Add to favorites"}
+            onClick={handleFavoriteToggle}
+            style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
+          >
+            <Star 
+              size={18} 
+              className={`${favorite ? 'text-yellow-500 fill-current' : 'text-white'}`} 
+            />
+          </button>
           {/* Delete Icon Button - now in bottom bar */}
           <button
-            className="ml-2 p-1 rounded-full bg-white/80 dark:bg-dark-900/80 hover:bg-red-100 dark:hover:bg-red-900/80 transition-colors shadow-md flex items-center justify-center"
+            className="p-1 rounded-full bg-white/80 dark:bg-dark-900/80 hover:bg-red-100 dark:hover:bg-red-900/80 transition-colors shadow-md flex items-center justify-center"
             title="Delete entry"
             onClick={e => { e.preventDefault(); e.stopPropagation(); setShowDeleteModal(true); }}
             style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}

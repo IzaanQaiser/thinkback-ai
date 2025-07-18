@@ -32,6 +32,39 @@ def is_shorts_url(url: str) -> bool:
     )
 
 
+def get_best_thumbnail_url(video_id: str) -> str:
+    """
+    Get the best available thumbnail URL for a YouTube video.
+    Tries different qualities in order of preference, prioritizing
+    formats that are less likely to have letterboxing.
+    """
+    # Thumbnail qualities in order of preference
+    # maxresdefault.jpg is highest quality but may have letterboxing
+    # sddefault.jpg is standard definition, often better aspect ratio
+    # hqdefault.jpg is high quality, good balance
+    thumbnail_qualities = [
+        "maxresdefault.jpg",  # Highest quality (1280x720) - may have letterboxing
+        "sddefault.jpg",      # Standard definition (640x480) - often better aspect ratio
+        "hqdefault.jpg",      # High quality (480x360) - good balance
+        "mqdefault.jpg",      # Medium quality (320x180)
+        "default.jpg",        # Default quality (120x90)
+    ]
+    
+    for quality in thumbnail_qualities:
+        url = f"https://i.ytimg.com/vi/{video_id}/{quality}"
+        try:
+            response = requests.head(url, timeout=5)
+            if response.status_code == 200:
+                print(f"   🖼️ Using thumbnail quality: {quality}")
+                return url
+        except:
+            continue
+    
+    # Fallback to oEmbed thumbnail if all direct URLs fail
+    print(f"   🖼️ Falling back to oEmbed thumbnail")
+    return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+
+
 class YouTubeScraper(BaseScraper):
     def scrape(self, url: str) -> dict:
         """
@@ -74,7 +107,9 @@ class YouTubeScraper(BaseScraper):
                 # Extract data from oEmbed response
                 result["title"] = oembed_data.get("title")
                 result["channel"] = oembed_data.get("author_name")
-                result["thumbnail"] = oembed_data.get("thumbnail_url")
+                
+                # Get the best available thumbnail
+                result["thumbnail"] = get_best_thumbnail_url(video_id)
                 
                 # oEmbed doesn't provide description, so we'll leave it as None
                 # This is a limitation of the oEmbed API

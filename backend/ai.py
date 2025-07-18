@@ -127,11 +127,14 @@ def aggregate_entry_data(
 
 
 def format_ai_prompt(entry: Dict[str, Any]) -> str:
-    # For YouTube content, skip transcript processing
+    # For YouTube and TikTok content, skip transcript processing
     platform = entry.get("platform", "").lower()
     if "youtube" in platform:
         transcript = ""  # No transcript for YouTube
         print(f"   📺 YouTube content detected - skipping transcript processing")
+    elif "tiktok" in platform:
+        transcript = ""  # No transcript for TikTok
+        print(f"   🎵 TikTok content detected - skipping transcript processing")
     else:
         # Truncate transcript if too long for prompt
         transcript = entry.get("transcript") or ""
@@ -145,6 +148,15 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     # Format metadata for display
     metadata = entry.get("metadata") or {}
     metadata_str = ", ".join(f"{k}: {v}" for k, v in metadata.items() if v)
+
+    # Get thumbnail information
+    thumbnail = entry.get("thumbnail")
+    thumbnail_info = ""
+    if thumbnail:
+        thumbnail_info = f"\nThumbnail URL: {thumbnail}"
+        # Add thumbnail dimensions if available
+        if metadata.get("thumbnail_width") and metadata.get("thumbnail_height"):
+            thumbnail_info += f"\nThumbnail Dimensions: {metadata.get('thumbnail_width')}x{metadata.get('thumbnail_height')}"
 
     # Add platform-specific guidance
     platform_guidance = ""
@@ -172,9 +184,22 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
       * "NBA Highlights 2024" → "Basketball" (not "NBA Highlights")
       * "React Tutorial for Beginners" → "Programming" (not "React Tutorial")
     """
+    elif "tiktok" in platform:
+        platform_guidance = """
+    TIKTOK-SPECIFIC GUIDANCE:
+    - Focus on the video title and creator information
+    - Use the video title as the primary source for categorization
+    - Consider the creator username as context for the content type
+    - If thumbnail is available, consider the visual content type (dance, cooking, comedy, etc.)
+    - No transcript available, so rely on title, metadata, and thumbnail
+    - Examples:
+      * "Funny dance challenge" → "Entertainment" (not "Dance Challenge")
+      * "Cooking tutorial" → "Food" (not "Cooking Tutorial")
+      * "Life hack tips" → "Lifestyle" (not "Life Hacks")
+    """
 
     # Determine if we should generate summary based on platform
-    should_generate_summary = "youtube" not in platform.lower()
+    should_generate_summary = "youtube" not in platform.lower() and "tiktok" not in platform.lower()
     
     # Compose prompt
     if should_generate_summary:
@@ -199,6 +224,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     - Use single words or simple 2-word phrases (e.g., "Startups", "NBA", "Basketball", "Technology")
     - Avoid overly specific categories like "Startup Critique" or "Physics Fundamentals"
     - Consider the content's main topic area, not the specific angle or perspective
+    - If thumbnail is available, consider the visual content type for better categorization
     - Examples:
       * "How startups are stupid" → "Startups" (not "Startup Critique")
       * "NBA player injury news" → "NBA" (not "NBA Injuries")
@@ -216,7 +242,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     Description: {entry.get("description")}
     Transcript: {transcript}
     Metadata: {metadata_str}
-    User Notes: {entry.get("user_notes")}
+    User Notes: {entry.get("user_notes")}{thumbnail_info}
 
     Existing Categories:
     {categories_str}

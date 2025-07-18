@@ -4,7 +4,6 @@ import AuthPage from './pages/AuthPage';
 import SignupPage from './pages/SignupPage';
 import SavePage from './pages/SavePage';
 import DashboardPage from './pages/DashboardPage';
-import ViewPage from './pages/ViewPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import AccountPage from './pages/AccountPage';
@@ -58,7 +57,6 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/save" element={<SavePage />} />
-            <Route path="/view/:id" element={<ViewPage />} />
             <Route path="/account" element={<AccountPage />} />
           </Route>
         </Routes>

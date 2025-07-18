@@ -26,6 +26,7 @@ interface Entry {
   is_carousel?: boolean;
   carousel_count?: number;
   description?: string;
+  channel?: string;
 }
 
 interface Category {
@@ -1008,11 +1009,21 @@ const DashboardPage: React.FC = () => {
                         updatedCats.forEach((cat) => { updatedMap[cat.id] = cat.name; });
                         setCategoryMap(updatedMap);
                       }}
+                      onFavoriteToggle={async (entryId, newFavoriteState) => {
+                        if (!currentUser) return;
+                        const idToken = await currentUser.getIdToken();
+                        await updateEntry(idToken, entryId, { favorite: newFavoriteState });
+                        // Update local state
+                        setEntries((prev: Entry[]) => prev.map((e: Entry) =>
+                          e.id === entryId ? { ...e, favorite: newFavoriteState } : e
+                        ));
+                      }}
                       thumbnail={entry.thumbnail}
                       platform={entry.platform}
                       isCarousel={entry.is_carousel}
                       carouselCount={entry.carousel_count}
                       description={entry.description}
+                      channel={entry.channel}
                       expandSummary={expandedSummaries[entry.id] || false}
                     />
                   </div>
