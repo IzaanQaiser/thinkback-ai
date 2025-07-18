@@ -24,6 +24,7 @@ interface ContentCardProps {
   carouselCount?: number;
   description?: string;
   expandSummary?: boolean;
+  channel?: string;
 }
 
 const portraitPlatforms = [
@@ -32,7 +33,7 @@ const portraitPlatforms = [
   'TikTok Video',
 ];
 
-const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, favorite, category, categoryId, categories, onCategoryChange, onFavoriteToggle, thumbnail, platform, isCarousel, carouselCount, description, url, expandSummary }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, favorite, category, categoryId, categories, onCategoryChange, onFavoriteToggle, thumbnail, platform, isCarousel, carouselCount, description, url, expandSummary, channel }) => {
   const { theme } = useTheme();
   const [seen, setSeen] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -349,6 +350,12 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
           <div className="flex items-start space-x-4 h-full">
             <div className="flex-grow flex flex-col flex-1 min-h-0 h-full">
               <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-3">{title}</h3>
+              {/* Display channel name for YouTube videos */}
+              {platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) && channel && (
+                <p className="text-sm text-dark-500 dark:text-dark-400 mb-1 font-medium">
+                  {channel}
+                </p>
+              )}
               {platform && platform.toLowerCase().includes('instagram') && description && (
                 <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2 mb-1">
                   {description}

@@ -26,6 +26,7 @@ interface Entry {
   is_carousel?: boolean;
   carousel_count?: number;
   description?: string;
+  channel?: string;
 }
 
 interface Category {
@@ -1022,6 +1023,7 @@ const DashboardPage: React.FC = () => {
                       isCarousel={entry.is_carousel}
                       carouselCount={entry.carousel_count}
                       description={entry.description}
+                      channel={entry.channel}
                       expandSummary={expandedSummaries[entry.id] || false}
                     />
                   </div>
