@@ -15,7 +15,6 @@ interface Entry {
   url: string;
   title: string;
   notes?: string;
-  summary?: string;
   tags?: string[];
   favorite?: boolean;
   created_at?: string;
@@ -25,7 +24,6 @@ interface Entry {
   platform?: string;
   is_carousel?: boolean;
   carousel_count?: number;
-  description?: string;
   channel?: string;
 }
 
@@ -985,7 +983,7 @@ const DashboardPage: React.FC = () => {
                       title={entry.title || 'Untitled'}
                       url={entry.url}
                       notes={entry.notes}
-                      summary={entry.summary}
+
                       favorite={entry.favorite}
                       createdAt={entry.created_at}
                       category={categoryName}
@@ -1022,7 +1020,7 @@ const DashboardPage: React.FC = () => {
                       platform={entry.platform}
                       isCarousel={entry.is_carousel}
                       carouselCount={entry.carousel_count}
-                      description={entry.description}
+
                       channel={entry.channel}
                       expandSummary={expandedSummaries[entry.id] || false}
                     />

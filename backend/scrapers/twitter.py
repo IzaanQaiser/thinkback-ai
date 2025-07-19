@@ -29,6 +29,22 @@ def extract_tweet_id_from_url(url: str) -> Optional[str]:
     return None
 
 
+def extract_username_from_url(url: str) -> Optional[str]:
+    """Extract username from various Twitter/X URL formats."""
+    # Handle various Twitter/X URL formats
+    patterns = [
+        r"(?:twitter\.com|x\.com)/(\w+)/status/\d+",
+        r"(?:twitter\.com|x\.com)/(\w+)/status/\d+",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+
+    return None
+
+
 def clean_tweet_text(text: str) -> str:
     """Clean tweet text by removing URLs, extra whitespace, etc."""
     if not text:
@@ -762,6 +778,10 @@ class TwitterScraper(BaseScraper):
     ) -> Dict:
         """Combine results from Playwright and Twitter API, prioritizing the best data."""
 
+        # Extract username from URL
+        username = extract_username_from_url(url)
+        print(f"   👤 Extracted username: {username}")
+
         # Start with base structure
         result = {
             "url": url,
@@ -777,6 +797,7 @@ class TwitterScraper(BaseScraper):
             "thumbnail": None,
             "hashtags": [],
             "mentions": [],
+            "channel": username,  # Add username as channel
         }
 
         # Determine which result to use as primary
@@ -847,6 +868,9 @@ class TwitterScraper(BaseScraper):
         """Return a fallback result when scraping fails."""
         print(f"   ⚠️ Using fallback result due to: {error}")
 
+        # Extract username from URL even in fallback
+        username = extract_username_from_url(url)
+
         return {
             "url": url,
             "title": "Twitter/X Post",
@@ -861,4 +885,5 @@ class TwitterScraper(BaseScraper):
             "thumbnail": None,
             "hashtags": [],
             "mentions": [],
+            "channel": username,  # Add username as channel
         }
