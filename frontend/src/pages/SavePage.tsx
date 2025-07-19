@@ -190,7 +190,6 @@ const SavePage: React.FC = () => {
         notes,
         title: enrichResult.ai.title || '',
         tags: enrichResult.ai.tags || [],
-        summary: enrichResult.ai.summary || '',
         category_ids: categoryId ? [categoryId] : [],
         ...(enrichResult.thumbnail ? { thumbnail: enrichResult.thumbnail } : {}),
       };
@@ -309,7 +308,7 @@ const SavePage: React.FC = () => {
                 </div>
                 {lastSavedEntry && (
                   <div className="rounded-2xl bg-green-100/60 dark:bg-green-900/20 border border-green-300/40 dark:border-green-800/40 p-5 mt-2">
-                    <div className="font-bold text-lg text-dark-900 dark:text-white mb-1">{lastSavedEntry.title}</div>
+                    <div className="font-bold text-lg text-dark-900 dark:text-white mb-1 line-clamp-2">{lastSavedEntry.title}</div>
                     <div className="text-sm text-dark-700 dark:text-dark-300 mb-1">
                       <span className="font-semibold">Category:</span> {lastSavedEntry.category || 'Uncategorized'}
                     </div>

@@ -10,7 +10,6 @@ interface ContentCardProps {
     title: string;
     url: string;
   notes?: string;
-  summary?: string;
   favorite?: boolean;
   createdAt?: string;
     category: string;
@@ -22,7 +21,6 @@ interface ContentCardProps {
   platform?: string;
   isCarousel?: boolean;
   carouselCount?: number;
-  description?: string;
   expandSummary?: boolean;
   channel?: string;
 }
@@ -33,7 +31,7 @@ const portraitPlatforms = [
   'TikTok Video',
 ];
 
-const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, favorite, category, categoryId, categories, onCategoryChange, onFavoriteToggle, thumbnail, platform, isCarousel, carouselCount, description, url, expandSummary, channel }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, category, categoryId, categories, onCategoryChange, onFavoriteToggle, thumbnail, platform, isCarousel, carouselCount, url, expandSummary, channel }) => {
   const { theme } = useTheme();
   const [seen, setSeen] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -356,14 +354,10 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, summary, fa
                   {channel}
                 </p>
               )}
-              {platform && platform.toLowerCase().includes('instagram') && description && (
-                <p className="text-sm text-dark-600 dark:text-dark-400 line-clamp-2 mb-1">
-                  {description}
-                </p>
-              )}
+
               <div className="flex-1 min-h-0 flex flex-col">
                 <p className={`text-sm text-dark-600 dark:text-dark-400 flex-1 min-h-0 overflow-hidden ${expandSummary ? '' : 'line-clamp-2'}`}>
-                  {summary || notes}
+                  {notes}
                 </p>
               </div>
             </div>

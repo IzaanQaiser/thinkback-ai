@@ -41,7 +41,6 @@ class Entry(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     collection_ids: List[str] = []
     category_ids: List[str] = []
-    summary: Optional[str] = None  # AI-generated summary
     thumbnail: Optional[str] = None  # Add thumbnail field
     duration: Optional[int] = None  # Duration in seconds
     channel: Optional[str] = None  # YouTube channel name
@@ -319,10 +318,6 @@ def create_entry(
     print(f"   Category: {ai_result.get('category', {})}")
     print(f"   AI Title: {ai_result.get('title', 'N/A')}")
     print(f"   Tags: {ai_result.get('tags', [])}")
-    if ai_result.get('summary'):
-        print(f"   Summary: {ai_result.get('summary', 'N/A')[:100]}...")
-    else:
-        print(f"   Summary: Skipped (YouTube content)")
 
     # Helper to check if a title is nonsense/generic
     def is_nonsense_title(title, platform=None):
@@ -449,7 +444,6 @@ def create_entry(
         "category_ids": [category_id],
         "tags": ai_result.get("tags", []),
         "title": final_title,
-        "summary": ai_result.get("summary", ""),
         "platform": platform,
         "duration": duration,
     }
@@ -461,7 +455,6 @@ def create_entry(
     print(f"   Category ID: {category_id}")
     print(f"   Tags: {update_data['tags']}")
     print(f"   Title: {update_data['title']}")
-    print(f"   Summary length: {len(update_data['summary'])} chars")
 
     update_result = update_entry_firebase(uid, saved_entry["id"], update_data)
     if not update_result["success"]:
@@ -1091,7 +1084,6 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
     print(f"     Category: {ai_response.get('category', {})}")
     print(f"     Title: {ai_response.get('title', 'N/A')}")
     print(f"     Tags: {ai_response.get('tags', [])}")
-    print(f"     Summary: {ai_response.get('summary', 'N/A')[:50]}...")
 
     if ai_response and "category" in ai_response and "name" in ai_response["category"]:
         print(f"category: {ai_response['category']['name']}")

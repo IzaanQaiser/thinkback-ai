@@ -60,7 +60,6 @@ def classify_entry(entry, categories):
                 "category": {"name": "General"},
                 "tags": [],
                 "title": "",
-                "summary": "",
             }
         try:
             result = json.loads(content)
@@ -69,10 +68,8 @@ def classify_entry(entry, categories):
             print(f"     Category: {result.get('category', {})}")
             print(f"     Title: {result.get('title', 'N/A')}")
             print(f"     Tags: {result.get('tags', [])}")
-            print(f"     Summary: {result.get('summary', 'N/A')[:50]}...")
-            # Ensure English for title and summary
+            # Ensure English for title
             result["title"] = ensure_english(result.get("title", ""))
-            result["summary"] = ensure_english(result.get("summary", ""))
             return result
         except Exception as e:
             print(f"   ⚠️ JSON parsing failed: {e}")
@@ -82,9 +79,8 @@ def classify_entry(entry, categories):
                 try:
                     result = json.loads(match.group(0))
                     print(f"   ✅ JSON extracted with regex")
-                    # Ensure English for title and summary
+                    # Ensure English for title
                     result["title"] = ensure_english(result.get("title", ""))
-                    result["summary"] = ensure_english(result.get("summary", ""))
                     return result
                 except Exception as e2:
                     print(f"   ❌ Regex extraction also failed: {e2}")
@@ -93,7 +89,6 @@ def classify_entry(entry, categories):
                 "category": {"name": "General"},
                 "tags": [],
                 "title": "",
-                "summary": "",
             }
     except Exception as e:
         print(f"   ❌ AI API call failed: {e}")
@@ -101,7 +96,6 @@ def classify_entry(entry, categories):
             "category": {"name": "General"},
             "tags": [],
             "title": "",
-            "summary": "",
         }
 
 
@@ -158,15 +152,20 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
         if metadata.get("thumbnail_width") and metadata.get("thumbnail_height"):
             thumbnail_info += f"\nThumbnail Dimensions: {metadata.get('thumbnail_width')}x{metadata.get('thumbnail_height')}"
 
-    # Add platform-specific guidance
+    # Get creator/channel information for better categorization
+    creator_info = ""
+    channel = entry.get("channel")
+    if channel:
+        creator_info = f"\nCreator/Channel: {channel}"
+    
+    # Add platform-specific guidance for precise categorization
     platform_guidance = ""
     if "instagram" in platform:
         platform_guidance = """
-    INSTAGRAM-SPECIFIC GUIDANCE:
-    - Instagram posts often have hashtags and mentions - focus on the core content
-    - Look for the main message or theme beyond hashtags
-    - Consider visual content type (photo, carousel, story-style)
-    - Extract meaningful topics from captions and hashtags
+    INSTAGRAM-SPECIFIC CATEGORIZATION:
+    - Use the caption content and hashtags to determine the main topic
+    - Consider the creator's typical content type if available
+    - Focus on the primary theme, not secondary hashtags
     - Examples:
       * "Beautiful sunset at the beach #sunset #beach #nature" → "Nature" (not "Sunset Photography")
       * "New recipe for chocolate cake 🍰 #food #baking #dessert" → "Food" (not "Baking Recipes")
@@ -174,41 +173,51 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     """
     elif "youtube" in platform:
         platform_guidance = """
-    YOUTUBE-SPECIFIC GUIDANCE:
-    - Focus on the video title and channel information
+    YOUTUBE-SPECIFIC CATEGORIZATION:
     - Use the video title as the primary source for categorization
-    - Consider the channel name as context for the content type
-    - No transcript available, so rely on title and metadata
+    - Consider the channel name and typical content type
+    - Look for keywords in the title that indicate the topic
     - Examples:
       * "How to Make Perfect Pasta" → "Cooking" (not "Pasta Tutorial")
       * "NBA Highlights 2024" → "Basketball" (not "NBA Highlights")
       * "React Tutorial for Beginners" → "Programming" (not "React Tutorial")
+      * "Tech Review: iPhone 15" → "Technology" (not "Tech Reviews")
     """
     elif "tiktok" in platform:
         platform_guidance = """
-    TIKTOK-SPECIFIC GUIDANCE:
-    - Focus on the video title and creator information
-    - Use the video title as the primary source for categorization
-    - Consider the creator username as context for the content type
-    - If thumbnail is available, consider the visual content type (dance, cooking, comedy, etc.)
-    - No transcript available, so rely on title, metadata, and thumbnail
+    TIKTOK-SPECIFIC CATEGORIZATION:
+    - Use the video title and creator information for categorization
+    - Consider the creator's typical content type if available
+    - Look for keywords in the title that indicate the topic
     - Examples:
       * "Funny dance challenge" → "Entertainment" (not "Dance Challenge")
       * "Cooking tutorial" → "Food" (not "Cooking Tutorial")
       * "Life hack tips" → "Lifestyle" (not "Life Hacks")
+      * "Tech tips and tricks" → "Technology" (not "Tech Tips")
+    """
+    elif "twitter" in platform or "x.com" in platform:
+        platform_guidance = """
+    TWITTER/X-SPECIFIC CATEGORIZATION:
+    - Use the tweet content and hashtags to determine the main topic
+    - Consider the author's typical content type if available
+    - Focus on the primary theme, not secondary hashtags
+    - Examples:
+      * "Breaking: New tech startup raises $10M" → "Technology" (not "Startup News")
+      * "Amazing sunset at the beach today" → "Nature" (not "Sunset Photography")
+      * "Recipe for perfect chocolate cake" → "Food" (not "Baking Recipes")
+    """
+    elif "reddit" in platform:
+        platform_guidance = """
+    REDDIT-SPECIFIC CATEGORIZATION:
+    - Use the post title and subreddit to determine the main topic
+    - Consider the content of the post (selftext) if available
+    - Focus on the primary theme of the post
+    - Examples:
+      * "How to learn programming as a beginner" → "Programming" (not "Learning Guides")
+      * "Best restaurants in NYC" → "Food" (not "Restaurant Reviews")
+      * "New basketball highlights" → "Basketball" (not "Sports Highlights")
     """
 
-    # Determine if we should generate summary based on platform
-    should_generate_summary = "youtube" not in platform.lower() and "tiktok" not in platform.lower()
-    
-    # Compose prompt
-    if should_generate_summary:
-        summary_instruction = "4. Generate a 3-5 sentence summary of the content that captures the key points and main takeaways."
-        summary_key = "summary (string with 3-5 sentences)"
-    else:
-        summary_instruction = "4. Skip summary generation for this content type."
-        summary_key = "summary (empty string)"
-    
     prompt = textwrap.dedent(
         f"""
     You are an AI assistant for a knowledge management app. Given the following entry and the list of existing categories, do the following:
@@ -217,13 +226,13 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
        - Create a NEW category name (1-2 words) that best describes the content topic/genre
     2. Generate a concise, specific title (4-5 words max) that captures the core topic of the content. Make it more specific and relevant than the original title.
     3. Generate up to 3 relevant tags.
-    {summary_instruction}
 
     CATEGORIZATION RULES:
     - PREFER BROADER, SIMPLER categories over specific ones
     - Use single words or simple 2-word phrases (e.g., "Startups", "NBA", "Basketball", "Technology")
     - Avoid overly specific categories like "Startup Critique" or "Physics Fundamentals"
     - Consider the content's main topic area, not the specific angle or perspective
+    - Use ALL available information: title, description, transcript, metadata, creator info
     - If thumbnail is available, consider the visual content type for better categorization
     - Examples:
       * "How startups are stupid" → "Startups" (not "Startup Critique")
@@ -242,14 +251,14 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     Description: {entry.get("description")}
     Transcript: {transcript}
     Metadata: {metadata_str}
-    User Notes: {entry.get("user_notes")}{thumbnail_info}
+    User Notes: {entry.get("user_notes")}{thumbnail_info}{creator_info}
 
     Existing Categories:
     {categories_str}
 
     IMPORTANT: Choose the BROADEST appropriate category that still accurately describes the content. Prefer simple, general categories over specific ones. If none of the existing categories match well (less than 50% similarity), create a NEW category name that best describes this content.
 
-    Respond in JSON with keys: category (object with id if matching existing category, or name if suggesting new category), title, tags (list of strings), {summary_key}.
+    Respond in JSON with keys: category (object with id if matching existing category, or name if suggesting new category), title, tags (list of strings).
     """
     )
     return prompt
