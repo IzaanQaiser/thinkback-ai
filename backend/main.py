@@ -1,4 +1,5 @@
 import os
+import subprocess
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -15,9 +16,49 @@ load_dotenv(dotenv_path=dotenv_path)
 firebase_initialized = initialize_firebase()
 
 
+def install_playwright_browsers():
+    """Install Playwright browsers if they're missing."""
+    try:
+        print("🔧 Checking Playwright browser installation...")
+        
+        # Check if browsers are installed
+        result = subprocess.run(
+            ["playwright", "install", "--dry-run", "chromium"],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            print("✅ Playwright browsers are already installed")
+            return True
+        else:
+            print("❌ Playwright browsers not found, installing...")
+            
+            # Install browsers
+            install_result = subprocess.run(
+                ["playwright", "install", "chromium"],
+                capture_output=True,
+                text=True
+            )
+            
+            if install_result.returncode == 0:
+                print("✅ Playwright browsers installed successfully")
+                return True
+            else:
+                print(f"❌ Failed to install browsers: {install_result.stderr}")
+                return False
+                
+    except Exception as e:
+        print(f"❌ Error checking/installing browsers: {e}")
+        return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize services on startup"""
+    # Install Playwright browsers
+    install_playwright_browsers()
+    
     if firebase_initialized:
         print("🚀 Thinkback.ai API started successfully with Firebase integration")
     else:

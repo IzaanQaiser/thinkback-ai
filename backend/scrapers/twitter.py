@@ -74,6 +74,21 @@ def extract_hashtags_and_mentions(text: str) -> Tuple[List[str], List[str]]:
 async def scrape_with_playwright(url: str) -> Optional[Dict]:
     """Scrape tweet using Playwright headless browser."""
     try:
+        # First, try to install browsers if they're missing
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["playwright", "install", "--dry-run", "chromium"],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode != 0:
+                print("   🔧 Installing Playwright browsers...")
+                subprocess.run(["playwright", "install", "chromium"], check=True)
+                print("   ✅ Browsers installed successfully")
+        except Exception as e:
+            print(f"   ⚠️ Could not install browsers: {e}")
+        
         async with async_playwright() as p:
             # Use chromium with container-optimized arguments
             browser = await p.chromium.launch(
@@ -239,7 +254,7 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                                 elif "&format=" in src:
                                     src = (
                                         src.split("&format=")[0]
-                                        + "&format=jpg&name=large"
+                                        + "?format=jpg&name=large"
                                     )
                                 else:
                                     src = src + "?format=jpg&name=large"

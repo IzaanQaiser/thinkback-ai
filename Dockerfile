@@ -40,12 +40,13 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers - ENSURING THEY ARE INSTALLED
+# Install Playwright browsers - FIXED VERSION WITH EXPLICIT INSTALLATION
 RUN playwright install chromium
 RUN playwright install-deps chromium
 
-# Verify browsers are installed
+# Verify browsers are installed and executable
 RUN playwright install --dry-run chromium
+RUN ls -la /root/.cache/ms-playwright/
 
 # Copy the entire project (including backend folder)
 COPY . .
