@@ -186,10 +186,12 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                             # Enhanced filtering - be more specific about what to exclude
                             exclude_patterns = [
                                 "profile", "avatar", "icon", "normal", "bigger", "mini",
-                                "verified", "badge", "emoji", "sticker", "small"
+                                "verified", "badge", "emoji", "sticker"
                             ]
                             
-                            should_exclude = any(pattern in src.lower() for pattern in exclude_patterns)
+                            # Check for exclusion patterns in the URL path, not query params
+                            url_path = src.split('?')[0].lower()
+                            should_exclude = any(pattern in url_path for pattern in exclude_patterns)
                             
                             # Also exclude very small images (likely icons)
                             if len(src) < 100:
@@ -230,13 +232,14 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
 
                             if src and src.startswith("http"):
                                 # Filter out profile images and small icons
+                                url_path = src.split('?')[0].lower()
                                 if (
-                                    "profile" in src
-                                    or "avatar" in src
-                                    or "icon" in src
-                                    or "normal" in src
-                                    or "bigger" in src
-                                    or "mini" in src
+                                    "profile" in url_path
+                                    or "avatar" in url_path
+                                    or "icon" in url_path
+                                    or "normal" in url_path
+                                    or "bigger" in url_path
+                                    or "mini" in url_path
                                     or len(src) < 80
                                 ):  # Skip very short URLs
                                     continue
