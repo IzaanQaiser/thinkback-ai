@@ -56,12 +56,37 @@ async def test_browser_installation():
             page = await browser.new_page()
             print("✅ Page created successfully")
             
-            await page.goto("https://example.com", timeout=10000)
-            print("✅ Page loaded successfully")
+            # Test with a simple HTML page instead of external URL
+            html_content = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Test Page</title>
+            </head>
+            <body>
+                <h1>Browser Test</h1>
+                <p>This is a test page for Playwright browser installation.</p>
+            </body>
+            </html>
+            """
             
+            # Set content directly instead of navigating to external URL
+            await page.set_content(html_content)
+            print("✅ Page content set successfully")
+            
+            # Get page title
             title = await page.title()
             print(f"✅ Page title: {title}")
             
+            # Test that we can get text content
+            text_content = await page.text_content("body")
+            if "Browser Test" in text_content:
+                print("✅ Page content verified successfully")
+            else:
+                print("❌ Page content verification failed")
+                return False
+            
+            # Close browser
             await browser.close()
             print("✅ Browser closed successfully")
             
