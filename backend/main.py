@@ -82,6 +82,8 @@ origins = [
     "https://thinkback-ai-staging.pages.dev",
     "https://thinkback-ai-testing.pages.dev",
     "https://testing.thinkback.ca",
+    "https://thinkback-ai-testing.pages.dev",  # Testing domain
+    "*",  # Allow all origins for now (remove in production)
 ]
 
 app.add_middleware(

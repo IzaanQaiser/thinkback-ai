@@ -93,6 +93,7 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
             # Use chromium with container-optimized arguments
             browser = await p.chromium.launch(
                 headless=True,
+                timeout=30000,  # 30 second timeout
                 args=[
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
@@ -102,7 +103,17 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                     '--no-zygote',
                     '--disable-gpu',
                     '--disable-web-security',
-                    '--disable-features=VizDisplayCompositor'
+                    '--disable-features=VizDisplayCompositor',
+                    '--memory-pressure-off',
+                    '--max_old_space_size=256',
+                    '--single-process',
+                    '--disable-extensions',
+                    '--disable-plugins',
+                    '--disable-images',
+                    '--disable-javascript',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding'
                 ]
             )
                     
