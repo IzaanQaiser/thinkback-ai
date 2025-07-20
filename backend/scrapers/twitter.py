@@ -177,9 +177,8 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                 )
                 print(f"   📊 Found {len(tweet_images)} potential tweet images")
                 
-                # Collect all images and categorize them
+                # Collect media images only
                 media_images = []
-                profile_images = []
                 
                 for img in tweet_images:
                     try:
@@ -199,59 +198,24 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                             else:
                                 src = src + "?format=jpg&name=large"
                             
-                            # Categorize images based on URL path
+                            # Only collect media images (ignore profile images)
                             url_path = src.split('?')[0].lower()
                             if "/media/" in url_path:
                                 media_images.append(src)
                                 print(f"   🖼️ Found media image: {src}")
-                            elif "/profile_images/" in url_path:
-                                profile_images.append(src)
-                                print(f"   👤 Found profile image: {src}")
                             else:
-                                print(f"   ⚠️ Unknown image type: {src[:50]}...")
+                                print(f"   ⚠️ Skipping non-media image: {src[:50]}...")
                                 
                     except Exception as e:
                         print(f"   ⚠️ Error extracting embedded image: {e}")
                 
-                # Priority 1: Use media images if available
+                # Use media images if available, otherwise no thumbnail (will use default X logo)
                 if media_images:
                     media_urls.extend(media_images)
                     has_media = True
                     print(f"   ✅ Using media image as thumbnail")
-                # Priority 2: Fall back to profile image if no media images
-                elif profile_images:
-                    media_urls.extend(profile_images)
-                    has_media = True
-                    print(f"   ✅ Using profile image as thumbnail")
                 else:
-                    print(f"   🔍 No suitable images found, trying broader search...")
-                    # Broader search as fallback
-                    image_elements = await page.query_selector_all(
-                        'img[src*="pbs.twimg.com"], img[src*="video.twimg.com"]'
-                    )
-                    for img in image_elements:
-                        try:
-                            src = await img.get_attribute("src")
-                            alt = await img.get_attribute("alt") or ""
-
-                            if src and src.startswith("http"):
-                                # Clean up the URL to get the best quality version
-                                if "?format=" in src:
-                                    src = (
-                                        src.split("?format=")[0] + "?format=jpg&name=large"
-                                    )
-                                elif "&format=" in src:
-                                    src = (
-                                        src.split("&format=")[0] + "&format=jpg&name=large"
-                                    )
-                                else:
-                                    src = src + "?format=jpg&name=large"
-
-                                media_urls.append(src)
-                                has_media = True
-                                print(f"   🖼️ Found tweet image via broader search: {src}")
-                        except Exception as e:
-                            print(f"   ⚠️ Error extracting image src: {e}")
+                    print(f"   📱 No media images found - will use default X logo")
 
                 # Method 2: Look for video thumbnails (enhanced)
                 video_elements = await page.query_selector_all(
