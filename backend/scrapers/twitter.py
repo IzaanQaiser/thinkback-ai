@@ -177,30 +177,16 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                 )
                 print(f"   📊 Found {len(tweet_images)} potential tweet images")
                 
+                # Collect all images and categorize them
+                media_images = []
+                profile_images = []
+                
                 for img in tweet_images:
                     try:
                         src = await img.get_attribute("src")
                         alt = await img.get_attribute("alt") or ""
 
                         if src and src.startswith("http"):
-                            # Enhanced filtering - be more specific about what to exclude
-                            exclude_patterns = [
-                                "profile", "avatar", "icon", "normal", "bigger", "mini",
-                                "verified", "badge", "emoji", "sticker"
-                            ]
-                            
-                            # Check for exclusion patterns in the URL path, not query params
-                            url_path = src.split('?')[0].lower()
-                            should_exclude = any(pattern in url_path for pattern in exclude_patterns)
-                            
-                            # Also exclude very small images (likely icons)
-                            if len(src) < 100:
-                                should_exclude = True
-                                
-                            if should_exclude:
-                                print(f"   ⚠️ Excluding image: {src[:50]}...")
-                                continue
-
                             # Clean up the URL to get the best quality version
                             if "?format=" in src:
                                 src = (
@@ -212,16 +198,34 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                                 )
                             else:
                                 src = src + "?format=jpg&name=large"
-
-                            media_urls.append(src)
-                            has_media = True
-                            print(f"   🖼️ Found embedded tweet image: {src}")
+                            
+                            # Categorize images based on URL path
+                            url_path = src.split('?')[0].lower()
+                            if "/media/" in url_path:
+                                media_images.append(src)
+                                print(f"   🖼️ Found media image: {src}")
+                            elif "/profile_images/" in url_path:
+                                profile_images.append(src)
+                                print(f"   👤 Found profile image: {src}")
+                            else:
+                                print(f"   ⚠️ Unknown image type: {src[:50]}...")
+                                
                     except Exception as e:
                         print(f"   ⚠️ Error extracting embedded image: {e}")
                 
-                # If no embedded images found, try broader search
-                if not media_urls:
-                    print(f"   🔍 No embedded images found, trying broader search...")
+                # Priority 1: Use media images if available
+                if media_images:
+                    media_urls.extend(media_images)
+                    has_media = True
+                    print(f"   ✅ Using media image as thumbnail")
+                # Priority 2: Fall back to profile image if no media images
+                elif profile_images:
+                    media_urls.extend(profile_images)
+                    has_media = True
+                    print(f"   ✅ Using profile image as thumbnail")
+                else:
+                    print(f"   🔍 No suitable images found, trying broader search...")
+                    # Broader search as fallback
                     image_elements = await page.query_selector_all(
                         'img[src*="pbs.twimg.com"], img[src*="video.twimg.com"]'
                     )
@@ -231,19 +235,6 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                             alt = await img.get_attribute("alt") or ""
 
                             if src and src.startswith("http"):
-                                # Filter out profile images and small icons
-                                url_path = src.split('?')[0].lower()
-                                if (
-                                    "profile" in url_path
-                                    or "avatar" in url_path
-                                    or "icon" in url_path
-                                    or "normal" in url_path
-                                    or "bigger" in url_path
-                                    or "mini" in url_path
-                                    or len(src) < 80
-                                ):  # Skip very short URLs
-                                    continue
-
                                 # Clean up the URL to get the best quality version
                                 if "?format=" in src:
                                     src = (
@@ -258,7 +249,7 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
 
                                 media_urls.append(src)
                                 has_media = True
-                                print(f"   🖼️ Found tweet image: {src}")
+                                print(f"   🖼️ Found tweet image via broader search: {src}")
                         except Exception as e:
                             print(f"   ⚠️ Error extracting image src: {e}")
 
