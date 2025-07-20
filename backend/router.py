@@ -331,7 +331,6 @@ def create_entry(
             "tiktok",
             "placeholder",
             "reel",
-            "post",
             "shorts",
             "youtube shorts",
             "watch",
@@ -349,6 +348,10 @@ def create_entry(
                 generic_titles += ["instagram post", "post", "instagram"]
             if platform.lower() == "tiktok video":
                 generic_titles += ["tiktok", "video"]
+            # For Twitter/X posts, only consider "post" as generic if it's the entire title
+            if platform.lower() == "twitter/x post":
+                # Don't add "post" to generic titles for Twitter - actual tweet content is valuable
+                pass
         # If title is just a URL
         if t.startswith("http://") or t.startswith("https://"):
             return True
@@ -367,6 +370,13 @@ def create_entry(
             print(f"📝 Using Instagram caption as title: {final_title}")
         else:
             print(f"📝 No caption found, using AI-generated title: {final_title}")
+    # For Twitter/X posts, prioritize the scraped title (actual tweet content)
+    elif platform and platform.lower() in ["twitter/x post"]:
+        if scraped_title and scraped_title.strip():
+            final_title = scraped_title.strip()
+            print(f"📝 Using Twitter/X scraped title: {final_title}")
+        else:
+            print(f"📝 No scraped title found, using AI-generated title: {final_title}")
     elif scraped_title and not is_nonsense_title(scraped_title, platform):
         final_title = scraped_title
         print(f"📝 Using scraped title: {final_title}")
