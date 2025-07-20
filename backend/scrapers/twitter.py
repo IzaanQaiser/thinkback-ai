@@ -75,7 +75,7 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
     """Scrape tweet using Playwright headless browser."""
     try:
         async with async_playwright() as p:
-            # Use chromium with specific arguments for better compatibility
+            # Use chromium with container-optimized arguments
             browser = await p.chromium.launch(
                 headless=True,
                 args=[
@@ -85,9 +85,12 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                     '--disable-accelerated-2d-canvas',
                     '--no-first-run',
                     '--no-zygote',
-                    '--disable-gpu'
+                    '--disable-gpu',
+                    '--disable-web-security',
+                    '--disable-features=VizDisplayCompositor'
                 ]
             )
+                    
             page = await browser.new_page()
 
             # Set user agent to avoid detection
@@ -331,100 +334,92 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
 
 
 def scrape_with_twitter_api(tweet_id: str, max_retries: int = 3) -> Optional[Dict]:
-    """Scrape tweet using Twitter API v2 with exponential backoff for rate limiting."""
+    """Scrape tweet using Twitter API v2."""
+    print(f"   🔄 Trying Twitter API v2...")
     
     # Get Twitter API credentials
-    bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
-    if not bearer_token:
-        print(f"   ⚠️ Twitter API bearer token not found")
+    twitter_bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
+    if not twitter_bearer_token:
+        print(f"   ❌ Twitter API credentials not configured")
         return None
-
-    headers = {
-        "Authorization": f"Bearer {bearer_token}",
-        "User-Agent": "ThinkBackAI/1.0",
-    }
 
     # Twitter API v2 endpoint
     url = f"https://api.twitter.com/2/tweets/{tweet_id}"
+    
+    headers = {
+        "Authorization": f"Bearer {twitter_bearer_token}",
+        "User-Agent": "ThinkBackAI/1.0"
+    }
+    
+    # Include additional fields for better data extraction
     params = {
         "tweet.fields": "created_at,author_id,text,entities,attachments",
-        "expansions": "author_id,attachments.media_keys",
+        "expansions": "attachments.media_keys,author_id",
         "media.fields": "url,preview_image_url,type",
-        "user.fields": "username,name",
+        "user.fields": "username,name"
     }
 
     for attempt in range(max_retries):
         try:
-            print(f"   🔄 Trying Twitter API v2 (attempt {attempt + 1}/{max_retries})...")
-            
+            print(f"   📡 API request attempt {attempt + 1}/{max_retries}")
             response = requests.get(url, headers=headers, params=params, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
+                print(f"   ✅ Twitter API request successful")
                 
-                if "data" in data and data["data"]:
-                    tweet_data = data["data"]
-                    
-                    # Extract text
-                    text = tweet_data.get("text", "")
-                    
-                    # Extract author info
-                    author_id = tweet_data.get("author_id")
-                    author = "Unknown"
-                    if "includes" in data and "users" in data["includes"]:
-                        for user in data["includes"]["users"]:
-                            if user.get("id") == author_id:
-                                author = user.get("name", user.get("username", "Unknown"))
-                                break
-                    
-                    # Extract media
-                    media_urls = []
-                    has_media = False
-                    
-                    if "includes" in data and "media" in data["includes"]:
-                        has_media = True
-                        for media in data["includes"]["media"]:
-                            media_url = media.get("url") or media.get("preview_image_url")
-                            if media_url:
-                                media_urls.append(media_url)
-                    
-                    # Extract hashtags and mentions from entities
-                    hashtags = []
-                    mentions = []
-                    
-                    if "entities" in tweet_data:
-                        entities = tweet_data["entities"]
-                        
-                        # Extract hashtags
-                        if "hashtags" in entities:
-                            for hashtag in entities["hashtags"]:
-                                if "tag" in hashtag:
-                                    hashtags.append(f"#{hashtag['tag']}")
-                        
-                        # Extract mentions
-                        if "mentions" in entities:
-                            for mention in entities["mentions"]:
-                                if "username" in mention:
-                                    mentions.append(f"@{mention['username']}")
-                    
-                    return {
-                        "text": text,
-                        "author": author,
-                        "author_id": author_id,
-                        "created_at": tweet_data.get("created_at"),
-                        "has_media": has_media,
-                        "media_urls": media_urls,
-                        "hashtags": hashtags,
-                        "mentions": mentions,
-                        "scraping_method": "twitter_api",
-                    }
-                else:
-                    print(f"   ❌ No tweet data found in API response")
-                    return None
-                    
+                # Extract tweet data
+                tweet_data = data.get("data", {})
+                includes = data.get("includes", {})
+                
+                # Extract text
+                tweet_text = tweet_data.get("text", "")
+                
+                # Extract author info
+                author_id = tweet_data.get("author_id")
+                author_username = "Unknown"
+                if author_id and "users" in includes:
+                    for user in includes["users"]:
+                        if user.get("id") == author_id:
+                            author_username = user.get("username", "Unknown")
+                            break
+                
+                # Extract media
+                media_urls = []
+                if "attachments" in tweet_data and "media_keys" in tweet_data["attachments"]:
+                    media_keys = tweet_data["attachments"]["media_keys"]
+                    if "media" in includes:
+                        for media in includes["media"]:
+                            if media.get("media_key") in media_keys:
+                                media_url = media.get("url") or media.get("preview_image_url")
+                                if media_url:
+                                    media_urls.append(media_url)
+                
+                # Extract hashtags and mentions from entities
+                hashtags = []
+                mentions = []
+                entities = tweet_data.get("entities", {})
+                
+                if "hashtags" in entities:
+                    hashtags = [tag["tag"] for tag in entities["hashtags"]]
+                
+                if "mentions" in entities:
+                    mentions = [mention["username"] for mention in entities["mentions"]]
+                
+                return {
+                    "text": tweet_text,
+                    "author": author_username,
+                    "author_id": author_id,
+                    "created_at": tweet_data.get("created_at"),
+                    "media_urls": media_urls,
+                    "has_media": len(media_urls) > 0,
+                    "hashtags": hashtags,
+                    "mentions": mentions
+                }
+                
             elif response.status_code == 429:
-                # Rate limited - implement exponential backoff
-                wait_time = (2 ** attempt) * 5  # 5s, 10s, 20s
+                # Rate limited - implement exponential backoff with longer delays
+                wait_time = (2 ** attempt) * 10  # 10s, 20s, 40s
                 print(f"   ⏳ Rate limited (429). Waiting {wait_time}s before retry...")
                 time.sleep(wait_time)
                 continue
@@ -433,10 +428,14 @@ def scrape_with_twitter_api(tweet_id: str, max_retries: int = 3) -> Optional[Dic
                 print(f"   ❌ Tweet not found (404)")
                 return None
                 
+            elif response.status_code == 401:
+                print(f"   ❌ Twitter API authentication failed (401)")
+                return None
+                
             else:
                 print(f"   ❌ Twitter API returned status {response.status_code}")
                 if attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 2  # Shorter backoff for other errors
+                    wait_time = (2 ** attempt) * 5  # Shorter backoff for other errors
                     print(f"   ⏳ Waiting {wait_time}s before retry...")
                     time.sleep(wait_time)
                     continue
@@ -445,7 +444,7 @@ def scrape_with_twitter_api(tweet_id: str, max_retries: int = 3) -> Optional[Dic
         except requests.exceptions.RequestException as e:
             print(f"   ❌ Twitter API request failed: {e}")
             if attempt < max_retries - 1:
-                wait_time = (2 ** attempt) * 2
+                wait_time = (2 ** attempt) * 5
                 print(f"   ⏳ Waiting {wait_time}s before retry...")
                 time.sleep(wait_time)
                 continue
@@ -471,23 +470,41 @@ class TwitterScraper(BaseScraper):
         # Step 1: Try Playwright scraping first
         print(f"   🔄 Step 1: Attempting Playwright scraping...")
         playwright_result = None
+        playwright_error = None
 
         try:
             # Run the async Playwright function
             playwright_result = asyncio.run(scrape_with_playwright(url))
         except Exception as e:
+            playwright_error = str(e)
             print(f"   ❌ Playwright execution failed: {e}")
 
         # Step 2: Try Twitter API with better error handling
         api_result = None
-        if not playwright_result or playwright_result.get("has_media") and not playwright_result.get("media_urls"):
+        api_error = None
+        
+        # Only try API if Playwright failed or didn't get media
+        if not playwright_result or (playwright_result.get("has_media") and not playwright_result.get("media_urls")):
             print(f"   🔄 Step 2: Trying Twitter API...")
-            api_result = scrape_with_twitter_api(tweet_id)
+            try:
+                api_result = scrape_with_twitter_api(tweet_id)
+            except Exception as e:
+                api_error = str(e)
+                print(f"   ❌ Twitter API execution failed: {e}")
 
         # Step 3: Combine results and return
         final_result = self._combine_results(
             playwright_result, api_result, url, tweet_id
         )
+
+        # If both methods failed, create a better fallback
+        if not playwright_result and not api_result:
+            error_msg = "Both Playwright and Twitter API failed"
+            if playwright_error:
+                error_msg += f" (Playwright: {playwright_error})"
+            if api_error:
+                error_msg += f" (API: {api_error})"
+            final_result = self._get_fallback_result(url, error_msg)
 
         print(f"   ✅ Twitter/X scraping completed")
         print(f"   📝 Final title: {final_result.get('title', 'N/A')}")
@@ -604,16 +621,32 @@ class TwitterScraper(BaseScraper):
 
         # Extract username from URL even in fallback
         username = extract_username_from_url(url)
+        tweet_id = extract_tweet_id_from_url(url)
+        
+        # Create a more meaningful fallback title
+        if username:
+            fallback_title = f"Tweet by @{username}"
+        else:
+            fallback_title = "Twitter/X Post"
+            
+        # Create a more descriptive fallback description
+        if "rate limited" in error.lower() or "429" in error:
+            fallback_description = "Content temporarily unavailable due to rate limiting. Please try again later."
+        elif "playwright" in error.lower():
+            fallback_description = "Content unavailable due to technical issues. Please try again later."
+        else:
+            fallback_description = f"Unable to scrape content: {error}"
 
         return {
             "url": url,
-            "title": "Twitter/X Post",
-            "description": f"Unable to scrape content: {error}",
+            "title": fallback_title,
+            "description": fallback_description,
             "type": "post",
             "metadata": {
                 "platform": "Twitter/X",
                 "error": error,
                 "scraping_method": "fallback",
+                "tweet_id": tweet_id,
             },
             "transcript": None,
             "thumbnail": None,

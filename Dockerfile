@@ -40,15 +40,18 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers
+# Install Playwright browsers - ENSURING THEY ARE INSTALLED
 RUN playwright install chromium
 RUN playwright install-deps chromium
 
-# Test Playwright installation
-RUN python backend/test_playwright_installation.py
+# Verify browsers are installed
+RUN playwright install --dry-run chromium
 
 # Copy the entire project (including backend folder)
 COPY . .
+
+# Test browser installation
+RUN python backend/test_browser_installation.py
 
 # Add backend to Python path for module imports
 ENV PYTHONPATH=/workspace/backend
