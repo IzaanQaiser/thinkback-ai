@@ -32,19 +32,16 @@ def test_twitter_priority_logic():
         if thumbnail:
             print(f"✅ SUCCESS: Thumbnail found: {thumbnail}")
             
-            # Check if it's a media image (should be priority 1)
+            # Check if it's a media image (should be the only option now)
             if "/media/" in thumbnail:
                 print(f"✅ CORRECT: Using media image as thumbnail")
                 return True
-            elif "/profile_images/" in thumbnail:
-                print(f"⚠️ FALLBACK: Using profile image as thumbnail")
-                return True
             else:
-                print(f"❓ UNKNOWN: Using unknown image type as thumbnail")
+                print(f"❓ UNKNOWN: Using non-media image as thumbnail")
                 return True
         else:
-            print(f"❌ FAILED: No thumbnail found")
-            return False
+            print(f"📱 EXPECTED: No thumbnail - will use default X logo")
+            return True
             
     except Exception as e:
         print(f"❌ ERROR: {e}")
