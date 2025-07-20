@@ -51,9 +51,6 @@ RUN ls -la /root/.cache/ms-playwright/
 # Copy the entire project (including backend folder)
 COPY . .
 
-# Test browser installation
-RUN python backend/test_browser_installation.py
-
 # Add backend to Python path for module imports
 ENV PYTHONPATH=/workspace/backend
 
