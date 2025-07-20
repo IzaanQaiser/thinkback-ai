@@ -26,17 +26,19 @@ gcloud run deploy $SERVICE_NAME \
     --region $REGION \
     --project $PROJECT_ID \
     --allow-unauthenticated \
-    --memory 2Gi \
+    --memory 4Gi \
     --cpu 2 \
     --timeout 300 \
-    --max-instances 5
+    --max-instances 5 \
+    --set-env-vars "PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright"
 
 echo "✅ Deployment completed!"
 echo ""
 echo "🔧 Fixes applied:"
 echo "   - CORS: Added wildcard origin and testing domain"
-echo "   - Memory: Increased to 2Gi to prevent memory limit exceeded"
+echo "   - Memory: Increased to 4Gi to prevent memory limit exceeded"
 echo "   - Browser: Optimized memory usage with browser flags"
+echo "   - Environment: Set PLAYWRIGHT_BROWSERS_PATH to /tmp for better memory management"
 echo ""
 echo "🧪 Test the fix:"
 echo "Try saving this tweet: https://x.com/agazdecki/status/1591439614438699009"
