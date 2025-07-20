@@ -2,6 +2,7 @@ import re
 import os
 import json
 import requests
+import time
 from typing import Optional, Dict, List, Tuple
 from .base import BaseScraper
 from dotenv import load_dotenv
@@ -74,7 +75,19 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
     """Scrape tweet using Playwright headless browser."""
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            # Use chromium with specific arguments for better compatibility
+            browser = await p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--disable-gpu'
+                ]
+            )
             page = await browser.new_page()
 
             # Set user agent to avoid detection
@@ -250,58 +263,8 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                                     and "normal" not in src
                                     and "bigger" not in src
                                     and "mini" not in src
-                                ):
-
-                                    # Clean up the URL
-                                    if "?format=" in src:
-                                        src = (
-                                            src.split("?format=")[0]
-                                            + "?format=jpg&name=large"
-                                        )
-                                    elif "&format=" in src:
-                                        src = (
-                                            src.split("&format=")[0]
-                                            + "&format=jpg&name=large"
-                                        )
-                                    else:
-                                        src = src + "?format=jpg&name=large"
-
-                                    media_urls.append(src)
-                                    print(f"   🎥 Found video container image: {src}")
-                        except:
-                            pass
-
-                    # Look for video thumbnails in the tweet area
-                    tweet_area = await page.query_selector(
-                        'article[data-testid="tweet"]'
-                    )
-                    if tweet_area:
-                        # Look for any images that might be video thumbnails
-                        all_images = await tweet_area.query_selector_all("img")
-                        for img in all_images:
-                            try:
-                                src = await img.get_attribute("src")
-                                alt = await img.get_attribute("alt") or ""
-
-                                # Check if this looks like a video thumbnail
-                                if (
-                                    src
-                                    and src.startswith("http")
-                                    and "twimg.com" in src
-                                    and "profile" not in src
-                                    and "avatar" not in src
-                                    and "icon" not in src
-                                    and "normal" not in src
-                                    and "bigger" not in src
-                                    and "mini" not in src
                                     and len(src) > 80
-                                    and (
-                                        "video" in src
-                                        or "media" in alt.lower()
-                                        or "play" in alt.lower()
-                                    )
                                 ):
-
                                     # Clean up the URL
                                     if "?format=" in src:
                                         src = (
@@ -317,288 +280,31 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                                         src = src + "?format=jpg&name=large"
 
                                     media_urls.append(src)
-                                    print(
-                                        f"   🎥 Found potential video thumbnail: {src}"
-                                    )
-                            except Exception as e:
-                                print(f"   ⚠️ Error processing tweet image: {e}")
-
-                # Method 3: Look for background images in CSS (but filter better)
-                try:
-                    # Get all elements that might have background images
-                    elements_with_bg = await page.query_selector_all(
-                        '[style*="background"], [class*="media"]'
-                    )
-                    for element in elements_with_bg:
-                        try:
-                            style = await element.get_attribute("style")
-                            if style and "background-image" in style:
-                                # Extract URL from background-image
-                                match = re.search(
-                                    r'url\(["\']?([^"\']+)["\']?\)', style
-                                )
-                                if match:
-                                    bg_url = match.group(1)
-                                    if (
-                                        bg_url.startswith("http")
-                                        and "twimg.com" in bg_url
-                                        and "profile" not in bg_url
-                                        and "avatar" not in bg_url
-                                        and "icon" not in bg_url
-                                        and "normal" not in bg_url
-                                        and "bigger" not in bg_url
-                                        and "mini" not in bg_url
-                                    ):
-
-                                        media_urls.append(bg_url)
-                                        has_media = True
-                                        print(f"   🖼️ Found background image: {bg_url}")
-                        except:
-                            pass
-                except Exception as e:
-                    print(f"   ⚠️ Error checking background images: {e}")
-
-                # Method 4: Look for any img tags in the tweet area (improved filtering)
-                if not media_urls:
-                    tweet_area = await page.query_selector(
-                        'article[data-testid="tweet"]'
-                    )
-                    if tweet_area:
-                        all_images = await tweet_area.query_selector_all("img")
-                        for img in all_images:
-                            try:
-                                src = await img.get_attribute("src")
-                                alt = await img.get_attribute("alt") or ""
-
-                                # Skip small icons and avatars with better filtering
-                                if (
-                                    src
-                                    and src.startswith("http")
-                                    and "twimg.com" in src
-                                    and "profile" not in src
-                                    and "avatar" not in src
-                                    and "icon" not in src
-                                    and "normal" not in src
-                                    and "bigger" not in src
-                                    and "mini" not in src
-                                    and len(src) > 80
-                                ):  # Skip very short URLs
-
-                                    # Clean up the URL
-                                    if "?format=" in src:
-                                        src = (
-                                            src.split("?format=")[0]
-                                            + "?format=jpg&name=large"
-                                        )
-                                    elif "&format=" in src:
-                                        src = (
-                                            src.split("&format=")[0]
-                                            + "&format=jpg&name=large"
-                                        )
-                                    else:
-                                        src = src + "?format=jpg&name=large"
-
-                                    media_urls.append(src)
-                                    has_media = True
-                                    print(f"   🖼️ Found tweet image: {src}")
-                            except Exception as e:
-                                print(f"   ⚠️ Error processing image: {e}")
-
-                # Method 5: Look for media containers (improved)
-                media_containers = await page.query_selector_all(
-                    '[data-testid="tweetPhoto"], [data-testid="image"], [data-testid="gif"]'
-                )
-                if media_containers:
-                    has_media = True
-                    print(f"   📷 Found media containers: {len(media_containers)}")
-
-                    # Try to find images within these containers
-                    for container in media_containers:
-                        try:
-                            img = await container.query_selector("img")
-                            if img:
-                                src = await img.get_attribute("src")
-                                if (
-                                    src
-                                    and src.startswith("http")
-                                    and "twimg.com" in src
-                                    and "profile" not in src
-                                    and "avatar" not in src
-                                    and "icon" not in src
-                                    and "normal" not in src
-                                    and "bigger" not in src
-                                    and "mini" not in src
-                                ):
-
-                                    # Clean up the URL
-                                    if "?format=" in src:
-                                        src = (
-                                            src.split("?format=")[0]
-                                            + "?format=jpg&name=large"
-                                        )
-                                    elif "&format=" in src:
-                                        src = (
-                                            src.split("&format=")[0]
-                                            + "&format=jpg&name=large"
-                                        )
-                                    else:
-                                        src = src + "?format=jpg&name=large"
-
-                                    media_urls.append(src)
-                                    print(f"   🖼️ Found container image: {src}")
-                        except:
-                            pass
-
-                # Method 6: Look specifically for media in the tweet content area
-                try:
-                    # Look for the main tweet content area
-                    tweet_content = await page.query_selector(
-                        '[data-testid="tweet"] [data-testid="tweetText"]'
-                    )
-                    if tweet_content:
-                        # Find the parent article and look for media within it
-                        article = await tweet_content.query_selector(
-                            "xpath=ancestor::article"
-                        )
-                        if article:
-                            # Look for media elements that are siblings or children of the tweet content
-                            media_siblings = await article.query_selector_all(
-                                '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="gif"]'
-                            )
-                            for media_elem in media_siblings:
-                                try:
-                                    # Look for images within this media element
-                                    img = await media_elem.query_selector("img")
-                                    if img:
-                                        src = await img.get_attribute("src")
-                                        if (
-                                            src
-                                            and src.startswith("http")
-                                            and "twimg.com" in src
-                                            and "profile" not in src
-                                            and "avatar" not in src
-                                            and "icon" not in src
-                                            and "normal" not in src
-                                            and "bigger" not in src
-                                            and "mini" not in src
-                                        ):
-
-                                            # Clean up the URL
-                                            if "?format=" in src:
-                                                src = (
-                                                    src.split("?format=")[0]
-                                                    + "?format=jpg&name=large"
-                                                )
-                                            elif "&format=" in src:
-                                                src = (
-                                                    src.split("&format=")[0]
-                                                    + "&format=jpg&name=large"
-                                                )
-                                            else:
-                                                src = src + "?format=jpg&name=large"
-
-                                            media_urls.append(src)
-                                            print(f"   🖼️ Found content media: {src}")
-                                except:
-                                    pass
-                except Exception as e:
-                    print(f"   ⚠️ Error checking tweet content media: {e}")
-
-                # Method 7: Aggressive media search - look for any image that might be media
-                if not media_urls:
-                    print(f"   🔍 Performing aggressive media search...")
-                    try:
-                        # Get all images on the page and filter more carefully
-                        all_page_images = await page.query_selector_all("img")
-                        for img in all_page_images:
-                            try:
-                                src = await img.get_attribute("src")
-                                alt = await img.get_attribute("alt") or ""
-
-                                # More permissive filtering - look for any image that could be media
-                                if (
-                                    src
-                                    and src.startswith("http")
-                                    and "twimg.com" in src
-                                    and "profile" not in src
-                                    and "avatar" not in src
-                                    and "icon" not in src
-                                    and "normal" not in src
-                                    and "bigger" not in src
-                                    and "mini" not in src
-                                    and len(src) > 80
-                                    and not any(
-                                        skip in src
-                                        for skip in [
-                                            "_normal",
-                                            "_bigger",
-                                            "_mini",
-                                            "_small",
-                                        ]
-                                    )
-                                ):
-
-                                    # Clean up the URL
-                                    if "?format=" in src:
-                                        src = (
-                                            src.split("?format=")[0]
-                                            + "?format=jpg&name=large"
-                                        )
-                                    elif "&format=" in src:
-                                        src = (
-                                            src.split("&format=")[0]
-                                            + "&format=jpg&name=large"
-                                        )
-                                    else:
-                                        src = src + "?format=jpg&name=large"
-
-                                    media_urls.append(src)
-                                    print(f"   🖼️ Found potential media: {src}")
-                            except Exception as e:
-                                print(f"   ⚠️ Error in aggressive search: {e}")
-                    except Exception as e:
-                        print(f"   ⚠️ Error in aggressive media search: {e}")
-
-                # Method 8: Look for media in data attributes
-                try:
-                    # Some Twitter media might be stored in data attributes
-                    media_elements = await page.query_selector_all(
-                        '[data-testid*="media"], [data-testid*="photo"], [data-testid*="video"]'
-                    )
-                    for elem in media_elements:
-                        try:
-                            # Check for data attributes that might contain media URLs
-                            data_src = await elem.get_attribute("data-src")
-                            if (
-                                data_src
-                                and data_src.startswith("http")
-                                and "twimg.com" in data_src
-                            ):
-                                media_urls.append(data_src)
-                                print(f"   🖼️ Found data-src media: {data_src}")
-                        except:
-                            pass
-                except Exception as e:
-                    print(f"   ⚠️ Error checking data attributes: {e}")
+                                    print(f"   🎥 Found video thumbnail in container: {src}")
+                        except Exception as e:
+                            print(f"   ⚠️ Error processing video container: {e}")
 
             except Exception as e:
-                print(f"   ⚠️ Could not check for media: {e}")
+                print(f"   ⚠️ Error during media extraction: {e}")
 
-            # Extract author info
-            author = ""
+            # Extract author information
+            author = "Unknown"
             try:
+                # Try to extract author from various selectors
                 author_selectors = [
                     '[data-testid="User-Name"] a',
-                    '[data-testid="User-Name"] span',
+                    'a[href*="/status/"]',
                     'a[data-testid="User-Name"]',
                 ]
 
                 for selector in author_selectors:
                     try:
-                        element = await page.wait_for_selector(selector, timeout=3000)
-                        if element:
-                            author = await element.inner_text()
-                            break
+                        author_element = await page.query_selector(selector)
+                        if author_element:
+                            author_text = await author_element.inner_text()
+                            if author_text and author_text.strip():
+                                author = author_text.strip()
+                                break
                     except:
                         continue
 
@@ -607,16 +313,7 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
 
             await browser.close()
 
-            # Remove duplicates from media URLs
-            media_urls = list(set(media_urls))
-
             if tweet_text or has_media:
-                print(f"   ✅ Playwright scraping successful")
-                print(f"   📝 Tweet text length: {len(tweet_text)}")
-                print(f"   🖼️ Has media: {has_media}")
-                print(f"   🖼️ Media URLs found: {len(media_urls)}")
-                print(f"   👤 Author: {author}")
-
                 return {
                     "text": tweet_text,
                     "author": author,
@@ -625,7 +322,7 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
                     "scraping_method": "playwright",
                 }
             else:
-                print(f"   ⚠️ Playwright found no content")
+                print(f"   ⚠️ No content found with Playwright")
                 return None
 
     except Exception as e:
@@ -633,74 +330,129 @@ async def scrape_with_playwright(url: str) -> Optional[Dict]:
         return None
 
 
-def scrape_with_twitter_api(tweet_id: str) -> Optional[Dict]:
-    """Scrape tweet using Twitter API v2 as fallback."""
-    bearer_token = os.environ.get("TWITTER_BEARER_TOKEN")
+def scrape_with_twitter_api(tweet_id: str, max_retries: int = 3) -> Optional[Dict]:
+    """Scrape tweet using Twitter API v2 with exponential backoff for rate limiting."""
+    
+    # Get Twitter API credentials
+    bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
     if not bearer_token:
-        print(f"   ❌ Twitter Bearer Token not found in environment")
+        print(f"   ⚠️ Twitter API bearer token not found")
         return None
 
-    try:
-        url = f"https://api.twitter.com/2/tweets/{tweet_id}?expansions=attachments.media_keys&media.fields=url,type,preview_image_url&tweet.fields=text,author_id,created_at"
+    headers = {
+        "Authorization": f"Bearer {bearer_token}",
+        "User-Agent": "ThinkBackAI/1.0",
+    }
 
-        headers = {
-            "Authorization": f"Bearer {bearer_token}",
-            "User-Agent": "ThinkbackAI/1.0",
-        }
+    # Twitter API v2 endpoint
+    url = f"https://api.twitter.com/2/tweets/{tweet_id}"
+    params = {
+        "tweet.fields": "created_at,author_id,text,entities,attachments",
+        "expansions": "author_id,attachments.media_keys",
+        "media.fields": "url,preview_image_url,type",
+        "user.fields": "username,name",
+    }
 
-        print(f"   🔄 Trying Twitter API v2...")
-        response = requests.get(url, headers=headers, timeout=10)
-
-        if response.status_code == 200:
-            data = response.json()
-            print(f"   ✅ Twitter API response received")
-
-            tweet_data = data.get("data", {})
-            includes = data.get("includes", {})
-            media = includes.get("media", [])
-
-            tweet_text = tweet_data.get("text", "")
-            author_id = tweet_data.get("author_id", "")
-            created_at = tweet_data.get("created_at", "")
-
-            # Extract media URLs
-            media_urls = []
-            for media_item in media:
-                media_type = media_item.get("type", "")
-                if media_type == "photo":
-                    url = media_item.get("url")
-                    if url:
-                        media_urls.append(url)
-                elif media_type == "video":
-                    preview_url = media_item.get("preview_image_url")
-                    if preview_url:
-                        media_urls.append(preview_url)
-                elif media_type == "animated_gif":
-                    url = media_item.get("url")
-                    if url:
-                        media_urls.append(url)
-
-            has_media = len(media_urls) > 0
-
-            print(f"   📝 Tweet text length: {len(tweet_text)}")
-            print(f"   🖼️ Has media: {has_media}")
-            print(f"   🖼️ Media URLs found: {len(media_urls)}")
-
-            return {
-                "text": tweet_text,
-                "author_id": author_id,
-                "created_at": created_at,
-                "has_media": has_media,
-                "media_urls": media_urls,
-                "scraping_method": "twitter_api",
-            }
-        else:
-            print(f"   ❌ Twitter API returned status {response.status_code}")
+    for attempt in range(max_retries):
+        try:
+            print(f"   🔄 Trying Twitter API v2 (attempt {attempt + 1}/{max_retries})...")
+            
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                if "data" in data and data["data"]:
+                    tweet_data = data["data"]
+                    
+                    # Extract text
+                    text = tweet_data.get("text", "")
+                    
+                    # Extract author info
+                    author_id = tweet_data.get("author_id")
+                    author = "Unknown"
+                    if "includes" in data and "users" in data["includes"]:
+                        for user in data["includes"]["users"]:
+                            if user.get("id") == author_id:
+                                author = user.get("name", user.get("username", "Unknown"))
+                                break
+                    
+                    # Extract media
+                    media_urls = []
+                    has_media = False
+                    
+                    if "includes" in data and "media" in data["includes"]:
+                        has_media = True
+                        for media in data["includes"]["media"]:
+                            media_url = media.get("url") or media.get("preview_image_url")
+                            if media_url:
+                                media_urls.append(media_url)
+                    
+                    # Extract hashtags and mentions from entities
+                    hashtags = []
+                    mentions = []
+                    
+                    if "entities" in tweet_data:
+                        entities = tweet_data["entities"]
+                        
+                        # Extract hashtags
+                        if "hashtags" in entities:
+                            for hashtag in entities["hashtags"]:
+                                if "tag" in hashtag:
+                                    hashtags.append(f"#{hashtag['tag']}")
+                        
+                        # Extract mentions
+                        if "mentions" in entities:
+                            for mention in entities["mentions"]:
+                                if "username" in mention:
+                                    mentions.append(f"@{mention['username']}")
+                    
+                    return {
+                        "text": text,
+                        "author": author,
+                        "author_id": author_id,
+                        "created_at": tweet_data.get("created_at"),
+                        "has_media": has_media,
+                        "media_urls": media_urls,
+                        "hashtags": hashtags,
+                        "mentions": mentions,
+                        "scraping_method": "twitter_api",
+                    }
+                else:
+                    print(f"   ❌ No tweet data found in API response")
+                    return None
+                    
+            elif response.status_code == 429:
+                # Rate limited - implement exponential backoff
+                wait_time = (2 ** attempt) * 5  # 5s, 10s, 20s
+                print(f"   ⏳ Rate limited (429). Waiting {wait_time}s before retry...")
+                time.sleep(wait_time)
+                continue
+                
+            elif response.status_code == 404:
+                print(f"   ❌ Tweet not found (404)")
+                return None
+                
+            else:
+                print(f"   ❌ Twitter API returned status {response.status_code}")
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 2  # Shorter backoff for other errors
+                    print(f"   ⏳ Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                    continue
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            print(f"   ❌ Twitter API request failed: {e}")
+            if attempt < max_retries - 1:
+                wait_time = (2 ** attempt) * 2
+                print(f"   ⏳ Waiting {wait_time}s before retry...")
+                time.sleep(wait_time)
+                continue
             return None
-
-    except Exception as e:
-        print(f"   ❌ Twitter API scraping failed: {e}")
-        return None
+    
+    print(f"   ❌ All Twitter API attempts failed")
+    return None
 
 
 class TwitterScraper(BaseScraper):
@@ -726,36 +478,13 @@ class TwitterScraper(BaseScraper):
         except Exception as e:
             print(f"   ❌ Playwright execution failed: {e}")
 
-        # Step 2: Determine if we need API fallback
-        needs_api_fallback = False
-
-        if playwright_result:
-            # If Playwright found content but detected media, we might need API for better media URLs
-            if playwright_result.get("has_media") and not playwright_result.get(
-                "media_urls"
-            ):
-                print(f"   🔄 Media detected but no URLs found, trying API fallback...")
-                needs_api_fallback = True
-            # Also try API if we found some media but want to get more complete data
-            elif (
-                playwright_result.get("has_media")
-                and len(playwright_result.get("media_urls", [])) < 2
-            ):
-                print(
-                    f"   🔄 Media found but limited URLs, trying API for complete data..."
-                )
-                needs_api_fallback = True
-        else:
-            # If Playwright completely failed, try API
-            print(f"   🔄 Playwright failed, trying API fallback...")
-            needs_api_fallback = True
-
-        # Step 3: Try Twitter API if needed
+        # Step 2: Try Twitter API with better error handling
         api_result = None
-        if needs_api_fallback:
+        if not playwright_result or playwright_result.get("has_media") and not playwright_result.get("media_urls"):
+            print(f"   🔄 Step 2: Trying Twitter API...")
             api_result = scrape_with_twitter_api(tweet_id)
 
-        # Step 4: Combine results and return
+        # Step 3: Combine results and return
         final_result = self._combine_results(
             playwright_result, api_result, url, tweet_id
         )
@@ -829,11 +558,16 @@ class TwitterScraper(BaseScraper):
         else:
             result["title"] = f"Tweet by {primary_result.get('author', 'Unknown')}"
 
-        # Extract hashtags and mentions
-        full_text = tweet_text
-        hashtags, mentions = extract_hashtags_and_mentions(full_text)
-        result["hashtags"] = hashtags
-        result["mentions"] = mentions
+        # Extract hashtags and mentions - prioritize API results if available
+        if api_result:
+            result["hashtags"] = api_result.get("hashtags", [])
+            result["mentions"] = api_result.get("mentions", [])
+        else:
+            # Extract from text if API not available
+            full_text = tweet_text
+            hashtags, mentions = extract_hashtags_and_mentions(full_text)
+            result["hashtags"] = hashtags
+            result["mentions"] = mentions
 
         # Handle media/thumbnail - prioritize Playwright media URLs if available
         media_urls = []
