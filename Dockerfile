@@ -9,12 +9,29 @@ ENV PORT=8080
 # Set working directory
 WORKDIR /workspace
 
-# Install system dependencies
+# Install system dependencies including those needed for Playwright
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
         wget \
+        # Playwright dependencies
+        libnss3 \
+        libnspr4 \
+        libatk-bridge2.0-0 \
+        libdrm2 \
+        libxkbcommon0 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxfixes3 \
+        libxrandr2 \
+        libgbm1 \
+        libpango-1.0-0 \
+        libcairo2 \
+        libasound2 \
+        libatspi2.0-0 \
+        libgtk-3-0 \
+        libgdk-pixbuf2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -22,6 +39,13 @@ COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright browsers
+RUN playwright install chromium
+RUN playwright install-deps chromium
+
+# Test Playwright installation
+RUN python backend/test_playwright_installation.py
 
 # Copy the entire project (including backend folder)
 COPY . .
