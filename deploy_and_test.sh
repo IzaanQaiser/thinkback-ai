@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# ThinkBack AI Deployment Script
-# This script deploys the application to Google Cloud Run
+# ThinkBack AI Deployment and Test Script
+# This script deploys the application and tests the Twitter scraper
 
 set -e  # Exit on any error
 
-echo "🚀 Starting ThinkBack AI deployment..."
+echo "🚀 Starting ThinkBack AI deployment and test..."
 
 # Check if we're in the right directory
 if [ ! -f "Dockerfile" ]; then
@@ -35,6 +35,17 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "✅ Docker image built successfully"
+
+# Test the browser installation locally
+echo "🧪 Testing browser installation locally..."
+docker run --rm $IMAGE_NAME python backend/test_browser_installation.py
+
+if [ $? -ne 0 ]; then
+    echo "❌ Browser installation test failed!"
+    exit 1
+fi
+
+echo "✅ Browser installation test passed"
 
 # Push the image to Google Container Registry
 echo "📤 Pushing image to Google Container Registry..."
@@ -73,18 +84,34 @@ SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --proj
 
 echo "🌐 Service URL: $SERVICE_URL"
 
+# Wait for deployment to be ready
+echo "⏳ Waiting for deployment to be ready..."
+sleep 30
+
 # Test the deployment
 echo "🧪 Testing deployment..."
 curl -s -o /dev/null -w "%{http_code}" "$SERVICE_URL/health" || echo "000"
 
-echo "🎉 Deployment completed! The service should be available at:"
-echo "   $SERVICE_URL"
+# Test the Twitter scraper with a real tweet
+echo "🧪 Testing Twitter scraper..."
+TEST_URL="https://x.com/agazdecki/status/1591439614438699009"
+
+# Make a test request to the enrich-entry endpoint
+echo "📡 Testing Twitter scraper with real tweet..."
+curl -X POST "$SERVICE_URL/enrich-entry" \
+    -H "Content-Type: application/json" \
+    -d "{\"url\": \"$TEST_URL\", \"user_notes\": \"\"}" \
+    -w "\nHTTP Status: %{http_code}\n" \
+    --max-time 60
 
 echo ""
-echo "📝 Next steps:"
-echo "   1. Test the Twitter/X scraper with a real tweet URL"
-echo "   2. Check the logs for any Playwright installation issues"
-echo "   3. Verify that the fallback data is more meaningful"
+echo "🎉 Deployment and test completed!"
 echo ""
-echo "🔍 To check logs:"
-echo "   gcloud logs read --project=$PROJECT_ID --service=$SERVICE_NAME --limit=50"
+echo "📝 Next steps:"
+echo "   1. Check the logs for any errors:"
+echo "      gcloud logs read --project=$PROJECT_ID --service=$SERVICE_NAME --limit=50"
+echo ""
+echo "   2. Test with the web interface:"
+echo "      Try saving the tweet: $TEST_URL"
+echo ""
+echo "   3. Monitor for any remaining issues" 
