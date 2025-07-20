@@ -236,6 +236,7 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     - If thumbnail is available, consider the visual content type for better categorization
     - Examples:
       * "How startups are stupid" → "Startups" (not "Startup Critique")
+      * "Before you build a startup write down..." → "Startups" (exact keyword match)
       * "NBA player injury news" → "NBA" (not "NBA Injuries")
       * "Random basketball league highlights" → "Basketball" (not "Basketball Highlights")
       * "Physics tutorial" → "Physics" (not "Physics Education")
@@ -256,7 +257,17 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
     Existing Categories:
     {categories_str}
 
-    IMPORTANT: Choose the BROADEST appropriate category that still accurately describes the content. Prefer simple, general categories over specific ones. If none of the existing categories match well (less than 50% similarity), create a NEW category name that best describes this content.
+    IMPORTANT: 
+    - FIRST: Check for EXACT keyword matches in existing categories (e.g., if content mentions "startup" and you have a "Startups" category, use it)
+    - SECOND: Check for high similarity matches (80%+ similarity to existing categories)
+    - THIRD: Choose the BROADEST appropriate category that still accurately describes the content
+    - FOURTH: Create a NEW category only if no good match exists (less than 50% similarity)
+    
+    PRIORITY ORDER:
+    1. Exact keyword matches in existing categories
+    2. High similarity matches (80%+)
+    3. Broad appropriate categories
+    4. New category creation
 
     Respond in JSON with keys: category (object with id if matching existing category, or name if suggesting new category), title, tags (list of strings).
     """
