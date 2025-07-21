@@ -20,18 +20,32 @@ def is_post_url(url: str) -> bool:
 
 def extract_shortcode_from_url(url: str) -> Optional[str]:
     """Extract the shortcode from an Instagram URL."""
-    # Handle various Instagram URL formats
+    # Handle various Instagram URL formats using string operations
+    url_lower = url.lower()
+    
+    # Check for different patterns
     patterns = [
-        r"instagram\.com/p/([^/]+)",
-        r"instagram\.com/reels/([^/]+)",
-        r"instagram\.com/tv/([^/]+)",
+        '/p/',
+        '/reels/',
+        '/reel/',
+        '/tv/'
     ]
-
+    
     for pattern in patterns:
-        match = re.search(pattern, url)
-        if match:
-            return match.group(1)
-
+        if pattern in url_lower:
+            # Split by the pattern and get the part after it
+            parts = url_lower.split(pattern)
+            if len(parts) > 1:
+                # Get the shortcode (everything before the next slash or end of string)
+                shortcode = parts[1].split('/')[0].split('?')[0]
+                if shortcode:
+                    # Get the original case from the original URL
+                    original_parts = url.split(pattern)
+                    if len(original_parts) > 1:
+                        original_shortcode = original_parts[1].split('/')[0].split('?')[0]
+                        return original_shortcode
+                    return shortcode
+    
     return None
 
 
@@ -57,7 +71,7 @@ class InstagramScraper(BaseScraper):
         )
 
     def scrape(self, url: str) -> dict:
-        print(f"\n📸 INSTAGRAM SCRAPING STARTED (Hybrid: Instaloader + yt-dlp)")
+        print(f"\n📸 INSTAGRAM SCRAPING STARTED (Hybrid: Instaloader + fallback)")
         print(f"   URL: {url}")
 
         # Try Instaloader first for better data extraction
@@ -66,9 +80,9 @@ class InstagramScraper(BaseScraper):
             print(f"   ✅ Instaloader succeeded - using enhanced data")
             return result
 
-        # Fallback to yt-dlp if Instaloader fails
-        print(f"   🔄 Instaloader failed, falling back to yt-dlp...")
-        return self._fallback_to_ytdlp(url)
+        # Fallback to web scraping if Instaloader fails
+        print(f"   🔄 Instaloader failed, trying web scraping...")
+        return self._fallback_to_ytdlp(url)  # This now does web scraping
 
     def _try_instaloader(self, url: str) -> Optional[dict]:
         """Try to scrape using Instaloader for enhanced data extraction."""
@@ -262,10 +276,107 @@ class InstagramScraper(BaseScraper):
             return None
 
     def _fallback_to_ytdlp(self, url: str) -> dict:
-        """Fallback to yt-dlp when Instaloader fails."""
-        print(f"   🔧 Using yt-dlp fallback...")
-
-        raise NotImplementedError("yt_dlp-based Instagram scraping removed. Implement alternative if needed.")
+        """Fallback to basic web scraping when Instaloader fails."""
+        print(f"   🔧 Using web scraping fallback...")
+        
+        try:
+            import requests
+            from bs4 import BeautifulSoup
+            import re
+            
+            # Set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            }
+            
+            print(f"   📥 Fetching Instagram page...")
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Extract basic information from meta tags
+            title = None
+            description = None
+            thumbnail = None
+            
+            # Try to get title from meta tags
+            og_title = soup.find('meta', property='og:title')
+            if og_title:
+                title = og_title.get('content', '')
+            
+            # Try to get description from meta tags
+            og_description = soup.find('meta', property='og:description')
+            if og_description:
+                description = og_description.get('content', '')
+            
+            # Try to get thumbnail from meta tags
+            og_image = soup.find('meta', property='og:image')
+            if og_image:
+                thumbnail = og_image.get('content', '')
+            
+            # Extract shortcode for metadata
+            shortcode = extract_shortcode_from_url(url)
+            content_type = "reel" if is_reels_url(url) else "post"
+            
+            # Extract hashtags from description if available
+            hashtags = []
+            if description:
+                hashtag_pattern = r'#(\w+)'
+                hashtags = re.findall(hashtag_pattern, description)
+            
+            # Extract mentions from description if available
+            mentions = []
+            if description:
+                mention_pattern = r'@(\w+)'
+                mentions = re.findall(mention_pattern, description)
+            
+            print(f"   ✅ Web scraping completed")
+            print(f"   📊 Extracted data:")
+            print(f"     Title: {title}")
+            print(f"     Description length: {len(description) if description else 0} chars")
+            print(f"     Hashtags: {hashtags}")
+            print(f"     Mentions: {mentions}")
+            
+            return {
+                "url": url,
+                "title": title or f"Instagram {content_type.title()}",
+                "description": description or "",
+                "type": content_type,
+                "metadata": {
+                    "shortcode": shortcode,
+                    "webpage_url": url,
+                    "scraper": "web_scraping",
+                    "extracted_title": bool(title),
+                    "extracted_description": bool(description),
+                    "extracted_thumbnail": bool(thumbnail),
+                },
+                "transcript": None,
+                "thumbnail": thumbnail,
+                "hashtags": hashtags,
+                "mentions": mentions,
+                "is_carousel": False,
+                "carousel_count": 0,
+                "posting_account": {
+                    "username": "unknown",
+                    "full_name": None,
+                    "profile_pic": None,
+                    "verified": False,
+                    "private": False,
+                    "followers": None,
+                    "following": None,
+                },
+                "media_content": [],
+            }
+            
+        except Exception as e:
+            print(f"   ❌ Web scraping failed: {e}")
+            return self._get_fallback_result(url, f"Web scraping failed: {e}")
 
     def _get_fallback_result(self, url: str, error: str = "Unknown error") -> dict:
         """Return fallback data when all scraping methods fail."""
