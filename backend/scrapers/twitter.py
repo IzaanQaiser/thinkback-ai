@@ -544,16 +544,24 @@ class TwitterScraper(BaseScraper):
         if api_result and api_result.get("media_urls"):
             media_urls.extend(api_result.get("media_urls", []))
 
-        # Remove duplicates while preserving order
+        # Remove duplicates and filter out profile images while preserving order
         seen = set()
         unique_media_urls = []
         for url in media_urls:
             if url not in seen:
-                seen.add(url)
-                unique_media_urls.append(url)
+                # Filter out profile images
+                url_path = url.split('?')[0].lower()
+                if "/profile_images/" not in url_path and "/avatar/" not in url_path:
+                    seen.add(url)
+                    unique_media_urls.append(url)
+                else:
+                    print(f"   ⚠️ Filtering out profile image: {url[:50]}...")
 
         if unique_media_urls:
             result["thumbnail"] = unique_media_urls[0]  # Use first media as thumbnail
+            print(f"   ✅ Using thumbnail: {unique_media_urls[0]}")
+        else:
+            print(f"   📱 No valid media found - will use default X logo")
 
         # Add additional metadata
         if api_result:
