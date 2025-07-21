@@ -217,7 +217,7 @@ def create_entry(
             return "YouTube Shorts"
         if "youtube.com/watch?v=" in url or "youtu.be/" in url:
             return "YouTube Video"
-        if "instagram.com/reels/" in url:
+        if "/reels/" in url or "/reel/" in url:
             return "Instagram Reel"
         if "instagram.com/p/" in url:
             return "Instagram Post"
@@ -1019,7 +1019,7 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
             return "YouTube Shorts"
         if "youtube.com/watch?v=" in url or "youtu.be/" in url:
             return "YouTube Video"
-        if "instagram.com/reels/" in url:
+        if "/reels/" in url or "/reel/" in url:
             return "Instagram Reel"
         if "instagram.com/p/" in url:
             return "Instagram Post"
@@ -1131,7 +1131,7 @@ def scrape_url(
             return "YouTube Shorts"
         if "youtube.com/watch?v=" in url or "youtu.be/" in url:
             return "YouTube Video"
-        if "instagram.com/reels/" in url:
+        if "/reels/" in url or "/reel/" in url:
             return "Instagram Reel"
         if "instagram.com/p/" in url:
             return "Instagram Post"
