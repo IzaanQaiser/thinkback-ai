@@ -355,15 +355,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
         <div className="flex-1 p-5 flex flex-col">
           <div className="flex items-start space-x-4 h-full">
             <div className="flex-grow flex flex-col flex-1 min-h-0 h-full">
-              <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug" style={{
-                display: '-webkit-box',
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                wordBreak: 'break-word',
-                lineHeight: '1.4'
-              }}>{title}</h3>
+              <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-2">{title}</h3>
               {/* Display channel name for YouTube videos, TikTok videos, and X posts */}
               {platform && ((platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) || platform.toLowerCase().includes('tiktok') || platform.toLowerCase().includes('twitter') || platform.toLowerCase().includes('x')) && channel && (
                 <p className="text-sm text-dark-500 dark:text-dark-400 mb-1 font-medium">
