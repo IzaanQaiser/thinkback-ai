@@ -372,7 +372,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
               )}
 
               <div className="flex-1 min-h-0 flex flex-col">
-                <p className={`text-sm text-dark-600 dark:text-dark-400 flex-1 min-h-0 overflow-hidden ${expandSummary ? '' : 'line-clamp-2'}`}>
+                <p className={`text-sm text-dark-600 dark:text-dark-400 flex-1 min-h-0 ${expandSummary ? '' : 'line-clamp-2'}`}>
                   {notes}
                 </p>
               </div>
