@@ -19,7 +19,7 @@ def detect_platform(url: str) -> str:
         return "YouTube Shorts"
     if "youtube.com/watch?v=" in url or "youtu.be/" in url:
         return "YouTube Video"
-    if "instagram.com/reels/" in url:
+    if "/reels/" in url or "/reel/" in url:
         return "Instagram Reel"
     if "instagram.com/p/" in url:
         return "Instagram Post"

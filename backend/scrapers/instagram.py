@@ -9,7 +9,7 @@ import requests
 def is_reels_url(url: str) -> bool:
     """Check if the URL is an Instagram Reels URL."""
     url_lower = url.lower()
-    return "instagram.com/reels/" in url_lower
+    return "/reels/" in url_lower or "/reel/" in url_lower
 
 
 def is_post_url(url: str) -> bool:
