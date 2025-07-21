@@ -65,3 +65,4 @@ playwright
 rapidfuzz>=3.0.0
 langdetect
 google-cloud-translate
+beautifulsoup4>=4.12.0
