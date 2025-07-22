@@ -285,9 +285,14 @@ def create_entry(
             # For Instagram posts, save the posting account username as channel
             if platform and platform.lower() in ["instagram post", "instagram reel"]:
                 posting_account = scraped_data.get("posting_account", {})
+                print(f"   🔍 Instagram posting account debug:")
+                print(f"     Posting account: {posting_account}")
+                print(f"     Username: {posting_account.get('username') if posting_account else 'None'}")
                 if posting_account and posting_account.get("username") and posting_account.get("username") != "unknown":
                     entry_dict["channel"] = posting_account["username"]
                     print(f"   ✅ Instagram posting account saved: {entry_dict['channel']}")
+                else:
+                    print(f"   ⚠️ No valid username found in posting account")
         else:
             print(f"   ❌ No scraper found for platform: {platform}")
 
