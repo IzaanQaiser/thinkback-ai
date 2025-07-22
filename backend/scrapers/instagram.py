@@ -1,9 +1,13 @@
 from .base import BaseScraper
-import instaloader
 import re
+import asyncio
+import json
 from typing import Dict, Any, List, Optional
 import urllib.parse
 import requests
+from playwright.async_api import async_playwright
+import time
+import random
 
 
 def is_reels_url(url: str) -> bool:
@@ -49,241 +53,318 @@ def extract_shortcode_from_url(url: str) -> Optional[str]:
     return None
 
 
+async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
+    """Scrape Instagram using Playwright for better JavaScript handling."""
+    try:
+        async with async_playwright() as p:
+            # Launch browser with stealth settings
+            browser = await p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--disable-gpu',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding',
+                    '--disable-features=TranslateUI',
+                    '--disable-ipc-flooding-protection',
+                ]
+            )
+            
+            # Create context with realistic user agent
+            context = await browser.new_context(
+                user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                viewport={'width': 1920, 'height': 1080},
+                locale='en-US',
+                timezone_id='America/New_York',
+            )
+            
+            # Add extra headers
+            await context.set_extra_http_headers({
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            })
+            
+            page = await context.new_page()
+            
+            # Set up request interception to block unnecessary resources
+            await page.route("**/*", lambda route: route.abort() 
+                           if route.request.resource_type in ["image", "media", "font", "stylesheet"]
+                           else route.continue_())
+            
+            print(f"   🌐 Navigating to Instagram page...")
+            await page.goto(url, wait_until='networkidle', timeout=30000)
+            
+            # Wait for content to load
+            await page.wait_for_timeout(3000)
+            
+            # Try to extract data from the page
+            data = await page.evaluate("""
+                () => {
+                    const result = {
+                        title: null,
+                        description: null,
+                        thumbnail: null,
+                        username: null,
+                        fullName: null,
+                        isVideo: false,
+                        isCarousel: false,
+                        carouselCount: 0,
+                        likes: null,
+                        comments: null,
+                        hashtags: [],
+                        mentions: [],
+                        error: null
+                    };
+                    
+                    try {
+                        // Try to get title from meta tags
+                        const ogTitle = document.querySelector('meta[property="og:title"]');
+                        if (ogTitle) {
+                            result.title = ogTitle.getAttribute('content');
+                        }
+                        
+                        // Try to get description from meta tags
+                        const ogDescription = document.querySelector('meta[property="og:description"]');
+                        if (ogDescription) {
+                            result.description = ogDescription.getAttribute('content');
+                        }
+                        
+                        // Try to get thumbnail from meta tags
+                        const ogImage = document.querySelector('meta[property="og:image"]');
+                        if (ogImage) {
+                            result.thumbnail = ogImage.getAttribute('content');
+                        }
+                        
+                        // Try to extract username from title
+                        if (result.title) {
+                            const titleMatch = result.title.match(/^([^:]+) on Instagram/);
+                            if (titleMatch && titleMatch[1]) {
+                                result.username = titleMatch[1].trim();
+                            }
+                        }
+                        
+                        // Try to get username from various selectors
+                        const usernameSelectors = [
+                            'header a[href^="/"]',
+                            'article header a',
+                            'a[href^="/"]'
+                        ];
+                        
+                        if (!result.username) {
+                            for (const selector of usernameSelectors) {
+                                const element = document.querySelector(selector);
+                                if (element) {
+                                    const text = element.textContent.trim();
+                                    const href = element.getAttribute('href');
+                                    
+                                    if (text && !text.includes(' ') && text.length > 0) {
+                                        let username = text.replace('@', '').trim();
+                                        
+                                        if (href && href.startsWith('/') && href.length > 1) {
+                                            const hrefParts = href.split('/').filter(part => part.length > 0);
+                                            if (hrefParts.length > 0) {
+                                                username = hrefParts[0];
+                                            }
+                                        }
+                                        
+                                        if (username && username.length > 0) {
+                                            result.username = username;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Check if it's a video
+                        const videoElements = document.querySelectorAll('video');
+                        if (videoElements.length > 0) {
+                            result.isVideo = true;
+                        }
+                        
+                        // Check if it's a carousel
+                        const carouselIndicators = document.querySelectorAll('[data-testid="carousel-indicator"]');
+                        if (carouselIndicators.length > 1) {
+                            result.isCarousel = true;
+                            result.carouselCount = carouselIndicators.length;
+                        }
+                        
+                        // Try to extract likes
+                        const likeElements = document.querySelectorAll('a[href*="/liked_by/"]');
+                        if (likeElements.length > 0) {
+                            const likeText = likeElements[0].textContent;
+                            const likeMatch = likeText.match(/(\d+)/);
+                            if (likeMatch) {
+                                result.likes = parseInt(likeMatch[1]);
+                            }
+                        }
+                        
+                        // Extract hashtags and mentions from description
+                        if (result.description) {
+                            const hashtagPattern = /#(\\w+)/g;
+                            const mentionPattern = /@(\\w+)/g;
+                            
+                            result.hashtags = result.description.match(hashtagPattern) || [];
+                            result.mentions = result.description.match(mentionPattern) || [];
+                        }
+                        
+                    } catch (error) {
+                        result.error = error.message;
+                    }
+                    
+                    return result;
+                }
+            """)
+            
+            await browser.close()
+            return data
+            
+    except Exception as e:
+        print(f"   ❌ Playwright scraping failed: {e}")
+        return None
+
+
 class InstagramScraper(BaseScraper):
     def __init__(self):
-        # Initialize Instaloader with custom session to avoid detection
-        self.loader = instaloader.Instaloader(
-            download_pictures=False,
-            download_videos=False,
-            download_video_thumbnails=False,
-            download_geotags=False,
-            download_comments=False,
-            save_metadata=False,
-            compress_json=False,
-            dirname_pattern=None,
-            filename_pattern=None,
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            max_connection_attempts=2,
-            request_timeout=15,
-            rate_controller=None,
-            sleep=True,
-            quiet=True,
-        )
+        # Add rate limiting delay
+        self.last_request_time = 0
+        self.min_delay = 2  # Minimum delay between requests in seconds
+
+    def _rate_limit_delay(self):
+        """Implement rate limiting to avoid Instagram's rate limits."""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        
+        if time_since_last < self.min_delay:
+            delay = self.min_delay - time_since_last + random.uniform(0.5, 1.5)
+            print(f"   ⏳ Rate limiting: waiting {delay:.1f}s...")
+            time.sleep(delay)
+        
+        self.last_request_time = time.time()
 
     def scrape(self, url: str) -> dict:
-        print(f"\n📸 INSTAGRAM SCRAPING STARTED (Hybrid: Instaloader + fallback)")
+        print(f"\n📸 INSTAGRAM SCRAPING STARTED (Playwright-based)")
         print(f"   URL: {url}")
 
-        # Try Instaloader first for better data extraction
-        result = self._try_instaloader(url)
-        if result and result.get("posting_account", {}).get("username") != "unknown":
-            print(f"   ✅ Instaloader succeeded - using enhanced data")
-            return result
+        # Apply rate limiting
+        self._rate_limit_delay()
 
-        # Fallback to web scraping if Instaloader fails
-        print(f"   🔄 Instaloader failed, trying web scraping...")
-        return self._fallback_to_ytdlp(url)  # This now does web scraping
+        # Extract shortcode for metadata
+        shortcode = extract_shortcode_from_url(url)
+        content_type = "reel" if is_reels_url(url) else "post"
+        
+        print(f"   🔍 Extracted shortcode: {shortcode}")
+        print(f"   📱 Content type: {content_type}")
 
-    def _try_instaloader(self, url: str) -> Optional[dict]:
-        """Try to scrape using Instaloader for enhanced data extraction."""
-        try:
-            # Extract shortcode from URL
-            shortcode = extract_shortcode_from_url(url)
-            if not shortcode:
-                print(f"   ❌ Could not extract shortcode from URL: {url}")
-                return None
+        # Try Playwright scraping
+        print(f"   🌐 Attempting Playwright scraping...")
+        playwright_data = asyncio.run(scrape_instagram_with_playwright(url))
+        
+        if playwright_data and not playwright_data.get('error'):
+            print(f"   ✅ Playwright scraping successful")
+            return self._build_result_from_playwright(url, playwright_data, shortcode, content_type)
+        
+        # Fallback to basic web scraping
+        print(f"   🔄 Playwright failed, trying basic web scraping...")
+        return self._fallback_web_scraping(url, shortcode, content_type)
 
-            print(f"   🔍 Extracted shortcode: {shortcode}")
+    def _build_result_from_playwright(self, url: str, data: Dict, shortcode: str, content_type: str) -> Dict:
+        """Build result from Playwright scraped data."""
+        print(f"   📊 Processing Playwright data:")
+        print(f"     Title: {data.get('title', 'N/A')}")
+        print(f"     Username: {data.get('username', 'N/A')}")
+        description = data.get('description', '')
+        print(f"     Description length: {len(description) if description else 0} chars")
+        print(f"     Is video: {data.get('isVideo', False)}")
+        print(f"     Is carousel: {data.get('isCarousel', False)}")
+        print(f"     Carousel count: {data.get('carouselCount', 0)}")
+        print(f"     Likes: {data.get('likes', 'N/A')}")
+        print(f"     Comments: {data.get('comments', 'N/A')}")
+        print(f"     Hashtags: {data.get('hashtags', [])}")
+        print(f"     Mentions: {data.get('mentions', [])}")
 
-            # Get post using Instaloader
-            print(f"   📥 Fetching post data from Instagram (Instaloader)...")
-            post = instaloader.Post.from_shortcode(self.loader.context, shortcode)
+        # Build posting account info
+        username = data.get('username', 'unknown')
+        posting_account = {
+            "username": username,
+            "full_name": data.get('fullName', username),
+            "profile_pic": None,  # Not available via web scraping
+            "verified": False,     # Not available via web scraping
+            "private": False,      # Not available via web scraping
+            "followers": None,     # Not available via web scraping
+            "following": None,     # Not available via web scraping
+        }
 
-            print(f"   ✅ Instaloader post fetched successfully")
-            print(f"   📊 Post details:")
-            print(f"     Owner: @{post.owner_username}")
-            print(f"     Caption length: {len(post.caption or '')} chars")
+        # Build title
+        title = data.get('title')
+        if not title and username != 'unknown':
+            title = f"Instagram {content_type.title()} by @{username}"
+        elif not title:
+            title = f"Instagram {content_type.title()}"
 
-            # Check if it's a carousel by trying to get sidecar nodes
-            try:
-                sidecar_nodes = list(post.get_sidecar_nodes())
-                is_carousel = len(sidecar_nodes) > 1
-                carousel_count = len(sidecar_nodes) if is_carousel else 1
-                print(f"     Media count: {carousel_count}")
-            except:
-                is_carousel = False
-                carousel_count = 1
-                sidecar_nodes = []
-                print(f"     Media count: 1 (single post)")
+        # Build description
+        description = data.get('description', '')
 
-            print(f"     Likes: {post.likes}")
-            print(f"     Comments: {post.comments}")
-            print(f"     Date: {post.date_local}")
-            print(
-                f"     Type: {'Carousel' if is_carousel else 'Single' if post.is_video else 'Image'}"
-            )
+        # Build metadata
+        metadata = {
+            "shortcode": shortcode,
+            "webpage_url": url,
+            "scraper": "playwright",
+            "username": username,
+            "is_video": data.get('isVideo', False),
+            "is_carousel": data.get('isCarousel', False),
+            "carousel_count": data.get('carouselCount', 0),
+            "likes": data.get('likes'),
+            "comments": data.get('comments'),
+            "extracted_title": bool(data.get('title')),
+            "extracted_description": bool(data.get('description')),
+            "extracted_thumbnail": bool(data.get('thumbnail')),
+        }
 
-            # Extract posting account information
-            posting_account = {
-                "username": post.owner_username,
-                "full_name": (
-                    getattr(post.owner_profile, "full_name", post.owner_username)
-                    if hasattr(post, "owner_profile")
-                    else post.owner_username
-                ),
-                "profile_pic": (
-                    getattr(post.owner_profile, "profile_pic_url", None)
-                    if hasattr(post, "owner_profile")
-                    else None
-                ),
-                "verified": (
-                    getattr(post.owner_profile, "verified", False)
-                    if hasattr(post, "owner_profile")
-                    else False
-                ),
-                "private": (
-                    getattr(post.owner_profile, "is_private", False)
-                    if hasattr(post, "owner_profile")
-                    else False
-                ),
-                "followers": (
-                    getattr(post.owner_profile, "followers", None)
-                    if hasattr(post, "owner_profile")
-                    else None
-                ),
-                "following": (
-                    getattr(post.owner_profile, "followees", None)
-                    if hasattr(post, "owner_profile")
-                    else None
-                ),
+        # Build media content
+        media_content = []
+        if data.get('thumbnail'):
+            media_item = {
+                "index": 0,
+                "type": "video" if data.get('isVideo') else "image",
+                "url": data.get('thumbnail'),
+                "video_url": None,
+                "thumbnail": data.get('thumbnail'),
+                "dimensions": {"width": None, "height": None},
             }
+            media_content.append(media_item)
 
-            # Extract caption and clean it
-            caption = post.caption or ""
-            if caption:
-                caption = re.sub(r"\s+", " ", caption).strip()
-                print(f"   📝 Cleaned caption length: {len(caption)} chars")
-                print(f"   📝 Caption: {caption}")
+        return {
+            "url": url,
+            "title": title,
+            "description": description,
+            "type": content_type,
+            "metadata": metadata,
+            "transcript": None,
+            "thumbnail": data.get('thumbnail'),
+            "hashtags": data.get('hashtags', []),
+            "mentions": data.get('mentions', []),
+            "is_carousel": data.get('isCarousel', False),
+            "carousel_count": data.get('carouselCount', 0),
+            "posting_account": posting_account,
+            "media_content": media_content,
+        }
 
-            # Extract hashtags and mentions from caption
-            hashtags = []
-            mentions = []
-            if caption:
-                hashtag_pattern = r"#\w+"
-                hashtags = re.findall(hashtag_pattern, caption)
-                mention_pattern = r"@\w+"
-                mentions = re.findall(mention_pattern, caption)
-                print(f"   🏷️ Extracted hashtags: {hashtags}")
-                print(f"   👥 Extracted mentions: {mentions}")
-
-            # Extract all media content (carousel support)
-            media_content = []
-            if is_carousel and sidecar_nodes:
-                # Carousel post - get all images/videos
-                for i, node in enumerate(sidecar_nodes):
-                    media_item = {
-                        "index": i,
-                        "type": "video" if node.is_video else "image",
-                        "url": node.display_url,
-                        "video_url": (
-                            getattr(node, "video_url", None) if node.is_video else None
-                        ),
-                        "thumbnail": getattr(node, "thumbnail_src", node.display_url),
-                        "dimensions": {
-                            "width": getattr(node, "width", None),
-                            "height": getattr(node, "height", None),
-                        },
-                    }
-                    media_content.append(media_item)
-                print(f"   🖼️ Extracted {len(media_content)} carousel items")
-            else:
-                # Single post
-                media_item = {
-                    "index": 0,
-                    "type": "video" if post.is_video else "image",
-                    "url": post.url,
-                    "video_url": (
-                        getattr(post, "video_url", None) if post.is_video else None
-                    ),
-                    "thumbnail": getattr(post, "thumbnail_src", post.url),
-                    "dimensions": {
-                        "width": getattr(post, "width", None),
-                        "height": getattr(post, "height", None),
-                    },
-                }
-                media_content.append(media_item)
-                print(f"   🖼️ Extracted single media item")
-
-            # Get primary thumbnail (first image/video)
-            thumbnail = None
-            if media_content:
-                first_media = media_content[0]
-                thumbnail = first_media.get("url") or first_media.get("thumbnail")
-                print(f"   🖼️ Primary thumbnail: {thumbnail}")
-
-            # Determine content type
-            content_type = "reel" if is_reels_url(url) else "post"
-            if is_carousel:
-                content_type = "carousel"
-            elif post.is_video:
-                content_type = "video"
-            else:
-                content_type = "image"
-
-            print(f"   📱 Content type: {content_type}")
-
-            # Build metadata
-            metadata = {
-                "uploader": post.owner_username,
-                "uploader_full_name": posting_account["full_name"],
-                "upload_date": post.date_local.isoformat() if post.date_local else None,
-                "like_count": post.likes,
-                "comment_count": post.comments,
-                "view_count": getattr(post, "video_view_count", None),
-                "webpage_url": url,
-                "thumbnail": thumbnail,
-                "is_carousel": is_carousel,
-                "carousel_count": carousel_count,
-                "is_video": post.is_video,
-                "location": getattr(post, "location", None),
-                "sponsored": getattr(post, "sponsored", False),
-                "tagged_users": getattr(post, "tagged_users", []),
-                "scraper": "instaloader",
-            }
-
-            # Build result
-            result = {
-                "url": url,
-                "title": f"Instagram {content_type.title()} by @{post.owner_username}",
-                "description": caption,  # Full caption
-                "type": content_type,
-                "metadata": metadata,
-                "transcript": None,  # Instagram doesn't provide transcripts
-                "thumbnail": thumbnail,
-                "hashtags": hashtags,
-                "mentions": mentions,
-                "is_carousel": is_carousel,
-                "carousel_count": carousel_count,
-                "posting_account": posting_account,
-                "media_content": media_content,
-            }
-
-            print(f"   ✅ Instaloader scraping completed successfully")
-            return result
-
-        except Exception as e:
-            print(f"   ❌ Instaloader failed: {e}")
-            return None
-
-    def _fallback_to_ytdlp(self, url: str) -> dict:
-        """Fallback to basic web scraping when Instaloader fails."""
-        print(f"   🔧 Using web scraping fallback...")
+    def _fallback_web_scraping(self, url: str, shortcode: str, content_type: str) -> Dict:
+        """Fallback to basic web scraping when Playwright fails."""
+        print(f"   🔧 Using basic web scraping fallback...")
         
         try:
-            import requests
-            from bs4 import BeautifulSoup
-            import re
-            
             # Set up headers to mimic a browser
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -295,9 +376,11 @@ class InstagramScraper(BaseScraper):
             }
             
             print(f"   📥 Fetching Instagram page...")
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=15)
             response.raise_for_status()
             
+            # Parse with BeautifulSoup
+            from bs4 import BeautifulSoup
             soup = BeautifulSoup(response.text, 'html.parser')
             
             # Extract basic information from meta tags
@@ -320,23 +403,16 @@ class InstagramScraper(BaseScraper):
             if og_image:
                 thumbnail = og_image.get('content', '')
             
-            # Extract shortcode for metadata
-            shortcode = extract_shortcode_from_url(url)
-            content_type = "reel" if is_reels_url(url) else "post"
-            
-            # Extract hashtags from description if available
+            # Extract hashtags and mentions from description
             hashtags = []
+            mentions = []
             if description:
                 hashtag_pattern = r'#(\w+)'
                 hashtags = re.findall(hashtag_pattern, description)
-            
-            # Extract mentions from description if available
-            mentions = []
-            if description:
                 mention_pattern = r'@(\w+)'
                 mentions = re.findall(mention_pattern, description)
             
-            print(f"   ✅ Web scraping completed")
+            print(f"   ✅ Basic web scraping completed")
             print(f"   📊 Extracted data:")
             print(f"     Title: {title}")
             print(f"     Description length: {len(description) if description else 0} chars")
@@ -351,7 +427,7 @@ class InstagramScraper(BaseScraper):
                 "metadata": {
                     "shortcode": shortcode,
                     "webpage_url": url,
-                    "scraper": "web_scraping",
+                    "scraper": "basic_web_scraping",
                     "extracted_title": bool(title),
                     "extracted_description": bool(description),
                     "extracted_thumbnail": bool(thumbnail),
@@ -375,7 +451,7 @@ class InstagramScraper(BaseScraper):
             }
             
         except Exception as e:
-            print(f"   ❌ Web scraping failed: {e}")
+            print(f"   ❌ Basic web scraping failed: {e}")
             return self._get_fallback_result(url, f"Web scraping failed: {e}")
 
     def _get_fallback_result(self, url: str, error: str = "Unknown error") -> dict:
