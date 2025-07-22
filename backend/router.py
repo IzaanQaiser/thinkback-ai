@@ -219,7 +219,7 @@ def create_entry(
             return "YouTube Video"
         if "/reels/" in url or "/reel/" in url:
             return "Instagram Reel"
-        if "instagram.com/p/" in url:
+        if "/p/" in url and "instagram.com" in url:
             return "Instagram Post"
         if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
             return "LinkedIn Post"
@@ -1037,7 +1037,7 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
             return "YouTube Video"
         if "/reels/" in url or "/reel/" in url:
             return "Instagram Reel"
-        if "instagram.com/p/" in url:
+        if "/p/" in url and "instagram.com" in url:
             return "Instagram Post"
         if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
             return "LinkedIn Post"
@@ -1063,6 +1063,9 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
     print(
         f"   📊 Scraped data keys: {list(scraped_data.keys()) if scraped_data else 'None'}"
     )
+    
+    # Extract scraped title for title selection logic
+    scraped_title = scraped_data.get("title") if scraped_data else None
 
     # Get categories for the user (decode from token if available, else fallback)
     try:
@@ -1113,6 +1116,42 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
 
     if ai_response and "category" in ai_response and "name" in ai_response["category"]:
         print(f"category: {ai_response['category']['name']}")
+    
+    # Title selection logic
+    final_title = ai_response.get("title", "")
+    
+    # For Instagram posts, prioritize the caption over AI-generated titles
+    if platform and platform.lower() in ["instagram post", "instagram reel"]:
+        caption = scraped_data.get("description", "") if scraped_data else ""
+        if caption and caption.strip():
+            # Clean up the caption by removing hashtags at the end
+            cleaned_caption = caption.strip()
+            hashtag_index = cleaned_caption.find('#')
+            if hashtag_index > 0:
+                cleaned_caption = cleaned_caption[:hashtag_index].strip()
+
+            final_title = cleaned_caption
+            print(f"📝 Using Instagram caption as title: {final_title}")
+        else:
+            # No caption found, use a generic title
+            final_title = "Instagram Post"
+            print(f"📝 No caption found, using generic title: {final_title}")
+    # For Twitter/X posts, prioritize the scraped title (actual tweet content)
+    elif platform and platform.lower() in ["twitter/x post"]:
+        if scraped_title and scraped_title.strip():
+            final_title = scraped_title.strip()
+            print(f"📝 Using Twitter/X scraped title: {final_title}")
+        else:
+            print(f"📝 No scraped title found, using AI-generated title: {final_title}")
+    elif scraped_title and scraped_title.strip():
+        final_title = scraped_title.strip()
+        print(f"📝 Using scraped title: {final_title}")
+    else:
+        print(f"📝 Using AI-generated title: {final_title}")
+    
+    # Update the AI response with the selected title
+    ai_response["title"] = final_title
+    
     print("success")
 
     # Return both the AI response and the scraped data (including thumbnail)
@@ -1149,7 +1188,7 @@ def scrape_url(
             return "YouTube Video"
         if "/reels/" in url or "/reel/" in url:
             return "Instagram Reel"
-        if "instagram.com/p/" in url:
+        if "/p/" in url and "instagram.com" in url:
             return "Instagram Post"
         if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
             return "LinkedIn Post"
