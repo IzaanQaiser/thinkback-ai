@@ -68,8 +68,16 @@ def classify_entry(entry, categories):
             print(f"     Category: {result.get('category', {})}")
             print(f"     Title: {result.get('title', 'N/A')}")
             print(f"     Tags: {result.get('tags', [])}")
-            # Ensure English for title
-            result["title"] = ensure_english(result.get("title", ""))
+            
+            # For Instagram posts, if AI returns empty title, it means keep the original
+            platform = entry.get("platform", "").lower()
+            if "instagram" in platform and not result.get("title"):
+                print(f"   📸 Instagram post detected - keeping original caption as title")
+                result["title"] = ""  # This signals to keep the original title
+            else:
+                # Ensure English for title
+                result["title"] = ensure_english(result.get("title", ""))
+            
             return result
         except Exception as e:
             print(f"   ⚠️ JSON parsing failed: {e}")
@@ -106,12 +114,27 @@ def aggregate_entry_data(
     user_notes: str,
     categories: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
+    # For Instagram posts, use the description (caption) as the title if available
+    title = scraped_data.get("title")
+    description = scraped_data.get("description")
+    
+    # If this is an Instagram post and we have a description (caption), use it as the title
+    if platform.lower() == "instagram post" and description:
+        # Use the caption as the title, but clean it up
+        title = description.strip()
+        # Remove hashtags from the title if they're at the end
+        if title and '#' in title:
+            # Find the first hashtag and truncate there
+            hashtag_index = title.find('#')
+            if hashtag_index > 0:
+                title = title[:hashtag_index].strip()
+    
     return {
         "url": url,
         "platform": platform,
         "type": scraped_data.get("type"),
-        "title": scraped_data.get("title"),
-        "description": scraped_data.get("description"),
+        "title": title,
+        "description": description,
         "transcript": scraped_data.get("transcript"),
         "metadata": scraped_data.get("metadata"),
         "thumbnail": scraped_data.get("thumbnail"),
@@ -218,13 +241,26 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
       * "New basketball highlights" → "Basketball" (not "Sports Highlights")
     """
 
+    # For Instagram posts, don't generate a new title if we have a good caption
+    title_instruction = ""
+    if "instagram" in entry.get("platform", "").lower():
+        title_instruction = """
+    2. TITLE: For Instagram posts, ONLY generate a new title if the current title is generic (like "Instagram Post by @username"). 
+       If the current title is already the actual caption content, keep it as is and respond with "title": "" (empty string).
+       If you need to generate a title, make it concise and specific (4-5 words max).
+    """
+    else:
+        title_instruction = """
+    2. Generate a concise, specific title (4-5 words max) that captures the core topic of the content. Make it more specific and relevant than the original title.
+    """
+
     prompt = textwrap.dedent(
         f"""
     You are an AI assistant for a knowledge management app. Given the following entry and the list of existing categories, do the following:
     1. CRITICAL: NEVER assign to "Uncategorized". You must either:
        - Match to an existing category if there's a 50%+ similarity
        - Create a NEW category name (1-2 words) that best describes the content topic/genre
-    2. Generate a concise, specific title (4-5 words max) that captures the core topic of the content. Make it more specific and relevant than the original title.
+    {title_instruction}
     3. Generate up to 3 relevant tags.
 
     CATEGORIZATION RULES:
