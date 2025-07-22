@@ -370,22 +370,22 @@ def create_entry(
     # Decide which title to use
     final_title = ai_result.get("title", "")
     
-                    # For Instagram posts, prioritize the caption over AI-generated titles
-                if platform and platform.lower() in ["instagram post", "instagram reel"]:
-                    caption = scraped_data.get("description", "") if scraped_data else ""
-                    if caption and caption.strip():
-                        # Clean up the caption by removing hashtags at the end
-                        cleaned_caption = caption.strip()
-                        hashtag_index = cleaned_caption.find('#')
-                        if hashtag_index > 0:
-                            cleaned_caption = cleaned_caption[:hashtag_index].strip()
+    # For Instagram posts, prioritize the caption over AI-generated titles
+    if platform and platform.lower() in ["instagram post", "instagram reel"]:
+        caption = scraped_data.get("description", "") if scraped_data else ""
+        if caption and caption.strip():
+            # Clean up the caption by removing hashtags at the end
+            cleaned_caption = caption.strip()
+            hashtag_index = cleaned_caption.find('#')
+            if hashtag_index > 0:
+                cleaned_caption = cleaned_caption[:hashtag_index].strip()
 
-                        final_title = cleaned_caption
-                        print(f"📝 Using Instagram caption as title: {final_title}")
-                    else:
-                        # No caption found, use a generic title
-                        final_title = "Instagram Post"
-                        print(f"📝 No caption found, using generic title: {final_title}")
+            final_title = cleaned_caption
+            print(f"📝 Using Instagram caption as title: {final_title}")
+        else:
+            # No caption found, use a generic title
+            final_title = "Instagram Post"
+            print(f"📝 No caption found, using generic title: {final_title}")
     # For Twitter/X posts, prioritize the scraped title (actual tweet content)
     elif platform and platform.lower() in ["twitter/x post"]:
         if scraped_title and scraped_title.strip():
