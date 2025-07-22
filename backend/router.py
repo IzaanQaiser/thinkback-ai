@@ -281,6 +281,13 @@ def create_entry(
             if scraped_data.get("channel"):
                 entry_dict["channel"] = scraped_data["channel"]
                 print(f"   ✅ Channel saved: {entry_dict['channel']}")
+            
+            # For Instagram posts, save the posting account username as channel
+            if platform and platform.lower() in ["instagram post", "instagram reel"]:
+                posting_account = scraped_data.get("posting_account", {})
+                if posting_account and posting_account.get("username") and posting_account.get("username") != "unknown":
+                    entry_dict["channel"] = posting_account["username"]
+                    print(f"   ✅ Instagram posting account saved: {entry_dict['channel']}")
         else:
             print(f"   ❌ No scraper found for platform: {platform}")
 
@@ -362,14 +369,23 @@ def create_entry(
 
     # Decide which title to use
     final_title = ai_result.get("title", "")
-    # For Instagram, use the caption as the title if present
+    
+    # For Instagram posts, prioritize the caption over AI-generated titles
     if platform and platform.lower() in ["instagram post", "instagram reel"]:
         caption = scraped_data.get("description", "") if scraped_data else ""
         if caption and caption.strip():
-            final_title = caption.strip()
+            # Clean up the caption by removing hashtags at the end
+            cleaned_caption = caption.strip()
+            hashtag_index = cleaned_caption.find('#')
+            if hashtag_index > 0:
+                cleaned_caption = cleaned_caption[:hashtag_index].strip()
+            
+            final_title = cleaned_caption
             print(f"📝 Using Instagram caption as title: {final_title}")
-        else:
+        elif ai_result.get("title"):
             print(f"📝 No caption found, using AI-generated title: {final_title}")
+        else:
+            print(f"📝 No caption or AI title found")
     # For Twitter/X posts, prioritize the scraped title (actual tweet content)
     elif platform and platform.lower() in ["twitter/x post"]:
         if scraped_title and scraped_title.strip():
