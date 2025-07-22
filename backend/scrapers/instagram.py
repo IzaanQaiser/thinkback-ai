@@ -139,7 +139,6 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                             let description = ogDescription.getAttribute('content');
                             
                             // Clean up the description to extract only the actual caption
-                            // Remove engagement metrics and username from the beginning
                             if (description) {
                                 // Remove patterns like "54K likes, 1,227 comments - username on date:"
                                 description = description.replace(/^\d+[KMB]?\s+likes?,\s+\d+[KMB]?\s+comments?\s*-\s*[^:]+:\s*/, '');
@@ -155,9 +154,34 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                                 
                                 // Trim whitespace
                                 description = description.trim();
+                                
+                                // If the description is now empty or just contains hashtags, it means no caption
+                                if (!description || description.length === 0 || description.match(/^[#@\s]+$/)) {
+                                    description = '';
+                                }
                             }
                             
                             result.description = description;
+                        }
+                        
+                        // Also try to get the actual post caption from the page content
+                        const captionSelectors = [
+                            'article div[data-testid="post-caption"]',
+                            'article div[role="button"]',
+                            'article div[dir="auto"]'
+                        ];
+                        
+                        for (const selector of captionSelectors) {
+                            const elements = document.querySelectorAll(selector);
+                            for (const element of elements) {
+                                const text = element.textContent.trim();
+                                if (text && text.length > 0 && !text.includes('likes') && !text.includes('comments')) {
+                                    // This might be the actual caption
+                                    result.description = text;
+                                    break;
+                                }
+                            }
+                            if (result.description && result.description !== '') break;
                         }
                         
                         // Try to get thumbnail from meta tags
@@ -166,43 +190,49 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                             result.thumbnail = ogImage.getAttribute('content');
                         }
                         
-                        // Try to extract username from title
-                        if (result.title) {
-                            const titleMatch = result.title.match(/^([^:]+) on Instagram/);
-                            if (titleMatch && titleMatch[1]) {
-                                result.username = titleMatch[1].trim();
-                            }
-                        }
-                        
-                        // Try to get username from various selectors
+                        // Try to get username from the post author specifically
                         const usernameSelectors = [
+                            'article header a[href^="/"]',
                             'header a[href^="/"]',
-                            'article header a',
                             'a[href^="/"]'
                         ];
                         
-                        if (!result.username) {
-                            for (const selector of usernameSelectors) {
-                                const element = document.querySelector(selector);
-                                if (element) {
-                                    const text = element.textContent.trim();
-                                    const href = element.getAttribute('href');
+                        for (const selector of usernameSelectors) {
+                            const elements = document.querySelectorAll(selector);
+                            for (const element of elements) {
+                                const text = element.textContent.trim();
+                                const href = element.getAttribute('href');
+                                
+                                // Skip if text contains spaces (likely not a username)
+                                if (text && !text.includes(' ') && text.length > 0 && text.length < 30) {
+                                    let username = text.replace('@', '').trim();
                                     
-                                    if (text && !text.includes(' ') && text.length > 0) {
-                                        let username = text.replace('@', '').trim();
-                                        
-                                        if (href && href.startsWith('/') && href.length > 1) {
-                                            const hrefParts = href.split('/').filter(part => part.length > 0);
-                                            if (hrefParts.length > 0) {
-                                                username = hrefParts[0];
-                                            }
-                                        }
-                                        
-                                        if (username && username.length > 0) {
-                                            result.username = username;
-                                            break;
+                                    // Extract from href if available
+                                    if (href && href.startsWith('/') && href.length > 1) {
+                                        const hrefParts = href.split('/').filter(part => part.length > 0);
+                                        if (hrefParts.length > 0) {
+                                            username = hrefParts[0];
                                         }
                                     }
+                                    
+                                    // Validate username (should be alphanumeric with possible underscores)
+                                    if (username && username.length > 0 && /^[a-zA-Z0-9._]+$/.test(username)) {
+                                        result.username = username;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (result.username) break;
+                        }
+                        
+                        // If we still don't have a username, try to extract from the URL path
+                        if (!result.username) {
+                            const currentUrl = window.location.pathname;
+                            const urlParts = currentUrl.split('/').filter(part => part.length > 0);
+                            if (urlParts.length > 0) {
+                                const potentialUsername = urlParts[0];
+                                if (/^[a-zA-Z0-9._]+$/.test(potentialUsername)) {
+                                    result.username = potentialUsername;
                                 }
                             }
                         }
@@ -436,6 +466,10 @@ class InstagramScraper(BaseScraper):
                     
                     # Trim whitespace
                     description = description.strip()
+                    
+                    # If the description is now empty or just contains hashtags, it means no caption
+                    if not description or description == '' or re.match(r'^[#@\s]+$', description):
+                        description = ''
             
             # Try to get thumbnail from meta tags
             og_image = soup.find('meta', property='og:image')
