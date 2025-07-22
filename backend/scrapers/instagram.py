@@ -319,6 +319,19 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
         return None
 
 
+def is_default_instagram_title(title: str) -> bool:
+    """Check if the title matches the default Instagram format like '1,249 likes, 9 comments - hardposes on July 21, 2025'"""
+    if not title:
+        return False
+    
+    # Pattern to match default Instagram title format
+    # Examples: "1,249 likes, 9 comments - hardposes on July 21, 2025"
+    #          "54K likes, 1,227 comments - username on Instagram:"
+    #          "2,500 likes, 150 comments - someuser on Instagram:"
+    pattern = r'^[\d,]+[KMB]?\s+likes?,\s+[\d,]+[KMB]?\s+comments?\s*-\s*[^:]+(?:\s+on\s+[^:]+)?(?:\s*:)?$'
+    return bool(re.match(pattern, title.strip()))
+
+
 class InstagramScraper(BaseScraper):
     def __init__(self):
         # Add rate limiting delay
@@ -392,13 +405,24 @@ class InstagramScraper(BaseScraper):
 
         # Build title
         title = data.get('title')
-        if not title and username != 'unknown':
-            title = f"Instagram {content_type.title()} by @{username}"
-        elif not title:
-            title = f"Instagram {content_type.title()}"
-
-        # Build description
         description = data.get('description', '')
+        
+        # Check if title OR description contains the default Instagram format (no caption)
+        has_default_format = False
+        if title and is_default_instagram_title(title):
+            has_default_format = True
+        elif description and is_default_instagram_title(description):
+            has_default_format = True
+        
+        # If we detect the default format, set title to empty
+        if has_default_format:
+            title = ""  # Set empty title when no caption is detected
+        
+        # Only set fallback title if we don't have a title (not empty due to no caption) and username is known
+        if not title and not has_default_format and username != 'unknown':
+            title = f"Instagram {content_type.title()} by @{username}"
+        elif not title and not has_default_format:
+            title = f"Instagram {content_type.title()}"
 
         # Build metadata
         metadata = {
@@ -526,9 +550,20 @@ class InstagramScraper(BaseScraper):
             print(f"     Hashtags: {hashtags}")
             print(f"     Mentions: {mentions}")
             
+            # Check if title OR description contains the default Instagram format (no caption)
+            has_default_format = False
+            if title and is_default_instagram_title(title):
+                has_default_format = True
+            elif description and is_default_instagram_title(description):
+                has_default_format = True
+            
+            # If we detect the default format, set title to empty
+            if has_default_format:
+                title = ""  # Set empty title when no caption is detected
+            
             return {
                 "url": url,
-                "title": title or f"Instagram {content_type.title()}",
+                "title": title if title or has_default_format else f"Instagram {content_type.title()}",
                 "description": description or "",
                 "type": content_type,
                 "metadata": {
