@@ -136,7 +136,28 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                         // Try to get description from meta tags
                         const ogDescription = document.querySelector('meta[property="og:description"]');
                         if (ogDescription) {
-                            result.description = ogDescription.getAttribute('content');
+                            let description = ogDescription.getAttribute('content');
+                            
+                            // Clean up the description to extract only the actual caption
+                            // Remove engagement metrics and username from the beginning
+                            if (description) {
+                                // Remove patterns like "54K likes, 1,227 comments - username on date:"
+                                description = description.replace(/^\d+[KMB]?\s+likes?,\s+\d+[KMB]?\s+comments?\s*-\s*[^:]+:\s*/, '');
+                                
+                                // Remove patterns like "username on Instagram:"
+                                description = description.replace(/^[^:]+ on Instagram:\s*/, '');
+                                
+                                // Remove patterns like "username on date:"
+                                description = description.replace(/^[^:]+ on [^:]+:\s*/, '');
+                                
+                                // Remove quotes at the beginning and end
+                                description = description.replace(/^["']/, '').replace(/["']$/, '');
+                                
+                                // Trim whitespace
+                                description = description.trim();
+                            }
+                            
+                            result.description = description;
                         }
                         
                         // Try to get thumbnail from meta tags
@@ -397,6 +418,24 @@ class InstagramScraper(BaseScraper):
             og_description = soup.find('meta', property='og:description')
             if og_description:
                 description = og_description.get('content', '')
+                
+                # Clean up the description to extract only the actual caption
+                if description:
+                    # Remove patterns like "54K likes, 1,227 comments - username on date:"
+                    import re
+                    description = re.sub(r'^\d+[KMB]?\s+likes?,\s+\d+[KMB]?\s+comments?\s*-\s*[^:]+:\s*', '', description)
+                    
+                    # Remove patterns like "username on Instagram:"
+                    description = re.sub(r'^[^:]+ on Instagram:\s*', '', description)
+                    
+                    # Remove patterns like "username on date:"
+                    description = re.sub(r'^[^:]+ on [^:]+:\s*', '', description)
+                    
+                    # Remove quotes at the beginning and end
+                    description = description.strip('"\'')
+                    
+                    # Trim whitespace
+                    description = description.strip()
             
             # Try to get thumbnail from meta tags
             og_image = soup.find('meta', property='og:image')
