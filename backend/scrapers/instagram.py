@@ -141,13 +141,13 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                             // Clean up the description to extract only the actual caption
                             if (description) {
                                 // Remove patterns like "54K likes, 1,227 comments - username on date:"
-                                description = description.replace(/^\d+[KMB]?\s+likes?,\s+\d+[KMB]?\s+comments?\s*-\s*[^:]+:\s*/, '');
+                                description = description.replace(/^[0-9]+[KMB]?\\s+likes?,\\s+[0-9]+[KMB]?\\s+comments?\\s*-\\s*[^:]+:\\s*/, '');
                                 
                                 // Remove patterns like "username on Instagram:"
-                                description = description.replace(/^[^:]+ on Instagram:\s*/, '');
+                                description = description.replace(/^[^:]+ on Instagram:[ \\s]*/, '');
                                 
                                 // Remove patterns like "username on date:"
-                                description = description.replace(/^[^:]+ on [^:]+:\s*/, '');
+                                description = description.replace(/^[^:]+ on [^:]+:[ \\s]*/, '');
                                 
                                 // Remove quotes at the beginning and end
                                 description = description.replace(/^["']/, '').replace(/["']$/, '');
@@ -156,7 +156,7 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                                 description = description.trim();
                                 
                                 // If the description is now empty or just contains hashtags, it means no caption
-                                if (!description || description.length === 0 || description.match(/^[#@\s]+$/)) {
+                                if (!description || description.length === 0 || description.match(/^[#@ \\s]+$/)) {
                                     description = '';
                                 }
                             }
@@ -194,7 +194,10 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                         const usernameSelectors = [
                             'article header a[href^="/"]',
                             'header a[href^="/"]',
-                            'a[href^="/"]'
+                            'a[href^="/"]',
+                            'article header span',
+                            'header span',
+                            'span[dir="auto"]'
                         ];
                         
                         for (const selector of usernameSelectors) {
@@ -237,6 +240,37 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                             }
                         }
                         
+                        // If still no username, try to extract from the full URL
+                        if (!result.username) {
+                            const fullUrl = window.location.href;
+                            const urlMatch = fullUrl.match(/instagram\\.com\\/([a-zA-Z0-9._]+)\\//);
+                            if (urlMatch) {
+                                const potentialUsername = urlMatch[1];
+                                if (/^[a-zA-Z0-9._]+$/.test(potentialUsername)) {
+                                    result.username = potentialUsername;
+                                }
+                            }
+                        }
+                        
+                        // If still no username, try to extract from the title
+                        if (!result.username && result.title) {
+                            const titleMatch = result.title.match(/^([^:]+) on Instagram:/);
+                            if (titleMatch) {
+                                const potentialUsername = titleMatch[1].trim();
+                                if (/^[a-zA-Z0-9._]+$/.test(potentialUsername)) {
+                                    result.username = potentialUsername;
+                                }
+                            }
+                        }
+                        
+                        // Debug: Log what we found
+                        console.log('Debug - Username extraction:', {
+                            username: result.username,
+                            title: result.title,
+                            url: window.location.href,
+                            pathname: window.location.pathname
+                        });
+                        
                         // Check if it's a video
                         const videoElements = document.querySelectorAll('video');
                         if (videoElements.length > 0) {
@@ -254,7 +288,7 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                         const likeElements = document.querySelectorAll('a[href*="/liked_by/"]');
                         if (likeElements.length > 0) {
                             const likeText = likeElements[0].textContent;
-                            const likeMatch = likeText.match(/(\d+)/);
+                            const likeMatch = likeText.match(/([0-9]+)/);
                             if (likeMatch) {
                                 result.likes = parseInt(likeMatch[1]);
                             }
@@ -262,8 +296,8 @@ async def scrape_instagram_with_playwright(url: str) -> Optional[Dict]:
                         
                         // Extract hashtags and mentions from description
                         if (result.description) {
-                            const hashtagPattern = /#(\\w+)/g;
-                            const mentionPattern = /@(\\w+)/g;
+                            const hashtagPattern = /#([a-zA-Z0-9_]+)/g;
+                            const mentionPattern = /@([a-zA-Z0-9_]+)/g;
                             
                             result.hashtags = result.description.match(hashtagPattern) || [];
                             result.mentions = result.description.match(mentionPattern) || [];
