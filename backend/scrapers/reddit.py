@@ -217,38 +217,6 @@ def get_best_media_url(submission):
                         print(f"   🖼️ Found video thumbnail: {source}")
                         return source
                         
-                # If no direct thumbnail, try to construct from video URL
-                if reddit_video.get("fallback_url"):
-                    video_url = reddit_video["fallback_url"]
-                    # Reddit video URLs often have a pattern we can use
-                    if "DASH_" in video_url:
-                        # Try to construct thumbnail URL from video URL
-                        # Reddit video URLs can be converted to thumbnail URLs
-                        if "v.redd.it" in video_url:
-                            # Extract the video ID from the URL
-                            import re
-                            video_id_match = re.search(r'v\.redd\.it/([^/]+)', video_url)
-                            if video_id_match:
-                                video_id = video_id_match.group(1)
-                                # Try different thumbnail URL patterns
-                                thumbnail_patterns = [
-                                    f"https://v.redd.it/{video_id}/DASH_96.jpg",
-                                    f"https://v.redd.it/{video_id}/DASH_720.jpg",
-                                    f"https://v.redd.it/{video_id}/DASH_480.jpg",
-                                    f"https://preview.redd.it/{video_id}.jpg",
-                                ]
-                                
-                                for pattern in thumbnail_patterns:
-                                    print(f"   🖼️ Trying thumbnail pattern: {pattern}")
-                                    # You could add a quick check here to verify the URL exists
-                                    return pattern
-                        
-                        # Fallback to the original method
-                        thumbnail_url = video_url.replace("DASH_720", "DASH_96").replace("DASH_480", "DASH_96")
-                        if thumbnail_url != video_url:
-                            print(f"   🖼️ Constructed thumbnail URL: {thumbnail_url}")
-                            return thumbnail_url
-                            
                 # Additional fallback: try to get thumbnail from preview field
                 if hasattr(submission, "preview") and submission.preview:
                     try:
@@ -267,18 +235,10 @@ def get_best_media_url(submission):
                         print(f"   🖼️ Using video URL as thumbnail (appears to be image): {video_url}")
                         return video_url
                         
-                # If we still don't have a thumbnail, try to construct one from the video ID
-                if reddit_video.get("fallback_url"):
-                    video_url = reddit_video["fallback_url"]
-                    if "v.redd.it" in video_url:
-                        import re
-                        video_id_match = re.search(r'v\.redd\.it/([^/]+)', video_url)
-                        if video_id_match:
-                            video_id = video_id_match.group(1)
-                            # Return a constructed thumbnail URL as final fallback
-                            constructed_thumbnail = f"https://v.redd.it/{video_id}/DASH_96.jpg"
-                            print(f"   🖼️ Using constructed thumbnail as final fallback: {constructed_thumbnail}")
-                            return constructed_thumbnail
+                # For Reddit videos, we often can't get direct thumbnails due to CDN restrictions
+                # Return None instead of trying to construct URLs that don't work
+                print(f"   🖼️ No accessible thumbnail found for Reddit video (CDN restrictions)")
+                return None
         except Exception as e:
             print(f"   ❌ Error extracting video thumbnail: {e}")
             pass
@@ -343,38 +303,6 @@ def get_best_media_url_from_json(post_data):
                         print(f"   🖼️ Found video thumbnail via JSON: {source}")
                         return source
                         
-                # If no direct thumbnail, try to construct from video URL
-                if reddit_video.get("fallback_url"):
-                    video_url = reddit_video["fallback_url"]
-                    # Reddit video URLs often have a pattern we can use
-                    if "DASH_" in video_url:
-                        # Try to construct thumbnail URL from video URL
-                        # Reddit video URLs can be converted to thumbnail URLs
-                        if "v.redd.it" in video_url:
-                            # Extract the video ID from the URL
-                            import re
-                            video_id_match = re.search(r'v\.redd\.it/([^/]+)', video_url)
-                            if video_id_match:
-                                video_id = video_id_match.group(1)
-                                # Try different thumbnail URL patterns
-                                thumbnail_patterns = [
-                                    f"https://v.redd.it/{video_id}/DASH_96.jpg",
-                                    f"https://v.redd.it/{video_id}/DASH_720.jpg",
-                                    f"https://v.redd.it/{video_id}/DASH_480.jpg",
-                                    f"https://preview.redd.it/{video_id}.jpg",
-                                ]
-                                
-                                for pattern in thumbnail_patterns:
-                                    print(f"   🖼️ Trying thumbnail pattern via JSON: {pattern}")
-                                    # You could add a quick check here to verify the URL exists
-                                    return pattern
-                        
-                        # Fallback to the original method
-                        thumbnail_url = video_url.replace("DASH_720", "DASH_96").replace("DASH_480", "DASH_96")
-                        if thumbnail_url != video_url:
-                            print(f"   🖼️ Constructed thumbnail URL via JSON: {thumbnail_url}")
-                            return thumbnail_url
-                            
                 # Additional fallback: try to get thumbnail from secure_media
                 if "secure_media" in post_data and post_data["secure_media"]:
                     secure_video = post_data["secure_media"].get("reddit_video")
@@ -402,18 +330,10 @@ def get_best_media_url_from_json(post_data):
                         print(f"   🖼️ Using video URL as thumbnail via JSON (appears to be image): {video_url}")
                         return video_url
                         
-                # If we still don't have a thumbnail, try to construct one from the video ID
-                if reddit_video.get("fallback_url"):
-                    video_url = reddit_video["fallback_url"]
-                    if "v.redd.it" in video_url:
-                        import re
-                        video_id_match = re.search(r'v\.redd\.it/([^/]+)', video_url)
-                        if video_id_match:
-                            video_id = video_id_match.group(1)
-                            # Return a constructed thumbnail URL as final fallback
-                            constructed_thumbnail = f"https://v.redd.it/{video_id}/DASH_96.jpg"
-                            print(f"   🖼️ Using constructed thumbnail as final fallback via JSON: {constructed_thumbnail}")
-                            return constructed_thumbnail
+                # For Reddit videos, we often can't get direct thumbnails due to CDN restrictions
+                # Return None instead of trying to construct URLs that don't work
+                print(f"   🖼️ No accessible thumbnail found for Reddit video via JSON (CDN restrictions)")
+                return None
         except Exception as e:
             print(f"   ❌ Error extracting video thumbnail via JSON: {e}")
             pass
