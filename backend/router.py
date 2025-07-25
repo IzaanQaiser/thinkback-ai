@@ -223,7 +223,7 @@ def create_entry(
             return "Instagram Post"
         if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
             return "LinkedIn Post"
-        if "linkedin.com/jobs/view/" in url:
+        if "linkedin.com/jobs/view/" in url or "linkedin.com/jobs/collections/" in url:
             return "LinkedIn Job"
         if "reddit.com/r/" in url and "/comments/" in url:
             return "Reddit Post"
@@ -1046,7 +1046,7 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
             return "Instagram Post"
         if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
             return "LinkedIn Post"
-        if "linkedin.com/jobs/view/" in url:
+        if "linkedin.com/jobs/view/" in url or "linkedin.com/jobs/collections/" in url:
             return "LinkedIn Job"
         if "reddit.com/r/" in url and "/comments/" in url:
             return "Reddit Post"
@@ -1197,7 +1197,7 @@ def scrape_url(
             return "Instagram Post"
         if "linkedin.com/feed/update/" in url or "linkedin.com/posts/" in url:
             return "LinkedIn Post"
-        if "linkedin.com/jobs/view/" in url:
+        if "linkedin.com/jobs/view/" in url or "linkedin.com/jobs/collections/" in url:
             return "LinkedIn Job"
         if "reddit.com/r/" in url and "/comments/" in url:
             return "Reddit Post"

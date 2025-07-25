@@ -13,6 +13,26 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, WebDriverException
 import logging
+import sys
+import os
+
+# Add credentials directory to path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'credentials'))
+try:
+    from linkedin_credentials import get_linkedin_credentials, has_linkedin_credentials, JOB_SELECTORS
+except ImportError:
+    # Fallback if credentials module is not available
+    def get_linkedin_credentials():
+        raise ValueError("LinkedIn credentials not configured")
+    
+    def has_linkedin_credentials():
+        return False
+    
+    JOB_SELECTORS = {
+        'company_name': [],
+        'position_title': [],
+        'company_logo': []
+    }
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +62,27 @@ def extract_post_id(url: str) -> str:
         return activity_part
     
     return ""
+
+
+def extract_job_id(url: str) -> str:
+    """Extract LinkedIn job ID from URL."""
+    patterns = [
+        r'linkedin\.com/jobs/view/[^/]+-([^/?]+)',
+        r'linkedin\.com/jobs/collections/[^/]+/\?currentJobId=([^&]+)',
+        r'currentJobId=([^&]+)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    
+    return ""
+
+
+def is_job_url(url: str) -> bool:
+    """Check if the URL is a LinkedIn job URL."""
+    return "linkedin.com/jobs/" in url.lower()
 
 
 def clean_text(text: str) -> str:
@@ -292,124 +333,182 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
     if not media_urls:
         return ""
     
-    # Prioritize post content images over profile photos
-    highest_priority_images = []
-    post_content_images = []
-    profile_images = []
-    other_images = []
+    # Priority: video thumbnails, then images, then any media
+    for media in media_urls:
+        if media.get('type') == 'video' and media.get('thumbnail'):
+            return media['thumbnail']
     
     for media in media_urls:
-        url_lower = media['url'].lower()
-        if 'profile-displayphoto' in url_lower or 'profile-displaybackgroundimage' in url_lower:
-            profile_images.append(media)
-        elif media.get('priority') == 'highest':
-            highest_priority_images.append(media)
-        elif 'articleshare' in url_lower or 'image-shrink_480' in url_lower or 'image-shrink_800' in url_lower:
-            post_content_images.append(media)
-        elif 'comment-image' in url_lower:
-            continue
-        elif 'static.licdn.com/aero-v1/sc/h/' in url_lower:
-            continue
-        else:
-            if media.get('priority') == 'high':
-                post_content_images.append(media)
-            else:
-                other_images.append(media)
+        if media.get('type') == 'image' and media.get('url'):
+            return media['url']
     
-    # Return the first highest priority image, then post content image, then profile image
-    if highest_priority_images:
-        logger.info(f"🎯 Selected highest priority image: {highest_priority_images[0]['url'][:100]}...")
-        return highest_priority_images[0]['url']
-    elif post_content_images:
-        logger.info(f"🎯 Selected post content image: {post_content_images[0]['url'][:100]}...")
-        return post_content_images[0]['url']
-    elif profile_images:
-        logger.info(f"🎯 Selected profile image: {profile_images[0]['url'][:100]}...")
-        return profile_images[0]['url']
-    elif other_images:
-        logger.info(f"🎯 Selected other image: {other_images[0]['url'][:100]}...")
-        return other_images[0]['url']
+    # Fallback to first available media
+    for media in media_urls:
+        if media.get('thumbnail'):
+            return media['thumbnail']
+        if media.get('url'):
+            return media['url']
     
-    return media_urls[0]['url'] if media_urls else ""
+    return ""
+
+
+def extract_job_company_name(soup: BeautifulSoup) -> str:
+    """Extract company name from LinkedIn job page."""
+    logger.info("🔍 Extracting company name from LinkedIn job...")
+    
+    # Use selectors from credentials module
+    selectors = JOB_SELECTORS.get('company_name', [])
+    
+    for selector in selectors:
+        element = soup.select_one(selector)
+        if element:
+            company_name = element.get_text(strip=True)
+            if company_name and len(company_name) > 1:
+                logger.info(f"✅ Found company name: {company_name}")
+                return company_name
+    
+    logger.warning("⚠️ Could not find company name")
+    return "Unknown Company"
+
+
+def extract_job_position_title(soup: BeautifulSoup) -> str:
+    """Extract position title from LinkedIn job page."""
+    logger.info("🔍 Extracting position title from LinkedIn job...")
+    
+    # Use selectors from credentials module
+    selectors = JOB_SELECTORS.get('position_title', [])
+    
+    for selector in selectors:
+        element = soup.select_one(selector)
+        if element:
+            title = element.get_text(strip=True)
+            if title and len(title) > 1:
+                logger.info(f"✅ Found position title: {title}")
+                return title
+    
+    logger.warning("⚠️ Could not find position title")
+    return "Unknown Position"
+
+
+def extract_job_company_logo(soup: BeautifulSoup) -> str:
+    """Extract company logo URL from LinkedIn job page."""
+    logger.info("🔍 Extracting company logo from LinkedIn job...")
+    
+    # Use selectors from credentials module
+    selectors = JOB_SELECTORS.get('company_logo', [])
+    
+    for selector in selectors:
+        element = soup.select_one(selector)
+        if element:
+            logo_url = element.get('src')
+            if logo_url and logo_url.startswith('http'):
+                logger.info(f"✅ Found company logo: {logo_url}")
+                return logo_url
+    
+    logger.warning("⚠️ Could not find company logo")
+    return ""
 
 
 def setup_selenium_driver():
-    """Set up Selenium WebDriver with proper options."""
+    """Setup Selenium WebDriver with proper configuration."""
     chrome_options = Options()
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--disable-extensions')
-    chrome_options.add_argument('--disable-plugins')
-    chrome_options.add_argument('--disable-images')  # Speed up loading
-    chrome_options.add_argument('--disable-javascript')  # We'll enable this selectively
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-    chrome_options.add_argument('--headless')  # Run in background
-    chrome_options.add_argument('--disable-web-security')
-    chrome_options.add_argument('--allow-running-insecure-content')
-    chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    
+    # Add additional options for better compatibility
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
     
     try:
         driver = webdriver.Chrome(options=chrome_options)
-        driver.set_page_load_timeout(30)
-        driver.set_script_timeout(30)
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         return driver
     except Exception as e:
-        logger.error(f"❌ Failed to create Selenium driver: {e}")
+        logger.error(f"❌ Failed to create Chrome driver: {e}")
         return None
 
 
-def extract_with_selenium(url: str) -> dict:
-    """Extract LinkedIn post data using Selenium as fallback."""
-    logger.info("🤖 Using Selenium fallback for LinkedIn scraping...")
+def login_to_linkedin(driver: webdriver.Chrome) -> bool:
+    """
+    Login to LinkedIn using credentials.
     
-    driver = setup_selenium_driver()
-    if not driver:
-        return {"error": "Failed to create Selenium driver"}
-    
+    Args:
+        driver: Selenium WebDriver instance
+        
+    Returns:
+        True if login successful, False otherwise
+    """
     try:
-        # Navigate to the page
-        driver.get(url)
+        if not has_linkedin_credentials():
+            logger.warning("⚠️ No LinkedIn credentials available")
+            return False
         
-        # Wait for content to load with multiple possible selectors
-        wait = WebDriverWait(driver, 15)
+        credentials = get_linkedin_credentials()
+        email = credentials['email']
+        password = credentials['password']
         
-        # Try multiple selectors for content that might be present
-        content_selectors = [
-            'div[class*="feed-shared-update-v2__description"]',
-            'div[class*="feed-shared-actor"]',
-            'h3 a',
-            'div[class*="post-content"]',
-            'div[class*="update-components-text"]',
-            'div[class*="feed-shared-text"]',
-            'body'  # Fallback to just wait for body
-        ]
+        logger.info("🔐 Logging into LinkedIn...")
         
-        content_found = False
-        for selector in content_selectors:
-            try:
-                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
-                logger.info(f"✅ Found content with selector: {selector}")
-                content_found = True
-                break
-            except TimeoutException:
-                logger.debug(f"⏰ Timeout waiting for selector: {selector}")
-                continue
-        
-        if not content_found:
-            logger.warning("⏰ Timeout waiting for content to load")
-        
-        # Add a small delay to ensure JavaScript execution
+        # Go to login page
+        driver.get("https://www.linkedin.com/login")
         time.sleep(2)
         
-        # Get the page source after JavaScript execution
+        # Find and fill email field
+        email_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "username"))
+        )
+        email_field.clear()
+        email_field.send_keys(email)
+        
+        # Find and fill password field
+        password_field = driver.find_element(By.ID, "password")
+        password_field.clear()
+        password_field.send_keys(password)
+        
+        # Click login button
+        login_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+        login_button.click()
+        
+        # Wait for login to complete
+        time.sleep(5)
+        
+        # Check if login was successful
+        current_url = driver.current_url
+        if "feed" in current_url or "mynetwork" in current_url or "jobs" in current_url:
+            logger.info("✅ LinkedIn login successful")
+            return True
+        else:
+            logger.warning("⚠️ LinkedIn login may have failed")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ LinkedIn login failed: {e}")
+        return False
+
+
+def extract_with_selenium(url: str) -> dict:
+    """Extract LinkedIn post content using Selenium."""
+    logger.info("🔄 Trying Selenium-based approach...")
+    
+    driver = None
+    try:
+        driver = setup_selenium_driver()
+        driver.get(url)
+        
+        # Wait for page to load
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
+        
+        # Additional wait for dynamic content
+        time.sleep(3)
+        
+        # Get page source
         page_source = driver.page_source
-        
-        # Check if we got a meaningful page
-        if len(page_source) < 1000:
-            logger.warning("⚠️ Page source seems too small, might be an error page")
-            return {"error": "Page source too small, likely an error page"}
-        
         soup = BeautifulSoup(page_source, 'html.parser')
         
         # Extract data using the same functions
@@ -417,14 +516,6 @@ def extract_with_selenium(url: str) -> dict:
         post_content = extract_post_content_requests(soup)
         media_urls = extract_media_urls_requests(soup)
         thumbnail = get_best_thumbnail(media_urls, url)
-        
-        # Check if we got meaningful data
-        has_content = len(post_content.strip()) > 20
-        has_author = author_name != "Unknown Author"
-        
-        if not has_content and not has_author:
-            logger.warning("⚠️ Selenium didn't get meaningful data")
-            return {"error": "Selenium couldn't extract meaningful data"}
         
         # Generate title
         if post_content:
@@ -442,7 +533,6 @@ def extract_with_selenium(url: str) -> dict:
             "thumbnail": thumbnail,
             "type": "post",
             "metadata": {
-                "post_id": extract_post_id(url),
                 "platform": "LinkedIn",
                 "method": "selenium"
             }
@@ -452,27 +542,191 @@ def extract_with_selenium(url: str) -> dict:
             result["metadata"]["media_count"] = len(media_urls)
             result["metadata"]["media_types"] = list(set(m['type'] for m in media_urls))
         
-        logger.info("✅ Selenium scraping completed successfully")
+        logger.info("✅ Selenium-based scraping successful")
         return result
         
     except Exception as e:
-        logger.error(f"❌ Selenium scraping failed: {e}")
+        logger.error(f"❌ Selenium approach failed: {e}")
         return {"error": f"Selenium scraping failed: {str(e)}"}
     finally:
-        try:
+        if driver:
             driver.quit()
-        except:
-            pass
+
+
+def extract_job_with_selenium(url: str) -> dict:
+    """Extract LinkedIn job content using Selenium."""
+    logger.info("🔄 Trying Selenium-based job extraction...")
+    
+    driver = None
+    try:
+        driver = setup_selenium_driver()
+        
+        # Try to login if credentials are available
+        if has_linkedin_credentials():
+            logger.info("🔐 Attempting LinkedIn login...")
+            login_success = login_to_linkedin(driver)
+            if not login_success:
+                logger.warning("⚠️ LinkedIn login failed, continuing without authentication")
+        else:
+            logger.info("ℹ️ No LinkedIn credentials available, proceeding without authentication")
+        
+        # Navigate to job page
+        driver.get(url)
+        
+        # Wait for page to load
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
+        
+        # Additional wait for dynamic content
+        time.sleep(3)
+        
+        # Get page source
+        page_source = driver.page_source
+        soup = BeautifulSoup(page_source, 'html.parser')
+        
+        # Extract job data
+        company_name = extract_job_company_name(soup)
+        position_title = extract_job_position_title(soup)
+        company_logo = extract_job_company_logo(soup)
+        
+        result = {
+            "url": url,
+            "title": position_title,
+            "channel": company_name,
+            "description": f"Job at {company_name}",
+            "thumbnail": company_logo,
+            "type": "job",
+            "metadata": {
+                "platform": "LinkedIn",
+                "method": "selenium",
+                "company_name": company_name,
+                "position_title": position_title,
+                "company_logo": company_logo
+            }
+        }
+        
+        logger.info("✅ Selenium-based job scraping successful")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Selenium job extraction failed: {e}")
+        return {"error": f"Selenium job scraping failed: {str(e)}"}
+    finally:
+        if driver:
+            driver.quit()
 
 
 class LinkedInScraper(BaseScraper):
     def scrape(self, url: str) -> dict:
         """
-        Scrape LinkedIn post content using hybrid approach.
+        Scrape LinkedIn post or job content using hybrid approach.
         Tries requests first, falls back to Selenium if needed.
         """
         logger.info(f"🔍 Starting LinkedIn scraping for: {url}")
         
+        # Check if this is a job URL
+        if is_job_url(url):
+            logger.info("📋 Detected LinkedIn job URL")
+            return self._scrape_job(url)
+        else:
+            logger.info("📝 Detected LinkedIn post URL")
+            return self._scrape_post(url)
+    
+    def _scrape_job(self, url: str) -> dict:
+        """Scrape LinkedIn job content."""
+        job_id = extract_job_id(url)
+        if not job_id:
+            logger.error(f"❌ Could not extract job ID from URL: {url}")
+            return {"error": "Could not extract job ID from URL"}
+        
+        logger.info(f"📝 Job ID: {job_id}")
+        
+        # Initialize result structure
+        result = {
+            "url": url,
+            "title": None,
+            "channel": None,
+            "description": None,
+            "thumbnail": None,
+            "type": "job",
+            "metadata": {
+                "job_id": job_id,
+                "platform": "LinkedIn",
+                "method": "requests"
+            }
+        }
+        
+        # Try requests approach first
+        logger.info("🔄 Trying requests-based approach for job...")
+        try:
+            session = create_session()
+            
+            # Add random delay to avoid detection
+            time.sleep(random.uniform(1, 3))
+            
+            response = session.get(url, timeout=15)
+            response.raise_for_status()
+            
+            logger.info(f"✅ Response status: {response.status_code}")
+            logger.info(f"📄 Content length: {len(response.text)} characters")
+            
+            # Check if we got a meaningful response
+            if len(response.text) < 1000:
+                logger.warning("⚠️ Response seems too small, might be an error page")
+                raise Exception("Response too small, likely an error page")
+            
+            # Parse HTML
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Extract job data
+            company_name = extract_job_company_name(soup)
+            position_title = extract_job_position_title(soup)
+            company_logo = extract_job_company_logo(soup)
+            
+            # Check if we got meaningful data
+            has_company = company_name != "Unknown Company"
+            has_title = position_title != "Unknown Position"
+            
+            logger.info(f"📊 Job data quality check:")
+            logger.info(f"   - Has company: {has_company} ({company_name})")
+            logger.info(f"   - Has title: {has_title} ({position_title})")
+            logger.info(f"   - Has logo: {bool(company_logo)}")
+            
+            # If we got good data, use it
+            if has_company or has_title:
+                result.update({
+                    "title": position_title,
+                    "channel": company_name,
+                    "description": f"Job at {company_name}",
+                    "thumbnail": company_logo
+                })
+                
+                result["metadata"].update({
+                    "company_name": company_name,
+                    "position_title": position_title,
+                    "company_logo": company_logo
+                })
+                
+                logger.info("✅ Requests-based job scraping successful")
+                return result
+            else:
+                logger.warning("⚠️ Requests approach didn't get good job data, trying Selenium...")
+                raise Exception("Insufficient job data from requests approach")
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Requests approach failed for job: {e}")
+            
+            # Fall back to Selenium
+            selenium_result = extract_job_with_selenium(url)
+            if "error" not in selenium_result:
+                return selenium_result
+            else:
+                logger.error(f"❌ Both approaches failed for job")
+                return {"error": f"All job scraping methods failed: {str(e)}"}
+    
+    def _scrape_post(self, url: str) -> dict:
+        """Scrape LinkedIn post content."""
         post_id = extract_post_id(url)
         if not post_id:
             logger.error(f"❌ Could not extract post ID from URL: {url}")
