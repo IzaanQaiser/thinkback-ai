@@ -240,6 +240,19 @@ def format_ai_prompt(entry: Dict[str, Any]) -> str:
       * "Best restaurants in NYC" → "Food" (not "Restaurant Reviews")
       * "New basketball highlights" → "Basketball" (not "Sports Highlights")
     """
+    elif "linkedin" in platform:
+        platform_guidance = """
+    LINKEDIN-SPECIFIC CATEGORIZATION:
+    - Use the post content and author information to determine the main topic
+    - Consider the professional context and business focus of LinkedIn
+    - Focus on the primary theme, not secondary topics
+    - Examples:
+      * "Career advice for new graduates" → "Career" (not "Graduate Advice")
+      * "Marketing tips for small businesses" → "Marketing" (not "Business Tips")
+      * "Tech industry trends 2024" → "Technology" (not "Industry Trends")
+      * "Leadership lessons from my startup" → "Leadership" (not "Startup Lessons")
+      * "Professional networking strategies" → "Networking" (not "Professional Tips")
+    """
 
     # For Instagram posts, don't generate a new title if we have a good caption
     title_instruction = ""
