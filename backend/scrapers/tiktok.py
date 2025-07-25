@@ -11,11 +11,11 @@ def extract_video_id(url: str) -> str:
     if "tiktok.com/" in url:
         # Extract the video ID from the path
         path = urlparse(url).path
-        # Look for video ID pattern in the path
-        video_pattern = r"/video/(\d+)"
+        # Look for video ID pattern in the path (both /video/ and /photo/)
+        video_pattern = r"/(video|photo)/(\d+)"
         match = re.search(video_pattern, path)
         if match:
-            return match.group(1)
+            return match.group(2)  # The ID is the second group
     
     return ""
 
@@ -118,14 +118,15 @@ def get_tiktok_metadata(video_id: str) -> dict:
         return {"error": f"Request failed: {str(e)}"}
 
 
-def generate_better_title(username: str, video_id: str) -> str:
+def generate_better_title(username: str, video_id: str, content_type: str = "video") -> str:
     """
-    Generate a better title for TikTok videos when we can't get the actual caption.
+    Generate a better title for TikTok content when we can't get the actual caption.
     """
+    content_type_text = "Photo" if content_type == "photo" else "Video"
     if username:
-        return f"TikTok by @{username}"
+        return f"TikTok {content_type_text} by @{username}"
     else:
-        return f"TikTok Video {video_id}"
+        return f"TikTok {content_type_text} {video_id}"
 
 
 def get_tiktok_thumbnail_url(video_id: str, username: str) -> str:
@@ -155,15 +156,19 @@ class TikTokScraper(BaseScraper):
             print(f"❌ Could not extract video ID from URL: {url}")
             return {"error": "Could not extract video ID from URL"}
         
-        print(f"🎬 Video ID: {video_id}")
+        # Determine content type based on URL
+        content_type = "photo" if "/photo/" in url else "video"
+        
+        print(f"🎬 Content ID: {video_id}")
         print(f"👤 Username: {username}")
+        print(f"📸 Content Type: {content_type}")
         
         # Initialize result structure
         result = {
             "url": url,
             "title": None,
             "description": None,
-            "type": "video",
+            "type": content_type,
             "metadata": {},
             "transcript": None,
             "thumbnail": None,
@@ -178,7 +183,7 @@ class TikTokScraper(BaseScraper):
             print(f"   ✅ oEmbed API successful")
             
             # Use oEmbed data for better results
-            result["title"] = oembed_data.get("title") or generate_better_title(username, video_id)
+            result["title"] = oembed_data.get("title") or generate_better_title(username, video_id, content_type)
             result["thumbnail"] = oembed_data.get("thumbnail_url")
             result["channel"] = oembed_data.get("author_name") or username
             
@@ -205,10 +210,11 @@ class TikTokScraper(BaseScraper):
             }
             
             # Generate a basic description
+            content_type_text = "photo" if content_type == "photo" else "video"
             if result["channel"]:
-                result["description"] = f"TikTok video by {result['channel']}"
+                result["description"] = f"TikTok {content_type_text} by {result['channel']}"
             else:
-                result["description"] = f"TikTok video {video_id}"
+                result["description"] = f"TikTok {content_type_text} {video_id}"
             
         else:
             print(f"   ❌ oEmbed API failed: {oembed_data['error']}")
@@ -221,7 +227,7 @@ class TikTokScraper(BaseScraper):
                 print(f"   ✅ Web scraping successful")
                 
                 # Use our better title generation instead of the generic HTML title
-                result["title"] = generate_better_title(username, video_id)
+                result["title"] = generate_better_title(username, video_id, content_type)
                 print(f"   📝 Title: {result['title']}")
                 
                 # Add metadata
@@ -244,10 +250,11 @@ class TikTokScraper(BaseScraper):
                 result["thumbnail"] = get_tiktok_thumbnail_url(video_id, username)
                 
                 # Generate a basic description
+                content_type_text = "photo" if content_type == "photo" else "video"
                 if username:
-                    result["description"] = f"TikTok video by @{username}"
+                    result["description"] = f"TikTok {content_type_text} by @{username}"
                 else:
-                    result["description"] = f"TikTok video {video_id}"
+                    result["description"] = f"TikTok {content_type_text} {video_id}"
                 
             else:
                 print(f"   ❌ Web scraping failed: {web_data['error']}")
@@ -256,11 +263,12 @@ class TikTokScraper(BaseScraper):
                 print("🔄 Falling back to URL parsing...")
                 
                 # Create better title and description
-                result["title"] = generate_better_title(username, video_id)
+                result["title"] = generate_better_title(username, video_id, content_type)
+                content_type_text = "photo" if content_type == "photo" else "video"
                 if username:
-                    result["description"] = f"TikTok video by @{username}"
+                    result["description"] = f"TikTok {content_type_text} by @{username}"
                 else:
-                    result["description"] = f"TikTok video {video_id}"
+                    result["description"] = f"TikTok {content_type_text} {video_id}"
                 
                 # Add metadata
                 result["metadata"] = {
@@ -285,7 +293,7 @@ class TikTokScraper(BaseScraper):
         print(f"      Title: {result.get('title', 'N/A')}")
         print(f"      Username: {username or 'N/A'}")
         print(f"      Type: {result.get('type', 'N/A')}")
-        print(f"      Video ID: {video_id}")
+        print(f"      Content ID: {video_id}")
         print(f"      Channel: {result.get('channel', 'N/A')}")
         print(f"      Thumbnail: {'Available' if result.get('thumbnail') else 'Not available'}")
         
