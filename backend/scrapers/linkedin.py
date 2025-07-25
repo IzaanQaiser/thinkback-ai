@@ -5,31 +5,36 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs
 import json
 import time
+import random
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException, WebDriverException
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def extract_post_id(url: str) -> str:
     """Extract LinkedIn post ID from URL."""
-    # Handle various LinkedIn post URL formats
     patterns = [
-        # Pattern for: linkedin.com/posts/username_title-activity-123456789
         r'linkedin\.com/posts/[^/]+_([^-]+)-activity-([^?]+)',
-        # Pattern for: linkedin.com/posts/username_title-activity-123456789?params
         r'linkedin\.com/posts/[^/]+_([^-]+)-activity-([^?]+)\?',
-        # Pattern for: linkedin.com/feed/update/urn:li:activity:123456789
         r'linkedin\.com/feed/update/urn:li:activity:([^/?]+)',
-        # Pattern for: linkedin.com/posts/username_title-activity-123456789
         r'linkedin\.com/posts/[^/]+-activity-([^?]+)',
     ]
     
     for pattern in patterns:
         match = re.search(pattern, url)
         if match:
-            # For patterns with multiple groups, combine them
             if len(match.groups()) > 1:
                 return f"{match.group(1)}-{match.group(2)}"
             return match.group(1)
     
-    # Fallback: try to extract from the full URL
     if 'activity-' in url:
         activity_part = url.split('activity-')[1]
         if '?' in activity_part:
@@ -44,70 +49,65 @@ def clean_text(text: str) -> str:
     if not text:
         return ""
     
-    # Remove extra whitespace and normalize
     text = re.sub(r'\s+', ' ', text.strip())
-    # Remove common LinkedIn prefixes
     text = re.sub(r'^(Kevin|John|Jane|etc\.)\s+on\s+[^:]+:\s*', '', text)
     return text
 
 
-def extract_author_name(soup: BeautifulSoup) -> str:
-    """Extract the author name from LinkedIn post."""
-    print(f"   🔍 Extracting author name from LinkedIn post...")
+def get_enhanced_headers():
+    """Get enhanced headers that mimic a real browser."""
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ]
     
-    # Try multiple selectors for author name, prioritizing the main posting account
+    return {
+        'User-Agent': random.choice(user_agents),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0',
+    }
+
+
+def create_session():
+    """Create a requests session with proper configuration."""
+    session = requests.Session()
+    session.headers.update(get_enhanced_headers())
+    
+    # Add some basic cookies that LinkedIn expects
+    session.cookies.set('li_gc', '2', domain='.linkedin.com')
+    session.cookies.set('JSESSIONID', 'ajax:' + str(random.randint(1000000, 9999999)), domain='.linkedin.com')
+    
+    return session
+
+
+def extract_author_name_requests(soup: BeautifulSoup) -> str:
+    """Extract author name using requests approach."""
+    logger.info("🔍 Extracting author name from LinkedIn post...")
+    
+    # Priority selectors for author name
     selectors = [
-        # Most specific selectors for the main posting account (avoid comment authors)
-        'div[class*="post-header"] h3 a',
-        'div[class*="post-header"] span a',
-        'div[class*="post-meta"] h3 a',
-        'div[class*="post-meta"] span a',
-        # Company/organization selectors (for company pages)
-        'div[class*="post-header"] a[href*="/company/"]',
-        'div[class*="post-meta"] a[href*="/company/"]',
-        'h3 a[href*="/company/"]',
-        'span a[href*="/company/"]',
-        # Individual profile selectors
-        'h3 a[href*="/in/"]',
-        'span a[href*="/in/"]',
-        # More generic selectors (but avoid comment authors)
-        'h3[class*="post-meta"] span',
-        'h3[class*="post-meta"] a',
-        'span[class*="post-meta"] a',
-        'a[class*="post-meta"]',
-        'span[class*="author"]',
-        'a[class*="author"]',
-        'span[class*="company"]',
-        'a[class*="company"]',
-        # Additional selectors for different LinkedIn layouts
         'div[class*="feed-shared-update-v2__actor"] a',
         'div[class*="feed-shared-actor"] a',
         'div[class*="update-components-actor"] a',
         'div[class*="post-actor"] a',
-        'div[class*="post-header"] a',
-        'div[class*="post-meta"] a',
-        # New specific selectors for the main posting account
         'div[class*="feed-shared-update-v2__actor"] span a',
         'div[class*="feed-shared-actor"] span a',
         'div[class*="update-components-actor"] span a',
         'div[class*="post-actor"] span a',
-        'div[class*="feed-shared-update-v2__actor"] h3 a',
-        'div[class*="feed-shared-actor"] h3 a',
-        'div[class*="update-components-actor"] h3 a',
-        'div[class*="post-actor"] h3 a',
-        # Additional selectors for the main posting account
-        'div[class*="feed-shared-update-v2__actor"] a',
-        'div[class*="feed-shared-actor"] a',
-        'div[class*="update-components-actor"] a',
-        'div[class*="post-actor"] a',
-        'div[class*="feed-shared-update-v2__actor"] h3',
-        'div[class*="feed-shared-actor"] h3',
-        'div[class*="update-components-actor"] h3',
-        'div[class*="post-actor"] h3',
-        'div[class*="feed-shared-update-v2__actor"] span',
-        'div[class*="feed-shared-actor"] span',
-        'div[class*="update-components-actor"] span',
-        'div[class*="post-actor"] span',
+        'h3 a[href*="/in/"]',
+        'h3 a[href*="/company/"]',
+        'span a[href*="/in/"]',
+        'span a[href*="/company/"]',
+        'div[class*="post-header"] a',
+        'div[class*="post-meta"] a',
     ]
     
     for i, selector in enumerate(selectors):
@@ -115,92 +115,58 @@ def extract_author_name(soup: BeautifulSoup) -> str:
         if element:
             text = element.get_text(strip=True)
             if text and len(text) > 0:
-                # Filter out comment authors and other non-main authors
+                # Skip comment authors and generic links
                 element_classes = element.get('class', [])
                 element_classes_str = ' '.join(element_classes).lower()
                 
-                # Skip if this looks like a comment author
                 if any(cls in element_classes_str for cls in ['comment', 'reply', 'response']):
-                    print(f"   ⏭️ Skipping comment author with selector {i+1}: '{text}'")
+                    logger.debug(f"⏭️ Skipping comment author with selector {i+1}: '{text}'")
                     continue
                 
-                # Skip if this looks like a generic link (View Profile, etc.)
                 if text.lower() in ['view profile', 'follow', 'message', 'connect']:
-                    print(f"   ⏭️ Skipping generic link with selector {i+1}: '{text}'")
+                    logger.debug(f"⏭️ Skipping generic link with selector {i+1}: '{text}'")
                     continue
                 
-                print(f"   ✅ Found author with selector {i+1}: '{text}'")
+                logger.info(f"✅ Found author with selector {i+1}: '{text}'")
                 return clean_text(text)
     
     # Fallback: look for any link that might be the author
-    print(f"   🔍 Trying fallback author detection...")
+    logger.info("🔍 Trying fallback author detection...")
     author_links = soup.find_all('a', href=re.compile(r'/(in|company)/'))
     
-    # Prioritize links that are more likely to be the main posting account
-    prioritized_links = []
     for link in author_links:
         text = link.get_text(strip=True)
         if text and len(text) > 0:
-            # Skip comment authors and generic links
             element_classes = link.get('class', [])
             element_classes_str = ' '.join(element_classes).lower()
             
             if any(cls in element_classes_str for cls in ['comment', 'reply', 'response']):
-                print(f"   ⏭️ Skipping comment author in fallback: '{text}'")
                 continue
             
             if text.lower() in ['view profile', 'follow', 'message', 'connect']:
-                print(f"   ⏭️ Skipping generic link in fallback: '{text}'")
                 continue
             
-            # Check if this link is in a prominent position (header area)
-            parent = link.parent
-            is_prominent = False
-            prominence_score = 0
-            for level in range(5):  # Check up to 5 levels up
-                if parent:
-                    parent_classes = parent.get('class', [])
-                    parent_classes_str = ' '.join(parent_classes).lower()
-                    
-                    # Score based on how likely this is the main posting account
-                    if any(cls in parent_classes_str for cls in ['header', 'meta', 'actor', 'post']):
-                        prominence_score += 10
-                    if any(cls in parent_classes_str for cls in ['feed-shared', 'update-v2', 'actor']):
-                        prominence_score += 20
-                    if any(cls in parent_classes_str for cls in ['comment', 'reply']):
-                        prominence_score -= 50  # Heavily penalize comment areas
-                    
-                    parent = parent.parent
-                else:
-                    break
-            
-            is_prominent = prominence_score > 0
-            
-            prioritized_links.append({
-                'text': text,
-                'is_prominent': is_prominent,
-                'prominence_score': prominence_score,
-                'href': link.get('href', '')
-            })
+            logger.info(f"✅ Found author with fallback link: '{text}'")
+            return clean_text(text)
     
-    # Sort by prominence score (highest first) and return the first one
-    prioritized_links.sort(key=lambda x: (-x['prominence_score'], x['text']))
-    
-    for i, link_info in enumerate(prioritized_links):
-        print(f"   ✅ Found author with fallback link {i+1}: '{link_info['text']}' (prominent: {link_info['is_prominent']}, score: {link_info['prominence_score']})")
-        return clean_text(link_info['text'])
-    
-    print(f"   ❌ Could not find author name")
+    logger.warning("❌ Could not find author name")
     return "Unknown Author"
 
 
-def extract_post_content(soup: BeautifulSoup) -> str:
-    """Extract the main post content."""
-    # Try multiple selectors for post content
+def extract_post_content_requests(soup: BeautifulSoup) -> str:
+    """Extract post content using requests approach."""
+    logger.info("🔍 Extracting post content...")
+    
+    # Priority selectors for post content
     selectors = [
+        'div[class*="feed-shared-update-v2__description"] span',
+        'div[class*="feed-shared-update-v2__description"] div',
+        'div[class*="feed-shared-text"] span',
+        'div[class*="feed-shared-text"] div',
+        'div[class*="update-components-text"] span',
+        'div[class*="update-components-text"] div',
         'div[class*="post-content"] p',
         'div[class*="post-content"] div',
-        'p[class*="post-content"]',
         'div[class*="content"] p',
         'div[class*="text"] p',
         'article p',
@@ -218,104 +184,80 @@ def extract_post_content(soup: BeautifulSoup) -> str:
     
     # If no content found with selectors, try broader approach
     if not content_parts:
-        # Look for any paragraph with substantial text
         paragraphs = soup.find_all('p')
         for p in paragraphs:
             text = p.get_text(strip=True)
             if text and len(text) > 20:  # Substantial text
                 content_parts.append(text)
     
-    return ' '.join(content_parts) if content_parts else ""
+    content = ' '.join(content_parts) if content_parts else ""
+    logger.info(f"📝 Content length: {len(content)} characters")
+    return content
 
 
-def extract_media_urls(soup: BeautifulSoup) -> list:
-    """Extract media URLs (images, videos) from the post."""
+def extract_media_urls_requests(soup: BeautifulSoup) -> list:
+    """Extract media URLs using requests approach."""
+    logger.info("🔍 Searching for media in HTML...")
     media_urls = []
     
-    print(f"   🔍 Searching for media in HTML...")
-    
-    # Look for images - prioritize post content images over background/company images
+    # Look for images - prioritize post content images
     images = soup.find_all('img')
-    print(f"   📸 Found {len(images)} total images")
+    logger.info(f"📸 Found {len(images)} total images")
     
-    # Debug: Print all image sources to see what we're working with
-    print(f"   🔍 Debug: All image sources:")
-    for i, img in enumerate(images):
-        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
-        if src:
-            print(f"   🔍 Debug: Image {i+1}: {src}")
-        else:
-            print(f"   🔍 Debug: Image {i+1}: No src found")
-    
-    for i, img in enumerate(images):
-        # Try multiple attributes for image sources
-        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url') or img.get('data-original')
+    for img in images:
+        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
         if src and not src.startswith('data:'):
-            print(f"   📸 Image {i+1}: {src[:100]}...")
-            # Debug: Print all image sources to see what we're working with
-            print(f"   🔍 Debug: Image {i+1} src={src}")
-            print(f"   🔍 Debug: Image {i+1} alt={img.get('alt', 'N/A')}")
-            print(f"   🔍 Debug: Image {i+1} classes={img.get('class', [])}")
-            
-            # More sophisticated filtering - only skip obvious UI elements
+            # Skip obvious UI elements
             skip_patterns = [
                 'avatar', 'icon', 'logo', 'profile-displaybackgroundimage', 'profile-picture',
-                'static.licdn.com/aero-v1/sc/h/5q92mjc5c51bjlwaj3rs9aa82'  # Generic LinkedIn icon
+                'static.licdn.com/aero-v1/sc/h/'
             ]
             
             should_skip = any(pattern in src.lower() for pattern in skip_patterns)
-            print(f"   🔍 Debug: Image {i+1} should_skip={should_skip}")
             if should_skip:
-                print(f"   🔍 Debug: Image {i+1} skipped because it contains: {[pattern for pattern in skip_patterns if pattern in src.lower()]}")
+                continue
             
             # Check if this looks like a post content image
             parent_classes = []
             parent = img.parent
-            for _ in range(5):  # Check up to 5 levels up
+            for _ in range(5):
                 if parent:
                     parent_classes.extend(parent.get('class', []))
                     parent = parent.parent
             
-            # Determine priority based on URL patterns and parent classes
             priority = 'low'
             if any('post' in cls.lower() or 'content' in cls.lower() or 'feed' in cls.lower() for cls in parent_classes):
                 priority = 'high'
             elif 'image-shrink_800' in src or 'image-shrink_1280' in src:
-                priority = 'high'  # LinkedIn post content images typically have these patterns
+                priority = 'high'
             elif 'dms/image' in src and not any(skip in src.lower() for skip in ['avatar', 'profile-displaybackgroundimage']):
-                priority = 'medium'  # LinkedIn media images
+                priority = 'medium'
             
-            print(f"   🔍 Debug: Image {i+1} priority={priority}")
-            print(f"   🔍 Debug: Image {i+1} parent_classes={parent_classes[:5]}...")  # Show first 5 classes
-            
-            if not should_skip:
-                if priority == 'high':
-                    print(f"   ✅ High priority image found: {src[:100]}...")
-                    media_urls.insert(0, {
-                        'type': 'image',
-                        'url': src,
-                        'alt': img.get('alt', ''),
-                        'priority': 'high'
-                    })
-                else:
-                    print(f"   📸 {priority.capitalize()} priority image: {src[:100]}...")
-                    media_urls.append({
-                        'type': 'image',
-                        'url': src,
-                        'alt': img.get('alt', ''),
-                        'priority': priority
-                    })
+            if priority == 'high':
+                logger.info(f"✅ High priority image found: {src[:100]}...")
+                media_urls.insert(0, {
+                    'type': 'image',
+                    'url': src,
+                    'alt': img.get('alt', ''),
+                    'priority': 'high'
+                })
             else:
-                print(f"   ⏭️ Skipping image: {src[:100]}...")
+                logger.debug(f"📸 {priority.capitalize()} priority image: {src[:100]}...")
+                media_urls.append({
+                    'type': 'image',
+                    'url': src,
+                    'alt': img.get('alt', ''),
+                    'priority': priority
+                })
     
     # Look for videos
     videos = soup.find_all(['video', 'iframe'])
-    print(f"   🎥 Found {len(videos)} videos/iframes")
+    logger.info(f"🎥 Found {len(videos)} videos/iframes")
     
     for video in videos:
         src = video.get('src') or video.get('data-src')
         if src:
-            print(f"   🎥 Video found: {src[:100]}...")
+            logger.info(f"🎥 Video found: {src[:100]}...")
             media_urls.append({
                 'type': 'video',
                 'url': src,
@@ -323,76 +265,16 @@ def extract_media_urls(soup: BeautifulSoup) -> list:
                 'priority': 'medium'
             })
     
-    # Also look for background images in CSS
-    print(f"   🎨 Searching for background images...")
-    for element in soup.find_all(['div', 'section', 'article']):
-        style = element.get('style', '')
-        if 'background-image' in style:
-            # Extract URL from background-image: url(...)
-            import re
-            bg_match = re.search(r'background-image:\s*url\(["\']?([^"\']+)["\']?\)', style)
-            if bg_match:
-                bg_url = bg_match.group(1)
-                print(f"   🎨 Background image found: {bg_url[:100]}...")
-                if not any(skip in bg_url.lower() for skip in ['avatar', 'icon', 'logo', 'profile']):
-                    media_urls.append({
-                        'type': 'image',
-                        'url': bg_url,
-                        'alt': 'Background image',
-                        'priority': 'medium'
-                    })
-    
-    # Look for images in data attributes and other hidden sources
-    print(f"   🔍 Searching for hidden image sources...")
-    for element in soup.find_all(['div', 'section', 'article', 'img']):
-        # Check for data attributes that might contain image URLs
-        for attr_name, attr_value in element.attrs.items():
-            if attr_name.startswith('data-') and isinstance(attr_value, str):
-                if 'licdn.com/dms/image' in attr_value or 'media.licdn.com' in attr_value:
-                    print(f"   🔍 Found image in data attribute {attr_name}: {attr_value[:100]}...")
-                    if not any(skip in attr_value.lower() for skip in ['avatar', 'icon', 'logo', 'profile-displaybackgroundimage']):
-                        media_urls.append({
-                            'type': 'image',
-                            'url': attr_value,
-                            'alt': f'Image from {attr_name}',
-                            'priority': 'medium'
-                        })
-    
-    # Look for images in script tags or JSON data
-    print(f"   🔍 Searching for images in script data...")
-    for script in soup.find_all('script'):
-        if script.string:
-            script_content = script.string
-            # Look for LinkedIn image URLs in script content
-            import re
-            image_urls = re.findall(r'https://media\.licdn\.com/dms/image[^"\s]+', script_content)
-            for img_url in image_urls:
-                print(f"   🔍 Found image in script: {img_url[:100]}...")
-                if not any(skip in img_url.lower() for skip in ['avatar', 'icon', 'logo', 'profile-displaybackgroundimage']):
-                    media_urls.append({
-                        'type': 'image',
-                        'url': img_url,
-                        'alt': 'Image from script',
-                        'priority': 'medium'
-                    })
-    
-    print(f"   📊 Total media items found: {len(media_urls)}")
+    logger.info(f"📊 Total media items found: {len(media_urls)}")
     return media_urls
 
 
 def get_best_thumbnail(media_urls: list, url: str = "") -> str:
     """Get the best thumbnail from media URLs."""
-    # For the specific post we know has the target image, prioritize it
-    if "uwaterloocoopcee_mycoopexperience-engineering-uwaterloocoop-activity-7354193725566189568" in url:
-        target_image = "https://media.licdn.com/dms/image/v2/D4E10AQH30DC9ZNFLkg/image-shrink_800/B4EZg9YKkFGoAg-/0/1753376402351?e=1754067600&v=beta&t=GTBdz-GOgfGvellKAeSGMDoFfxDJsh8sBy88XyrBwQA"
-        print(f"   🎯 Using known target image for this post: {target_image[:100]}...")
-        return target_image
-    
     if not media_urls:
         return ""
     
     # Prioritize post content images over profile photos
-    # Look for images that are likely post content (not profile photos)
     post_content_images = []
     profile_images = []
     other_images = []
@@ -404,13 +286,10 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
         elif 'articleshare' in url_lower or 'image-shrink_480' in url_lower or 'image-shrink_800' in url_lower:
             post_content_images.append(media)
         elif 'comment-image' in url_lower:
-            # Skip comment images - they're not the main post content
             continue
         elif 'static.licdn.com/aero-v1/sc/h/' in url_lower:
-            # Skip static LinkedIn icons
             continue
         else:
-            # For other images, check if they look like post content
             if media.get('priority') == 'high':
                 post_content_images.append(media)
             else:
@@ -418,120 +297,253 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
     
     # Return the first post content image, or fall back to profile image
     if post_content_images:
-        print(f"   🎯 Selected post content image: {post_content_images[0]['url'][:100]}...")
+        logger.info(f"🎯 Selected post content image: {post_content_images[0]['url'][:100]}...")
         return post_content_images[0]['url']
     elif profile_images:
-        print(f"   🎯 Selected profile image: {profile_images[0]['url'][:100]}...")
+        logger.info(f"🎯 Selected profile image: {profile_images[0]['url'][:100]}...")
         return profile_images[0]['url']
     elif other_images:
-        print(f"   🎯 Selected other image: {other_images[0]['url'][:100]}...")
+        logger.info(f"🎯 Selected other image: {other_images[0]['url'][:100]}...")
         return other_images[0]['url']
     
-    # Fallback to first media item
     return media_urls[0]['url'] if media_urls else ""
+
+
+def setup_selenium_driver():
+    """Set up Selenium WebDriver with proper options."""
+    chrome_options = Options()
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-plugins')
+    chrome_options.add_argument('--disable-images')  # Speed up loading
+    chrome_options.add_argument('--disable-javascript')  # We'll enable this selectively
+    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    chrome_options.add_argument('--headless')  # Run in background
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--allow-running-insecure-content')
+    chrome_options.add_argument('--disable-features=VizDisplayCompositor')
+    
+    try:
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.set_page_load_timeout(30)
+        driver.set_script_timeout(30)
+        return driver
+    except Exception as e:
+        logger.error(f"❌ Failed to create Selenium driver: {e}")
+        return None
+
+
+def extract_with_selenium(url: str) -> dict:
+    """Extract LinkedIn post data using Selenium as fallback."""
+    logger.info("🤖 Using Selenium fallback for LinkedIn scraping...")
+    
+    driver = setup_selenium_driver()
+    if not driver:
+        return {"error": "Failed to create Selenium driver"}
+    
+    try:
+        # Navigate to the page
+        driver.get(url)
+        
+        # Wait for content to load with multiple possible selectors
+        wait = WebDriverWait(driver, 15)
+        
+        # Try multiple selectors for content that might be present
+        content_selectors = [
+            'div[class*="feed-shared-update-v2__description"]',
+            'div[class*="feed-shared-actor"]',
+            'h3 a',
+            'div[class*="post-content"]',
+            'div[class*="update-components-text"]',
+            'div[class*="feed-shared-text"]',
+            'body'  # Fallback to just wait for body
+        ]
+        
+        content_found = False
+        for selector in content_selectors:
+            try:
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+                logger.info(f"✅ Found content with selector: {selector}")
+                content_found = True
+                break
+            except TimeoutException:
+                logger.debug(f"⏰ Timeout waiting for selector: {selector}")
+                continue
+        
+        if not content_found:
+            logger.warning("⏰ Timeout waiting for content to load")
+        
+        # Add a small delay to ensure JavaScript execution
+        time.sleep(2)
+        
+        # Get the page source after JavaScript execution
+        page_source = driver.page_source
+        
+        # Check if we got a meaningful page
+        if len(page_source) < 1000:
+            logger.warning("⚠️ Page source seems too small, might be an error page")
+            return {"error": "Page source too small, likely an error page"}
+        
+        soup = BeautifulSoup(page_source, 'html.parser')
+        
+        # Extract data using the same functions
+        author_name = extract_author_name_requests(soup)
+        post_content = extract_post_content_requests(soup)
+        media_urls = extract_media_urls_requests(soup)
+        thumbnail = get_best_thumbnail(media_urls, url)
+        
+        # Check if we got meaningful data
+        has_content = len(post_content.strip()) > 20
+        has_author = author_name != "Unknown Author"
+        
+        if not has_content and not has_author:
+            logger.warning("⚠️ Selenium didn't get meaningful data")
+            return {"error": "Selenium couldn't extract meaningful data"}
+        
+        # Generate title
+        if post_content:
+            title = post_content[:100].strip()
+            if len(post_content) > 100:
+                title += "..."
+        else:
+            title = f"LinkedIn post by {author_name}"
+        
+        result = {
+            "url": url,
+            "title": title,
+            "channel": author_name,
+            "description": post_content,
+            "thumbnail": thumbnail,
+            "type": "post",
+            "metadata": {
+                "post_id": extract_post_id(url),
+                "platform": "LinkedIn",
+                "method": "selenium"
+            }
+        }
+        
+        if media_urls:
+            result["metadata"]["media_count"] = len(media_urls)
+            result["metadata"]["media_types"] = list(set(m['type'] for m in media_urls))
+        
+        logger.info("✅ Selenium scraping completed successfully")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Selenium scraping failed: {e}")
+        return {"error": f"Selenium scraping failed: {str(e)}"}
+    finally:
+        try:
+            driver.quit()
+        except:
+            pass
 
 
 class LinkedInScraper(BaseScraper):
     def scrape(self, url: str) -> dict:
         """
-        Scrape LinkedIn post content using web scraping.
-        Free, serverless-friendly approach using requests and BeautifulSoup.
+        Scrape LinkedIn post content using hybrid approach.
+        Tries requests first, falls back to Selenium if needed.
         """
-        print(f"🔍 Starting LinkedIn scraping for: {url}")
+        logger.info(f"🔍 Starting LinkedIn scraping for: {url}")
         
         post_id = extract_post_id(url)
         if not post_id:
-            print(f"❌ Could not extract post ID from URL: {url}")
+            logger.error(f"❌ Could not extract post ID from URL: {url}")
             return {"error": "Could not extract post ID from URL"}
         
-        print(f"📝 Post ID: {post_id}")
+        logger.info(f"📝 Post ID: {post_id}")
         
         # Initialize result structure
         result = {
             "url": url,
             "title": None,
-            "channel": None,  # Will be author name
-            "description": None,  # Will be post content
+            "channel": None,
+            "description": None,
             "thumbnail": None,
             "type": "post",
             "metadata": {
                 "post_id": post_id,
-                "platform": "LinkedIn"
+                "platform": "LinkedIn",
+                "method": "requests"
             }
         }
         
-        # Set up headers to mimic a real browser
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-        }
-        
+        # Try requests approach first
+        logger.info("🔄 Trying requests-based approach...")
         try:
-            print("🔄 Fetching LinkedIn post...")
-            response = requests.get(url, headers=headers, timeout=15)
+            session = create_session()
+            
+            # Add random delay to avoid detection
+            time.sleep(random.uniform(1, 3))
+            
+            response = session.get(url, timeout=15)
             response.raise_for_status()
             
-            print(f"   ✅ Response status: {response.status_code}")
-            print(f"   📄 Content length: {len(response.text)} characters")
+            logger.info(f"✅ Response status: {response.status_code}")
+            logger.info(f"📄 Content length: {len(response.text)} characters")
+            
+            # Check if we got a meaningful response
+            if len(response.text) < 1000:
+                logger.warning("⚠️ Response seems too small, might be an error page")
+                raise Exception("Response too small, likely an error page")
             
             # Parse HTML
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # Extract author name
-            author_name = extract_author_name(soup)
-            result["channel"] = author_name
-            print(f"   👤 Author: {author_name}")
-            
-            # Debug: Log potential author elements for troubleshooting
-            print(f"   🔍 Debug: Checking for author elements...")
-            potential_authors = soup.find_all(['h3', 'span', 'a'], class_=re.compile(r'(post|meta|author|company)'))
-            for i, elem in enumerate(potential_authors[:10]):  # Limit to first 10 for readability
-                text = elem.get_text(strip=True)
-                if text and len(text) > 0:
-                    print(f"   🔍 Potential author {i+1}: '{text}' (tag: {elem.name}, classes: {elem.get('class', [])})")
-            
-            # Extract post content
-            post_content = extract_post_content(soup)
-            result["description"] = post_content
-            print(f"   📝 Content length: {len(post_content)} characters")
-            
-            # Extract media
-            media_urls = extract_media_urls(soup)
-            print(f"   🖼️ Found {len(media_urls)} media items")
-            
-            # Set thumbnail
+            # Extract data
+            author_name = extract_author_name_requests(soup)
+            post_content = extract_post_content_requests(soup)
+            media_urls = extract_media_urls_requests(soup)
             thumbnail = get_best_thumbnail(media_urls, url)
-            if thumbnail:
-                result["thumbnail"] = thumbnail
-                print(f"   🖼️ Thumbnail: {thumbnail}")
             
-            # Generate title from content or author
-            if post_content:
-                # Use first sentence or first 100 characters as title
-                title = post_content[:100].strip()
-                if len(post_content) > 100:
-                    title += "..."
+            # Check if we got meaningful data
+            has_content = len(post_content.strip()) > 20
+            has_author = author_name != "Unknown Author"
+            has_thumbnail = bool(thumbnail)
+            
+            logger.info(f"📊 Data quality check:")
+            logger.info(f"   - Has content: {has_content} ({len(post_content)} chars)")
+            logger.info(f"   - Has author: {has_author} ({author_name})")
+            logger.info(f"   - Has thumbnail: {has_thumbnail}")
+            
+            # If we got good data, use it
+            if has_content or has_author:
+                # Generate title
+                if post_content:
+                    title = post_content[:100].strip()
+                    if len(post_content) > 100:
+                        title += "..."
+                else:
+                    title = f"LinkedIn post by {author_name}"
+                
+                result.update({
+                    "title": title,
+                    "channel": author_name,
+                    "description": post_content,
+                    "thumbnail": thumbnail
+                })
+                
+                if media_urls:
+                    result["metadata"]["media_count"] = len(media_urls)
+                    result["metadata"]["media_types"] = list(set(m['type'] for m in media_urls))
+                
+                logger.info("✅ Requests-based scraping successful")
+                return result
             else:
-                title = f"LinkedIn post by {author_name}"
-            
-            result["title"] = title
-            print(f"   📋 Title: {title}")
-            
-            # Add media metadata
-            if media_urls:
-                result["metadata"]["media_count"] = len(media_urls)
-                result["metadata"]["media_types"] = list(set(m['type'] for m in media_urls))
-            
-            print(f"   ✅ LinkedIn scraping completed successfully")
-            return result
-            
-        except requests.exceptions.RequestException as e:
-            print(f"   ❌ Request failed: {e}")
-            return {"error": f"Failed to fetch LinkedIn post: {str(e)}"}
+                logger.warning("⚠️ Requests approach didn't get good data, trying Selenium...")
+                raise Exception("Insufficient data from requests approach")
+                
         except Exception as e:
-            print(f"   ❌ Scraping failed: {e}")
-            return {"error": f"Failed to parse LinkedIn post: {str(e)}"}
+            logger.warning(f"⚠️ Requests approach failed: {e}")
+            
+            # Fall back to Selenium
+            selenium_result = extract_with_selenium(url)
+            if "error" not in selenium_result:
+                return selenium_result
+            else:
+                logger.error(f"❌ Both approaches failed")
+                return {"error": f"All scraping methods failed: {str(e)}"}
+
