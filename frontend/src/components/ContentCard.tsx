@@ -124,7 +124,17 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
         return <span className={baseClass}><FaTiktok size={size} className="text-black dark:text-white" /></span>;
       case 'LinkedIn Post':
       case 'LinkedIn Job':
-        return <span className={baseClass}><svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-blue-700"><rect width="24" height="24" rx="4" fill="currentColor"/><path d="M7.5 9.5V16.5M7.5 7.5V7.51M12 12.5V16.5M12 12.5C12 11.3954 12.8954 10.5 14 10.5C15.1046 10.5 16 11.3954 16 12.5V16.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>;
+        return (
+          <span className={baseClass}>
+            <img 
+              src="/linkedin-video-white.png" 
+              alt="LinkedIn" 
+              width={size} 
+              height={size}
+              className="object-contain"
+            />
+          </span>
+        );
       default:
         return null;
     }
