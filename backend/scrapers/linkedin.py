@@ -53,46 +53,144 @@ def clean_text(text: str) -> str:
 
 def extract_author_name(soup: BeautifulSoup) -> str:
     """Extract the author name from LinkedIn post."""
-    # Try multiple selectors for author name
+    print(f"   🔍 Extracting author name from LinkedIn post...")
+    
+    # Try multiple selectors for author name, prioritizing the main posting account
     selectors = [
-        # Primary selectors for the actual posting account
-        'h3[class*="post-meta"] span',
-        'h3[class*="post-meta"] a',
-        'span[class*="post-meta"] a',
-        'a[class*="post-meta"]',
-        'h3 a[href*="/in/"]',
-        'span[class*="author"]',
-        'a[class*="author"]',
-        # Company/organization selectors
-        'h3 a[href*="/company/"]',
-        'span[class*="company"]',
-        'a[class*="company"]',
-        # More specific selectors for the main posting entity
+        # Most specific selectors for the main posting account (avoid comment authors)
         'div[class*="post-header"] h3 a',
         'div[class*="post-header"] span a',
         'div[class*="post-meta"] h3 a',
         'div[class*="post-meta"] span a',
-        # Additional selectors for company pages
+        # Company/organization selectors (for company pages)
         'div[class*="post-header"] a[href*="/company/"]',
         'div[class*="post-meta"] a[href*="/company/"]',
         'h3 a[href*="/company/"]',
         'span a[href*="/company/"]',
+        # Individual profile selectors
+        'h3 a[href*="/in/"]',
+        'span a[href*="/in/"]',
+        # More generic selectors (but avoid comment authors)
+        'h3[class*="post-meta"] span',
+        'h3[class*="post-meta"] a',
+        'span[class*="post-meta"] a',
+        'a[class*="post-meta"]',
+        'span[class*="author"]',
+        'a[class*="author"]',
+        'span[class*="company"]',
+        'a[class*="company"]',
+        # Additional selectors for different LinkedIn layouts
+        'div[class*="feed-shared-update-v2__actor"] a',
+        'div[class*="feed-shared-actor"] a',
+        'div[class*="update-components-actor"] a',
+        'div[class*="post-actor"] a',
+        'div[class*="post-header"] a',
+        'div[class*="post-meta"] a',
+        # New specific selectors for the main posting account
+        'div[class*="feed-shared-update-v2__actor"] span a',
+        'div[class*="feed-shared-actor"] span a',
+        'div[class*="update-components-actor"] span a',
+        'div[class*="post-actor"] span a',
+        'div[class*="feed-shared-update-v2__actor"] h3 a',
+        'div[class*="feed-shared-actor"] h3 a',
+        'div[class*="update-components-actor"] h3 a',
+        'div[class*="post-actor"] h3 a',
+        # Additional selectors for the main posting account
+        'div[class*="feed-shared-update-v2__actor"] a',
+        'div[class*="feed-shared-actor"] a',
+        'div[class*="update-components-actor"] a',
+        'div[class*="post-actor"] a',
+        'div[class*="feed-shared-update-v2__actor"] h3',
+        'div[class*="feed-shared-actor"] h3',
+        'div[class*="update-components-actor"] h3',
+        'div[class*="post-actor"] h3',
+        'div[class*="feed-shared-update-v2__actor"] span',
+        'div[class*="feed-shared-actor"] span',
+        'div[class*="update-components-actor"] span',
+        'div[class*="post-actor"] span',
     ]
     
-    for selector in selectors:
+    for i, selector in enumerate(selectors):
         element = soup.select_one(selector)
         if element:
             text = element.get_text(strip=True)
             if text and len(text) > 0:
+                # Filter out comment authors and other non-main authors
+                element_classes = element.get('class', [])
+                element_classes_str = ' '.join(element_classes).lower()
+                
+                # Skip if this looks like a comment author
+                if any(cls in element_classes_str for cls in ['comment', 'reply', 'response']):
+                    print(f"   ⏭️ Skipping comment author with selector {i+1}: '{text}'")
+                    continue
+                
+                # Skip if this looks like a generic link (View Profile, etc.)
+                if text.lower() in ['view profile', 'follow', 'message', 'connect']:
+                    print(f"   ⏭️ Skipping generic link with selector {i+1}: '{text}'")
+                    continue
+                
+                print(f"   ✅ Found author with selector {i+1}: '{text}'")
                 return clean_text(text)
     
     # Fallback: look for any link that might be the author
+    print(f"   🔍 Trying fallback author detection...")
     author_links = soup.find_all('a', href=re.compile(r'/(in|company)/'))
+    
+    # Prioritize links that are more likely to be the main posting account
+    prioritized_links = []
     for link in author_links:
         text = link.get_text(strip=True)
         if text and len(text) > 0:
-            return clean_text(text)
+            # Skip comment authors and generic links
+            element_classes = link.get('class', [])
+            element_classes_str = ' '.join(element_classes).lower()
+            
+            if any(cls in element_classes_str for cls in ['comment', 'reply', 'response']):
+                print(f"   ⏭️ Skipping comment author in fallback: '{text}'")
+                continue
+            
+            if text.lower() in ['view profile', 'follow', 'message', 'connect']:
+                print(f"   ⏭️ Skipping generic link in fallback: '{text}'")
+                continue
+            
+            # Check if this link is in a prominent position (header area)
+            parent = link.parent
+            is_prominent = False
+            prominence_score = 0
+            for level in range(5):  # Check up to 5 levels up
+                if parent:
+                    parent_classes = parent.get('class', [])
+                    parent_classes_str = ' '.join(parent_classes).lower()
+                    
+                    # Score based on how likely this is the main posting account
+                    if any(cls in parent_classes_str for cls in ['header', 'meta', 'actor', 'post']):
+                        prominence_score += 10
+                    if any(cls in parent_classes_str for cls in ['feed-shared', 'update-v2', 'actor']):
+                        prominence_score += 20
+                    if any(cls in parent_classes_str for cls in ['comment', 'reply']):
+                        prominence_score -= 50  # Heavily penalize comment areas
+                    
+                    parent = parent.parent
+                else:
+                    break
+            
+            is_prominent = prominence_score > 0
+            
+            prioritized_links.append({
+                'text': text,
+                'is_prominent': is_prominent,
+                'prominence_score': prominence_score,
+                'href': link.get('href', '')
+            })
     
+    # Sort by prominence score (highest first) and return the first one
+    prioritized_links.sort(key=lambda x: (-x['prominence_score'], x['text']))
+    
+    for i, link_info in enumerate(prioritized_links):
+        print(f"   ✅ Found author with fallback link {i+1}: '{link_info['text']}' (prominent: {link_info['is_prominent']}, score: {link_info['prominence_score']})")
+        return clean_text(link_info['text'])
+    
+    print(f"   ❌ Could not find author name")
     return "Unknown Author"
 
 
@@ -305,6 +403,14 @@ class LinkedInScraper(BaseScraper):
             author_name = extract_author_name(soup)
             result["channel"] = author_name
             print(f"   👤 Author: {author_name}")
+            
+            # Debug: Log potential author elements for troubleshooting
+            print(f"   🔍 Debug: Checking for author elements...")
+            potential_authors = soup.find_all(['h3', 'span', 'a'], class_=re.compile(r'(post|meta|author|company)'))
+            for i, elem in enumerate(potential_authors[:10]):  # Limit to first 10 for readability
+                text = elem.get_text(strip=True)
+                if text and len(text) > 0:
+                    print(f"   🔍 Potential author {i+1}: '{text}' (tag: {elem.name}, classes: {elem.get('class', [])})")
             
             # Extract post content
             post_content = extract_post_content(soup)
