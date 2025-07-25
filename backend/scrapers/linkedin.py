@@ -238,31 +238,58 @@ def extract_media_urls(soup: BeautifulSoup) -> list:
     images = soup.find_all('img')
     print(f"   📸 Found {len(images)} total images")
     
+    # Debug: Print all image sources to see what we're working with
+    print(f"   🔍 Debug: All image sources:")
     for i, img in enumerate(images):
         src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+        if src:
+            print(f"   🔍 Debug: Image {i+1}: {src}")
+        else:
+            print(f"   🔍 Debug: Image {i+1}: No src found")
+    
+    for i, img in enumerate(images):
+        # Try multiple attributes for image sources
+        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url') or img.get('data-original')
         if src and not src.startswith('data:'):
             print(f"   📸 Image {i+1}: {src[:100]}...")
+            # Debug: Print all image sources to see what we're working with
+            print(f"   🔍 Debug: Image {i+1} src={src}")
+            print(f"   🔍 Debug: Image {i+1} alt={img.get('alt', 'N/A')}")
+            print(f"   🔍 Debug: Image {i+1} classes={img.get('class', [])}")
             
-            # Less restrictive filtering - only skip obvious icons and avatars
+            # More sophisticated filtering - only skip obvious UI elements
             skip_patterns = [
-                'avatar', 'icon', 'logo', 'profile', 
+                'avatar', 'icon', 'logo', 'profile-displaybackgroundimage', 'profile-picture',
                 'static.licdn.com/aero-v1/sc/h/5q92mjc5c51bjlwaj3rs9aa82'  # Generic LinkedIn icon
             ]
             
             should_skip = any(pattern in src.lower() for pattern in skip_patterns)
+            print(f"   🔍 Debug: Image {i+1} should_skip={should_skip}")
+            if should_skip:
+                print(f"   🔍 Debug: Image {i+1} skipped because it contains: {[pattern for pattern in skip_patterns if pattern in src.lower()]}")
             
-            # Prioritize images that look like post content
+            # Check if this looks like a post content image
+            parent_classes = []
+            parent = img.parent
+            for _ in range(5):  # Check up to 5 levels up
+                if parent:
+                    parent_classes.extend(parent.get('class', []))
+                    parent = parent.parent
+            
+            # Determine priority based on URL patterns and parent classes
+            priority = 'low'
+            if any('post' in cls.lower() or 'content' in cls.lower() or 'feed' in cls.lower() for cls in parent_classes):
+                priority = 'high'
+            elif 'image-shrink_800' in src or 'image-shrink_1280' in src:
+                priority = 'high'  # LinkedIn post content images typically have these patterns
+            elif 'dms/image' in src and not any(skip in src.lower() for skip in ['avatar', 'profile-displaybackgroundimage']):
+                priority = 'medium'  # LinkedIn media images
+            
+            print(f"   🔍 Debug: Image {i+1} priority={priority}")
+            print(f"   🔍 Debug: Image {i+1} parent_classes={parent_classes[:5]}...")  # Show first 5 classes
+            
             if not should_skip:
-                # Check if this looks like a post content image
-                parent_classes = []
-                parent = img.parent
-                for _ in range(3):  # Check up to 3 levels up
-                    if parent:
-                        parent_classes.extend(parent.get('class', []))
-                        parent = parent.parent
-                
-                # If image is in post content area, prioritize it
-                if any('post' in cls.lower() or 'content' in cls.lower() for cls in parent_classes):
+                if priority == 'high':
                     print(f"   ✅ High priority image found: {src[:100]}...")
                     media_urls.insert(0, {
                         'type': 'image',
@@ -271,12 +298,12 @@ def extract_media_urls(soup: BeautifulSoup) -> list:
                         'priority': 'high'
                     })
                 else:
-                    print(f"   📸 Low priority image: {src[:100]}...")
+                    print(f"   📸 {priority.capitalize()} priority image: {src[:100]}...")
                     media_urls.append({
                         'type': 'image',
                         'url': src,
                         'alt': img.get('alt', ''),
-                        'priority': 'low'
+                        'priority': priority
                     })
             else:
                 print(f"   ⏭️ Skipping image: {src[:100]}...")
@@ -315,6 +342,40 @@ def extract_media_urls(soup: BeautifulSoup) -> list:
                         'priority': 'medium'
                     })
     
+    # Look for images in data attributes and other hidden sources
+    print(f"   🔍 Searching for hidden image sources...")
+    for element in soup.find_all(['div', 'section', 'article', 'img']):
+        # Check for data attributes that might contain image URLs
+        for attr_name, attr_value in element.attrs.items():
+            if attr_name.startswith('data-') and isinstance(attr_value, str):
+                if 'licdn.com/dms/image' in attr_value or 'media.licdn.com' in attr_value:
+                    print(f"   🔍 Found image in data attribute {attr_name}: {attr_value[:100]}...")
+                    if not any(skip in attr_value.lower() for skip in ['avatar', 'icon', 'logo', 'profile-displaybackgroundimage']):
+                        media_urls.append({
+                            'type': 'image',
+                            'url': attr_value,
+                            'alt': f'Image from {attr_name}',
+                            'priority': 'medium'
+                        })
+    
+    # Look for images in script tags or JSON data
+    print(f"   🔍 Searching for images in script data...")
+    for script in soup.find_all('script'):
+        if script.string:
+            script_content = script.string
+            # Look for LinkedIn image URLs in script content
+            import re
+            image_urls = re.findall(r'https://media\.licdn\.com/dms/image[^"\s]+', script_content)
+            for img_url in image_urls:
+                print(f"   🔍 Found image in script: {img_url[:100]}...")
+                if not any(skip in img_url.lower() for skip in ['avatar', 'icon', 'logo', 'profile-displaybackgroundimage']):
+                    media_urls.append({
+                        'type': 'image',
+                        'url': img_url,
+                        'alt': 'Image from script',
+                        'priority': 'medium'
+                    })
+    
     print(f"   📊 Total media items found: {len(media_urls)}")
     return media_urls
 
@@ -330,20 +391,41 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
     if not media_urls:
         return ""
     
-    # Prioritize high priority images (post content)
-    high_priority = [m for m in media_urls if m.get('priority') == 'high']
-    if high_priority:
-        return high_priority[0]['url']
+    # Prioritize post content images over profile photos
+    # Look for images that are likely post content (not profile photos)
+    post_content_images = []
+    profile_images = []
+    other_images = []
     
-    # Then medium priority (videos)
-    medium_priority = [m for m in media_urls if m.get('priority') == 'medium']
-    if medium_priority:
-        return medium_priority[0]['url']
+    for media in media_urls:
+        url_lower = media['url'].lower()
+        if 'profile-displayphoto' in url_lower or 'profile-displaybackgroundimage' in url_lower:
+            profile_images.append(media)
+        elif 'articleshare' in url_lower or 'image-shrink_480' in url_lower or 'image-shrink_800' in url_lower:
+            post_content_images.append(media)
+        elif 'comment-image' in url_lower:
+            # Skip comment images - they're not the main post content
+            continue
+        elif 'static.licdn.com/aero-v1/sc/h/' in url_lower:
+            # Skip static LinkedIn icons
+            continue
+        else:
+            # For other images, check if they look like post content
+            if media.get('priority') == 'high':
+                post_content_images.append(media)
+            else:
+                other_images.append(media)
     
-    # Finally low priority (other images)
-    low_priority = [m for m in media_urls if m.get('priority') == 'low']
-    if low_priority:
-        return low_priority[0]['url']
+    # Return the first post content image, or fall back to profile image
+    if post_content_images:
+        print(f"   🎯 Selected post content image: {post_content_images[0]['url'][:100]}...")
+        return post_content_images[0]['url']
+    elif profile_images:
+        print(f"   🎯 Selected profile image: {profile_images[0]['url'][:100]}...")
+        return profile_images[0]['url']
+    elif other_images:
+        print(f"   🎯 Selected other image: {other_images[0]['url'][:100]}...")
+        return other_images[0]['url']
     
     # Fallback to first media item
     return media_urls[0]['url'] if media_urls else ""
