@@ -113,6 +113,23 @@ def get_tiktok_metadata(video_id: str, content_type: str = "video") -> dict:
             if og_image_match:
                 thumbnail = og_image_match.group(1)
             
+            # Also try to extract from other meta tags
+            if not thumbnail:
+                meta_image_match = re.search(r'<meta name="twitter:image" content="([^"]+)"', content)
+                if meta_image_match:
+                    thumbnail = meta_image_match.group(1)
+            
+            # For photos, try to extract from JSON data if available
+            if not thumbnail and content_type == "photo":
+                try:
+                    # Look for image URLs in the page content
+                    image_pattern = r'https://[^"]*\.tiktokcdn\.com[^"]*\.jpeg'
+                    image_matches = re.findall(image_pattern, content)
+                    if image_matches:
+                        thumbnail = image_matches[0]  # Use the first image found
+                except:
+                    pass
+            
             return {
                 "title": title,
                 "thumbnail": thumbnail,
@@ -182,121 +199,128 @@ class TikTokScraper(BaseScraper):
             "channel": username  # Add channel field for frontend display
         }
         
-        # Try to get metadata from oEmbed API first (best method)
-        print("🔄 Attempting oEmbed API for metadata...")
-        oembed_data = get_tiktok_oembed_data(url)
-        
-        if "error" not in oembed_data:
-            print(f"   ✅ oEmbed API successful")
-            
-            # Use oEmbed data for better results
-            result["title"] = oembed_data.get("title") or generate_better_title(username, video_id, content_type)
-            result["thumbnail"] = oembed_data.get("thumbnail_url")
-            result["channel"] = oembed_data.get("author_name") or username
-            
-            print(f"   📝 Title: {result['title']}")
-            print(f"   🖼️ Thumbnail: {'Available' if result['thumbnail'] else 'Not available'}")
-            print(f"   👤 Channel: {result['channel']}")
-            
-            # Add metadata
-            result["metadata"] = {
-                "video_id": video_id,
-                "username": username,
-                "uploader": oembed_data.get("author_name") or username,
-                "author_unique_id": oembed_data.get("author_unique_id"),
-                "upload_date": None,  # Not available without authentication
-                "view_count": None,   # Not available without authentication
-                "like_count": None,   # Not available without authentication
-                "comment_count": None, # Not available without authentication
-                "webpage_url": url,
-                "thumbnail": oembed_data.get("thumbnail_url"),
-                "thumbnail_width": oembed_data.get("thumbnail_width"),
-                "thumbnail_height": oembed_data.get("thumbnail_height"),
-                "scraper": "oembed_api",
-                "method": oembed_data.get("method", "oembed_api")
-            }
-            
-            # Generate a basic description
-            content_type_text = "photo" if content_type == "photo" else "video"
-            if result["channel"]:
-                result["description"] = f"TikTok {content_type_text} by {result['channel']}"
-            else:
-                result["description"] = f"TikTok {content_type_text} {video_id}"
-            
-        else:
-            print(f"   ❌ oEmbed API failed: {oembed_data['error']}")
-            
-            # Fallback to web scraping
-            print("🔄 Falling back to web scraping...")
+        # For photos, skip oEmbed API since TikTok doesn't support it for photos
+        if content_type == "photo":
+            print("📸 Photo detected - skipping oEmbed API (not supported for photos)")
+            print("🔄 Using web scraping for photo metadata...")
             web_data = get_tiktok_metadata(video_id, content_type)
+        else:
+            # Try oEmbed API first for videos (better metadata)
+            print("🔄 Attempting oEmbed API for metadata...")
+            oembed_data = get_tiktok_oembed_data(url)
             
-            if "error" not in web_data:
-                print(f"   ✅ Web scraping successful")
+            if "error" not in oembed_data:
+                print(f"   ✅ oEmbed API successful")
                 
-                # Use our better title generation instead of the generic HTML title
-                result["title"] = generate_better_title(username, video_id, content_type)
+                # Use oEmbed data for better results
+                result["title"] = oembed_data.get("title") or generate_better_title(username, video_id, content_type)
+                result["thumbnail"] = oembed_data.get("thumbnail_url")
+                result["channel"] = oembed_data.get("author_name") or username
+                
                 print(f"   📝 Title: {result['title']}")
-                
-                # Try to get thumbnail from web scraping
-                result["thumbnail"] = web_data.get("thumbnail")
-                if result["thumbnail"]:
-                    print(f"   🖼️ Thumbnail found: {result['thumbnail']}")
-                else:
-                    print(f"   🖼️ Thumbnail: Not available")
+                print(f"   🖼️ Thumbnail: {'Available' if result['thumbnail'] else 'Not available'}")
+                print(f"   👤 Channel: {result['channel']}")
                 
                 # Add metadata
                 result["metadata"] = {
                     "video_id": video_id,
                     "username": username,
-                    "uploader": username,
+                    "uploader": oembed_data.get("author_name") or username,
+                    "author_unique_id": oembed_data.get("author_unique_id"),
                     "upload_date": None,  # Not available without authentication
                     "view_count": None,   # Not available without authentication
                     "like_count": None,   # Not available without authentication
                     "comment_count": None, # Not available without authentication
                     "webpage_url": url,
-                    "thumbnail": result["thumbnail"],
-                    "scraper": "web_scraping",
-                    "method": web_data.get("method", "unknown")
+                    "thumbnail": oembed_data.get("thumbnail_url"),
+                    "thumbnail_width": oembed_data.get("thumbnail_width"),
+                    "thumbnail_height": oembed_data.get("thumbnail_height"),
+                    "scraper": "oembed_api",
+                    "method": oembed_data.get("method", "oembed_api")
                 }
                 
                 # Generate a basic description
                 content_type_text = "photo" if content_type == "photo" else "video"
-                if username:
-                    result["description"] = f"TikTok {content_type_text} by @{username}"
+                if result["channel"]:
+                    result["description"] = f"TikTok {content_type_text} by {result['channel']}"
                 else:
                     result["description"] = f"TikTok {content_type_text} {video_id}"
                 
             else:
-                print(f"   ❌ Web scraping failed: {web_data['error']}")
+                print(f"   ❌ oEmbed API failed: {oembed_data['error']}")
                 
-                # Final fallback to URL parsing
-                print("🔄 Falling back to URL parsing...")
-                
-                # Create better title and description
-                result["title"] = generate_better_title(username, video_id, content_type)
-                content_type_text = "photo" if content_type == "photo" else "video"
-                if username:
-                    result["description"] = f"TikTok {content_type_text} by @{username}"
-                else:
-                    result["description"] = f"TikTok {content_type_text} {video_id}"
-                
-                # Add metadata
-                result["metadata"] = {
-                    "video_id": video_id,
-                    "username": username,
-                    "uploader": username,
-                    "upload_date": None,
-                    "view_count": None,
-                    "like_count": None,
-                    "comment_count": None,
-                    "webpage_url": url,
-                    "thumbnail": None,
-                    "scraper": "url_parsing",
-                    "method": "url_parsing"
-                }
-                
-                # Generate thumbnail URL
-                result["thumbnail"] = get_tiktok_thumbnail_url(video_id, username)
+                # Fallback to web scraping for videos
+                print("🔄 Falling back to web scraping...")
+                web_data = get_tiktok_metadata(video_id, content_type)
+        
+        # Handle web scraping results (for both photos and failed video oEmbed)
+        if "error" not in web_data:
+            print(f"   ✅ Web scraping successful")
+            
+            # Use our better title generation instead of the generic HTML title
+            result["title"] = generate_better_title(username, video_id, content_type)
+            print(f"   📝 Title: {result['title']}")
+            
+            # Try to get thumbnail from web scraping
+            result["thumbnail"] = web_data.get("thumbnail")
+            if result["thumbnail"]:
+                print(f"   🖼️ Thumbnail found: {result['thumbnail']}")
+            else:
+                print(f"   🖼️ Thumbnail: Not available")
+            
+            # Add metadata
+            result["metadata"] = {
+                "video_id": video_id,
+                "username": username,
+                "uploader": username,
+                "upload_date": None,  # Not available without authentication
+                "view_count": None,   # Not available without authentication
+                "like_count": None,   # Not available without authentication
+                "comment_count": None, # Not available without authentication
+                "webpage_url": url,
+                "thumbnail": result["thumbnail"],
+                "scraper": "web_scraping",
+                "method": web_data.get("method", "unknown")
+            }
+            
+            # Generate a basic description
+            content_type_text = "photo" if content_type == "photo" else "video"
+            if username:
+                result["description"] = f"TikTok {content_type_text} by @{username}"
+            else:
+                result["description"] = f"TikTok {content_type_text} {video_id}"
+            
+        else:
+            print(f"   ❌ Web scraping failed: {web_data['error']}")
+            
+            # Final fallback to URL parsing
+            print("🔄 Falling back to URL parsing...")
+            
+            # Create better title and description
+            result["title"] = generate_better_title(username, video_id, content_type)
+            content_type_text = "photo" if content_type == "photo" else "video"
+            if username:
+                result["description"] = f"TikTok {content_type_text} by @{username}"
+            else:
+                result["description"] = f"TikTok {content_type_text} {video_id}"
+            
+            # Add metadata
+            result["metadata"] = {
+                "video_id": video_id,
+                "username": username,
+                "uploader": username,
+                "upload_date": None,
+                "view_count": None,
+                "like_count": None,
+                "comment_count": None,
+                "webpage_url": url,
+                "thumbnail": None,
+                "scraper": "url_parsing",
+                "method": "url_parsing"
+            }
+            
+            # Generate thumbnail URL
+            result["thumbnail"] = get_tiktok_thumbnail_url(video_id, username)
         
         print(f"   ✅ TikTok scraping completed successfully")
         print(f"   🎯 Final result:")
@@ -307,4 +331,4 @@ class TikTokScraper(BaseScraper):
         print(f"      Channel: {result.get('channel', 'N/A')}")
         print(f"      Thumbnail: {'Available' if result.get('thumbnail') else 'Not available'}")
         
-        return result
+        return result 
