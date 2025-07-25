@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Sun, Moon, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Loader2 } from 'lucide-react';
 import { FaYoutube, FaTiktok, FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
@@ -82,7 +82,7 @@ const SavePage: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const { currentUser } = useAuth();
   const [stepStatuses, setStepStatuses] = useState<SaveStepStatus[]>(Array(SAVE_STEPS.length).fill('pending'));
   const [currentStep, setCurrentStep] = useState(0);
@@ -237,13 +237,6 @@ const SavePage: React.FC = () => {
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             <div className="flex items-center space-x-2">
-              <button
-                onClick={toggleTheme}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
-              </button>
               <Link to="/dashboard" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
                 <ArrowLeft size={16} className="sm:hidden" />
                 <span className="font-medium text-sm hidden sm:inline">Back to Vault</span>

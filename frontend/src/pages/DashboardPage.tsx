@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Sun, Moon, Check, Pencil, ExternalLink, Trash2, X, Folder } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X, Folder } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -35,7 +35,7 @@ interface Category {
 
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [committedSearchQuery, setCommittedSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -505,13 +505,6 @@ const DashboardPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             <div className="flex items-center space-x-2">
-              <button
-                onClick={toggleTheme}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
-              </button>
               <Link to="/save" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
                 <Plus size={16} className="text-gray-600 dark:text-white" /><span className="font-medium text-sm hidden sm:inline">Save</span>
                 <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+I</Kbd>

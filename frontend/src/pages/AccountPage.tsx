@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
-import { User, LogOut, GitBranch, ArrowLeft, KeyRound, ShieldCheck, Sun, Moon, Trash2 } from 'lucide-react';
+import { User, LogOut, GitBranch, ArrowLeft, KeyRound, ShieldCheck, Trash2 } from 'lucide-react';
 import Input from '../components/Input';
 import { changePassword } from '../services/api';
 import Kbd from '../components/Kbd';
@@ -15,7 +15,7 @@ import GitHubIcon from '../components/GitHubIcon';
 
 const AccountPage: React.FC = () => {
   const { currentUser, logout, deleteAccount } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -126,13 +126,6 @@ const AccountPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             <div className="flex items-center space-x-2">
-              <button
-                onClick={toggleTheme}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
-              </button>
               <Link to="/dashboard" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
                 <ArrowLeft size={16} className="sm:hidden" />
                 <span className="font-medium text-sm hidden sm:inline">Back to Vault</span>

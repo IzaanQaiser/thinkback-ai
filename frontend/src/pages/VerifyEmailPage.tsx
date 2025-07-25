@@ -4,14 +4,14 @@ import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/Button';
 import Logo from '../components/Logo';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sun, Moon, MailCheck } from 'lucide-react';
+import { MailCheck } from 'lucide-react';
 
 const VerifyEmailPage: React.FC = () => {
   const { currentUser, sendVerificationEmail, logout } = useAuth();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   const [hasSent, setHasSent] = useState(false);
@@ -84,15 +84,7 @@ const VerifyEmailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-dark-950 p-4 relative">
-      <div className="absolute top-4 right-4">
-        <button
-          onClick={toggleTheme}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200"
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? <Sun size={20} className="text-dark-900 dark:text-white" /> : <Moon size={20} className="text-dark-900 dark:text-white" />}
-        </button>
-      </div>
+
 
       <div className="w-full max-w-md mx-auto text-center bg-white dark:bg-dark-900 p-8 rounded-2xl shadow-lg border border-dark-200 dark:border-dark-700">
         <Logo size="md" className="justify-center mb-6" />
