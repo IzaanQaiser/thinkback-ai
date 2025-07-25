@@ -225,15 +225,33 @@ def extract_media_urls_requests(soup: BeautifulSoup) -> list:
                     parent_classes.extend(parent.get('class', []))
                     parent = parent.parent
             
+            # Improved priority detection
             priority = 'low'
-            if any('post' in cls.lower() or 'content' in cls.lower() or 'feed' in cls.lower() for cls in parent_classes):
+            url_lower = src.lower()
+            
+            # Highest priority: feedshare images (main post content)
+            if 'feedshare' in url_lower:
+                priority = 'highest'
+            # High priority: article cover images
+            elif 'article-cover_image' in url_lower:
+                priority = 'highest'
+            # High priority: post content images with specific patterns
+            elif any('post' in cls.lower() or 'content' in cls.lower() or 'feed' in cls.lower() for cls in parent_classes):
                 priority = 'high'
-            elif 'image-shrink_800' in src or 'image-shrink_1280' in src:
+            elif 'image-shrink_800' in url_lower or 'image-shrink_1280' in url_lower:
                 priority = 'high'
-            elif 'dms/image' in src and not any(skip in src.lower() for skip in ['avatar', 'profile-displaybackgroundimage']):
+            elif 'dms/image' in url_lower and not any(skip in url_lower for skip in ['avatar', 'profile-displaybackgroundimage']):
                 priority = 'medium'
             
-            if priority == 'high':
+            if priority == 'highest':
+                logger.info(f"🎯 Highest priority image found: {src[:100]}...")
+                media_urls.insert(0, {
+                    'type': 'image',
+                    'url': src,
+                    'alt': img.get('alt', ''),
+                    'priority': 'highest'
+                })
+            elif priority == 'high':
                 logger.info(f"✅ High priority image found: {src[:100]}...")
                 media_urls.insert(0, {
                     'type': 'image',
@@ -275,6 +293,7 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
         return ""
     
     # Prioritize post content images over profile photos
+    highest_priority_images = []
     post_content_images = []
     profile_images = []
     other_images = []
@@ -283,6 +302,8 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
         url_lower = media['url'].lower()
         if 'profile-displayphoto' in url_lower or 'profile-displaybackgroundimage' in url_lower:
             profile_images.append(media)
+        elif media.get('priority') == 'highest':
+            highest_priority_images.append(media)
         elif 'articleshare' in url_lower or 'image-shrink_480' in url_lower or 'image-shrink_800' in url_lower:
             post_content_images.append(media)
         elif 'comment-image' in url_lower:
@@ -295,8 +316,11 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
             else:
                 other_images.append(media)
     
-    # Return the first post content image, or fall back to profile image
-    if post_content_images:
+    # Return the first highest priority image, then post content image, then profile image
+    if highest_priority_images:
+        logger.info(f"🎯 Selected highest priority image: {highest_priority_images[0]['url'][:100]}...")
+        return highest_priority_images[0]['url']
+    elif post_content_images:
         logger.info(f"🎯 Selected post content image: {post_content_images[0]['url'][:100]}...")
         return post_content_images[0]['url']
     elif profile_images:
