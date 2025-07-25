@@ -346,6 +346,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
               />
             </span>
           )}
+          {/* TikTok logo for TikTok Video */}
+          {platform === 'TikTok Video' && (
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
+              <img
+                src={theme === 'dark' ? '/tiktok-logo-white.png' : '/tiktok-logo-black.png'}
+                alt="TikTok logo watermark"
+                style={{ width: 80, height: 80 }}
+              />
+            </span>
+          )}
           {getPlatformIconOverlay(platform, theme)}
           {getFavoriteIconOverlay(favorite)}
           {getCarouselIndicator()}
