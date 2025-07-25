@@ -352,7 +352,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
               <img
                 src={theme === 'dark' ? '/tiktok-logo-white.png' : '/tiktok-logo-black.png'}
                 alt="TikTok logo watermark"
-                style={{ width: 80, height: 80 }}
+                style={{ width: 120, height: 120 }}
               />
             </span>
           )}
