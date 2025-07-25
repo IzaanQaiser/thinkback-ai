@@ -66,9 +66,9 @@ def get_tiktok_oembed_data(url: str) -> dict:
         return {"error": f"oEmbed API error: {str(e)}"}
 
 
-def get_tiktok_metadata(video_id: str) -> dict:
+def get_tiktok_metadata(video_id: str, content_type: str = "video") -> dict:
     """
-    Get TikTok video metadata using web scraping approach.
+    Get TikTok content metadata using web scraping approach.
     This is a lightweight method that doesn't require authentication.
     """
     try:
@@ -82,9 +82,9 @@ def get_tiktok_metadata(video_id: str) -> dict:
             "Upgrade-Insecure-Requests": "1",
         }
         
-        # Try to access the TikTok video page
-        video_url = f"https://www.tiktok.com/video/{video_id}"
-        response = requests.get(video_url, headers=headers, timeout=10)
+        # Try to access the TikTok content page (video or photo)
+        content_url = f"https://www.tiktok.com/{content_type}/{video_id}"
+        response = requests.get(content_url, headers=headers, timeout=10)
         
         if response.status_code == 200:
             # Look for JSON data in the page
@@ -105,10 +105,17 @@ def get_tiktok_metadata(video_id: str) -> dict:
             
             # Fallback: extract basic info from HTML
             title_match = re.search(r'<title>(.*?)</title>', content)
-            title = title_match.group(1) if title_match else f"TikTok Video {video_id}"
+            title = title_match.group(1) if title_match else f"TikTok {content_type.title()} {video_id}"
+            
+            # Try to extract thumbnail from meta tags
+            thumbnail = None
+            og_image_match = re.search(r'<meta property="og:image" content="([^"]+)"', content)
+            if og_image_match:
+                thumbnail = og_image_match.group(1)
             
             return {
                 "title": title,
+                "thumbnail": thumbnail,
                 "method": "html_parsing"
             }
         
@@ -221,7 +228,7 @@ class TikTokScraper(BaseScraper):
             
             # Fallback to web scraping
             print("🔄 Falling back to web scraping...")
-            web_data = get_tiktok_metadata(video_id)
+            web_data = get_tiktok_metadata(video_id, content_type)
             
             if "error" not in web_data:
                 print(f"   ✅ Web scraping successful")
@@ -229,6 +236,13 @@ class TikTokScraper(BaseScraper):
                 # Use our better title generation instead of the generic HTML title
                 result["title"] = generate_better_title(username, video_id, content_type)
                 print(f"   📝 Title: {result['title']}")
+                
+                # Try to get thumbnail from web scraping
+                result["thumbnail"] = web_data.get("thumbnail")
+                if result["thumbnail"]:
+                    print(f"   🖼️ Thumbnail found: {result['thumbnail']}")
+                else:
+                    print(f"   🖼️ Thumbnail: Not available")
                 
                 # Add metadata
                 result["metadata"] = {
@@ -240,14 +254,10 @@ class TikTokScraper(BaseScraper):
                     "like_count": None,   # Not available without authentication
                     "comment_count": None, # Not available without authentication
                     "webpage_url": url,
-                    "thumbnail": None,    # Not available without authentication
+                    "thumbnail": result["thumbnail"],
                     "scraper": "web_scraping",
                     "method": web_data.get("method", "unknown")
                 }
-                
-                # Generate a basic thumbnail URL (this won't work but provides structure)
-                # TikTok doesn't provide public thumbnail URLs without authentication
-                result["thumbnail"] = get_tiktok_thumbnail_url(video_id, username)
                 
                 # Generate a basic description
                 content_type_text = "photo" if content_type == "photo" else "video"
