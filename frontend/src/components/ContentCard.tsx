@@ -376,8 +376,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
           <div className="flex items-start space-x-4 h-full">
             <div className="flex-grow flex flex-col flex-1 min-h-0 h-full">
               <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-2">{title}</h3>
-              {/* Display channel name for YouTube videos, TikTok videos, X posts, but NOT Instagram posts */}
-              {platform && ((platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) || platform.toLowerCase().includes('tiktok') || platform.toLowerCase().includes('twitter') || platform.toLowerCase().includes('x')) && channel && (
+              {/* Display channel name for YouTube videos, TikTok videos, X posts, and LinkedIn posts, but NOT Instagram posts */}
+              {platform && ((platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) || platform.toLowerCase().includes('tiktok') || platform.toLowerCase().includes('twitter') || platform.toLowerCase().includes('x') || platform.toLowerCase().includes('linkedin')) && channel && (
                 <p className="text-sm text-dark-500 dark:text-dark-400 mb-1 font-medium">
                   {channel}
                 </p>
