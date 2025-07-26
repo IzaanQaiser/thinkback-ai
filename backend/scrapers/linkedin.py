@@ -237,77 +237,164 @@ def extract_post_content_requests(soup: BeautifulSoup) -> str:
 
 
 def extract_media_urls_requests(soup: BeautifulSoup) -> list:
-    """Extract media URLs using requests approach."""
-    logger.info("🔍 Searching for media in HTML...")
+    """Extract media URLs using requests approach with specific ember ID patterns."""
+    logger.info("🔍 Searching for media in HTML using ember ID patterns...")
     media_urls = []
     
-    # Look for images - prioritize post content images
-    images = soup.find_all('img')
-    logger.info(f"📸 Found {len(images)} total images")
+    # First, look for post media images with specific ember IDs (highest priority)
+    post_media_ids = ['ember41', 'ember42', 'ember43']
+    post_media_images = []
     
-    for img in images:
-        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
-        if src and not src.startswith('data:'):
-            # Skip obvious UI elements
-            skip_patterns = [
-                'avatar', 'icon', 'logo', 'profile-displaybackgroundimage', 'profile-picture',
-                'static.licdn.com/aero-v1/sc/h/'
-            ]
-            
-            should_skip = any(pattern in src.lower() for pattern in skip_patterns)
-            if should_skip:
-                continue
-            
-            # Check if this looks like a post content image
-            parent_classes = []
-            parent = img.parent
-            for _ in range(5):
-                if parent:
-                    parent_classes.extend(parent.get('class', []))
-                    parent = parent.parent
-            
-            # Improved priority detection
-            priority = 'low'
-            url_lower = src.lower()
-            
-            # Highest priority: feedshare images (main post content)
-            if 'feedshare' in url_lower:
-                priority = 'highest'
-            # High priority: article cover images
-            elif 'article-cover_image' in url_lower:
-                priority = 'highest'
-            # High priority: post content images with specific patterns
-            elif any('post' in cls.lower() or 'content' in cls.lower() or 'feed' in cls.lower() for cls in parent_classes):
-                priority = 'high'
-            elif 'image-shrink_800' in url_lower or 'image-shrink_1280' in url_lower:
-                priority = 'high'
-            elif 'dms/image' in url_lower and not any(skip in url_lower for skip in ['avatar', 'profile-displaybackgroundimage']):
-                priority = 'medium'
-            
-            if priority == 'highest':
-                logger.info(f"🎯 Highest priority image found: {src[:100]}...")
-                media_urls.insert(0, {
+    for ember_id in post_media_ids:
+        img_elements = soup.find_all('img', id=ember_id)
+        for img in img_elements:
+            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
+            if src and not src.startswith('data:'):
+                logger.info(f"🎯 Found post media image with ember ID {ember_id}: {src[:100]}...")
+                post_media_images.append({
                     'type': 'image',
                     'url': src,
                     'alt': img.get('alt', ''),
-                    'priority': 'highest'
+                    'priority': 'highest',
+                    'ember_id': ember_id
                 })
-            elif priority == 'high':
-                logger.info(f"✅ High priority image found: {src[:100]}...")
-                media_urls.insert(0, {
-                    'type': 'image',
-                    'url': src,
-                    'alt': img.get('alt', ''),
-                    'priority': 'high'
-                })
-            else:
-                logger.debug(f"📸 {priority.capitalize()} priority image: {src[:100]}...")
+    
+    # If we found post media images, add them first
+    if post_media_images:
+        media_urls.extend(post_media_images)
+        logger.info(f"✅ Found {len(post_media_images)} post media images with ember IDs")
+    
+    # If no post media found, look for profile pictures as fallback
+    if not post_media_images:
+        logger.info("🔍 No post media found, looking for profile pictures...")
+        profile_picture_images = soup.find_all('img', id='ember35')
+        
+        for img in profile_picture_images:
+            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
+            if src and not src.startswith('data:'):
+                logger.info(f"👤 Found profile picture with ember35: {src[:100]}...")
                 media_urls.append({
                     'type': 'image',
                     'url': src,
                     'alt': img.get('alt', ''),
-                    'priority': priority
+                    'priority': 'high',
+                    'ember_id': 'ember35',
+                    'is_profile_picture': True
                 })
+    
+    # Enhanced fallback: Look for any ember IDs that might be close to our targets
+    if not media_urls:
+        logger.info("🔍 No specific ember IDs found, looking for any ember IDs...")
+        all_images = soup.find_all('img')
+        ember_images = []
+        
+        for img in all_images:
+            img_id = img.get('id', '')
+            if img_id and 'ember' in img_id:
+                src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
+                if src and not src.startswith('data:'):
+                    ember_images.append({
+                        'id': img_id,
+                        'src': src,
+                        'alt': img.get('alt', ''),
+                        'class': img.get('class', [])
+                    })
+        
+        if ember_images:
+            logger.info(f"🔍 Found {len(ember_images)} images with ember IDs: {[img['id'] for img in ember_images]}")
+            
+            # Look for any ember IDs that might be post media (not profile pictures)
+            for img_data in ember_images:
+                img_id = img_data['id']
+                src = img_data['src']
+                
+                # Skip obvious profile pictures
+                if any(skip in src.lower() for skip in ['profile-displayphoto', 'avatar']):
+                    continue
+                
+                # Check if this might be post media
+                if any(pattern in src.lower() for pattern in ['feedshare', 'article-cover', 'image-shrink']):
+                    logger.info(f"🎯 Found potential post media with ember ID {img_id}: {src[:100]}...")
+                    media_urls.append({
+                        'type': 'image',
+                        'url': src,
+                        'alt': img_data['alt'],
+                        'priority': 'highest',
+                        'ember_id': img_id,
+                        'is_potential_post_media': True
+                    })
+    
+    # If still no media found, fall back to the original method
+    if not media_urls:
+        logger.info("🔍 No ember ID media found, falling back to original method...")
+        
+        # Look for images - prioritize post content images
+        images = soup.find_all('img')
+        logger.info(f"📸 Found {len(images)} total images")
+        
+        for img in images:
+            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
+            if src and not src.startswith('data:'):
+                # Skip obvious UI elements
+                skip_patterns = [
+                    'avatar', 'icon', 'logo', 'profile-displaybackgroundimage', 'profile-picture',
+                    'static.licdn.com/aero-v1/sc/h/'
+                ]
+                
+                should_skip = any(pattern in src.lower() for pattern in skip_patterns)
+                if should_skip:
+                    continue
+                
+                # Check if this looks like a post content image
+                parent_classes = []
+                parent = img.parent
+                for _ in range(5):
+                    if parent:
+                        parent_classes.extend(parent.get('class', []))
+                        parent = parent.parent
+                
+                # Improved priority detection
+                priority = 'low'
+                url_lower = src.lower()
+                
+                # Highest priority: feedshare images (main post content)
+                if 'feedshare' in url_lower:
+                    priority = 'highest'
+                # High priority: article cover images
+                elif 'article-cover_image' in url_lower:
+                    priority = 'highest'
+                # High priority: post content images with specific patterns
+                elif any('post' in cls.lower() or 'content' in cls.lower() or 'feed' in cls.lower() for cls in parent_classes):
+                    priority = 'high'
+                elif 'image-shrink_800' in url_lower or 'image-shrink_1280' in url_lower:
+                    priority = 'high'
+                elif 'dms/image' in url_lower and not any(skip in url_lower for skip in ['avatar', 'profile-displaybackgroundimage']):
+                    priority = 'medium'
+                
+                if priority == 'highest':
+                    logger.info(f"🎯 Highest priority image found: {src[:100]}...")
+                    media_urls.insert(0, {
+                        'type': 'image',
+                        'url': src,
+                        'alt': img.get('alt', ''),
+                        'priority': 'highest'
+                    })
+                elif priority == 'high':
+                    logger.info(f"✅ High priority image found: {src[:100]}...")
+                    media_urls.insert(0, {
+                        'type': 'image',
+                        'url': src,
+                        'alt': img.get('alt', ''),
+                        'priority': 'high'
+                    })
+                else:
+                    logger.debug(f"📸 {priority.capitalize()} priority image: {src[:100]}...")
+                    media_urls.append({
+                        'type': 'image',
+                        'url': src,
+                        'alt': img.get('alt', ''),
+                        'priority': priority
+                    })
     
     # Look for videos
     videos = soup.find_all(['video', 'iframe'])
