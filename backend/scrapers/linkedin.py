@@ -212,14 +212,24 @@ def extract_media_urls_requests(soup: BeautifulSoup) -> list:
     for img in images:
         src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
         if src and not src.startswith('data:'):
-            # Skip obvious UI elements
+            # Skip obvious UI elements and sidebar/profile images
             skip_patterns = [
                 'avatar', 'icon', 'logo', 'profile-displaybackgroundimage', 'profile-picture',
-                'static.licdn.com/aero-v1/sc/h/'
+                'profile-displayphoto', 'profile-photo', 'profile-image', 'profile-pic',
+                'static.licdn.com/aero-v1/sc/h/', 'comment-image', 'sidebar', 'widget',
+                'feed-shared-actor__avatar', 'feed-shared-actor__image', 'actor-avatar',
+                'update-components-actor__avatar', 'post-actor__avatar', 'author-avatar',
+                'feed-shared-actor__image', 'update-components-actor__image', 'post-actor__image',
+                'author-image', 'user-avatar', 'user-image', 'member-avatar', 'member-image',
+                'company-logo', 'organization-logo', 'brand-logo', 'entity-logo',
+                'feed-shared-actor__background-image', 'profile-displaybackgroundimage',
+                'feed-shared-actor__background', 'actor-background', 'author-background',
+                'user-background', 'member-background', 'company-background', 'organization-background'
             ]
             
             should_skip = any(pattern in src.lower() for pattern in skip_patterns)
             if should_skip:
+                logger.debug(f"⏭️ Skipping UI/sidebar image: {src[:50]}...")
                 continue
             
             # Check if this looks like a post content image
@@ -230,9 +240,10 @@ def extract_media_urls_requests(soup: BeautifulSoup) -> list:
                     parent_classes.extend(parent.get('class', []))
                     parent = parent.parent
             
-            # Improved priority detection
+            # Improved priority detection for post content images
             priority = 'low'
             url_lower = src.lower()
+            parent_classes_lower = [cls.lower() for cls in parent_classes]
             
             # Highest priority: feedshare images (main post content)
             if 'feedshare' in url_lower:
@@ -241,12 +252,23 @@ def extract_media_urls_requests(soup: BeautifulSoup) -> list:
             elif 'article-cover_image' in url_lower:
                 priority = 'highest'
             # High priority: post content images with specific patterns
-            elif any('post' in cls.lower() or 'content' in cls.lower() or 'feed' in cls.lower() for cls in parent_classes):
+            elif any('post' in cls or 'content' in cls or 'feed' in cls or 'update' in cls for cls in parent_classes_lower):
                 priority = 'high'
             elif 'image-shrink_800' in url_lower or 'image-shrink_1280' in url_lower:
                 priority = 'high'
             elif 'dms/image' in url_lower and not any(skip in url_lower for skip in ['avatar', 'profile-displaybackgroundimage']):
                 priority = 'medium'
+            # Additional patterns for post content images
+            elif any('feed-shared' in cls or 'update-components' in cls or 'post-content' in cls for cls in parent_classes_lower):
+                priority = 'high'
+            elif 'image-shrink_480' in url_lower or 'image-shrink_640' in url_lower:
+                priority = 'medium'
+            
+            # Additional filtering: skip if it's clearly a profile/sidebar image
+            if any('actor' in cls or 'profile' in cls or 'sidebar' in cls or 'widget' in cls for cls in parent_classes_lower):
+                if priority != 'highest':  # Only skip if not highest priority
+                    logger.debug(f"⏭️ Skipping profile/sidebar image: {src[:50]}...")
+                    continue
             
             if priority == 'highest':
                 logger.info(f"🎯 Highest priority image found: {src[:100]}...")
@@ -303,9 +325,27 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
     profile_images = []
     other_images = []
     
+    # Enhanced filtering patterns for profile/sidebar images
+    profile_patterns = [
+        'profile-displayphoto', 'profile-displaybackgroundimage', 'profile-photo', 
+        'profile-image', 'profile-pic', 'avatar', 'actor-avatar', 'author-avatar',
+        'user-avatar', 'member-avatar', 'feed-shared-actor__avatar', 
+        'update-components-actor__avatar', 'post-actor__avatar', 'author-image',
+        'user-image', 'member-image', 'feed-shared-actor__image', 
+        'update-components-actor__image', 'post-actor__image', 'company-logo',
+        'organization-logo', 'brand-logo', 'entity-logo', 'sidebar', 'widget'
+    ]
+    
     for media in media_urls:
         url_lower = media['url'].lower()
-        if 'profile-displayphoto' in url_lower or 'profile-displaybackgroundimage' in url_lower:
+        
+        # Skip profile/sidebar images unless they're highest priority
+        is_profile_image = any(pattern in url_lower for pattern in profile_patterns)
+        
+        if is_profile_image and media.get('priority') != 'highest':
+            logger.debug(f"⏭️ Skipping profile/sidebar image in thumbnail selection: {url_lower[:50]}...")
+            continue
+        elif 'profile-displayphoto' in url_lower or 'profile-displaybackgroundimage' in url_lower:
             profile_images.append(media)
         elif media.get('priority') == 'highest':
             highest_priority_images.append(media)
