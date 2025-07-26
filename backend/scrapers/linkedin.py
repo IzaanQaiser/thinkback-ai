@@ -24,8 +24,11 @@ def extract_post_id(url: str) -> str:
     patterns = [
         r'linkedin\.com/posts/[^/]+_([^-]+)-activity-([^?]+)',
         r'linkedin\.com/posts/[^/]+_([^-]+)-activity-([^?]+)\?',
+        r'linkedin\.com/posts/[^/]+_([^-]+)-ugcPost-([^?]+)',
+        r'linkedin\.com/posts/[^/]+_([^-]+)-ugcPost-([^?]+)\?',
         r'linkedin\.com/feed/update/urn:li:activity:([^/?]+)',
         r'linkedin\.com/posts/[^/]+-activity-([^?]+)',
+        r'linkedin\.com/posts/[^/]+-ugcPost-([^?]+)',
     ]
     
     for pattern in patterns:
@@ -35,11 +38,13 @@ def extract_post_id(url: str) -> str:
                 return f"{match.group(1)}-{match.group(2)}"
             return match.group(1)
     
-    if 'activity-' in url:
-        activity_part = url.split('activity-')[1]
-        if '?' in activity_part:
-            return activity_part.split('?')[0]
-        return activity_part
+    # Handle activity- and ugcPost- patterns
+    for pattern_type in ['activity-', 'ugcPost-']:
+        if pattern_type in url:
+            pattern_part = url.split(pattern_type)[1]
+            if '?' in pattern_part:
+                return pattern_part.split('?')[0]
+            return pattern_part
     
     return ""
 
