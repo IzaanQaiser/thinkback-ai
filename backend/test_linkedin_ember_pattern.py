@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Test the new ember ID pattern implementation for LinkedIn scraping.
+Test the new height-based post media detection for LinkedIn scraping.
 This test specifically validates the pattern where:
-- Post media images have IDs: ember41, ember42, ember43
-- Profile pictures have ID: ember35
+- Post media images have height > 60px
+- Profile pictures have ID: ember35 (as fallback)
 """
 
 import sys
@@ -15,13 +15,13 @@ from bs4 import BeautifulSoup
 import time
 
 
-def test_ember_pattern_implementation():
-    """Test the ember ID pattern implementation."""
+def test_height_based_implementation():
+    """Test the height-based post media detection implementation."""
     
     # Test URL that follows the pattern you mentioned
     test_url = "https://www.linkedin.com/posts/guptanikita16_the-reality-of-job-hunting-ghosting-rejections-activity-7354163514283868160-y9x2/?utm_source=share&utm_medium=member_desktop&rcm=ACoAAELybZwBaEFvtMCGd8k4fp7lK72M3wzt4II"
     
-    print("🧪 Testing LinkedIn Ember ID Pattern Implementation")
+    print("🧪 Testing LinkedIn Height-Based Post Media Detection")
     print("=" * 60)
     print(f"🔍 Test URL: {test_url}")
     print("-" * 40)
@@ -49,7 +49,7 @@ def test_ember_pattern_implementation():
         
         # Check if we got a thumbnail
         if result.get('thumbnail'):
-            print("✅ SUCCESS: Got thumbnail using ember ID pattern!")
+            print("✅ SUCCESS: Got thumbnail using height-based detection!")
         else:
             print("⚠️  No thumbnail found - this might indicate the pattern didn't match")
         
@@ -83,20 +83,23 @@ def test_media_extraction_function():
     print("\n🔧 Testing Media Extraction Function Directly")
     print("=" * 50)
     
-    # Sample HTML that includes the ember ID patterns
+    # Sample HTML that includes height-based patterns
     sample_html = """
     <html>
     <body>
-        <!-- Profile picture with ember35 -->
-        <img id="ember35" src="https://example.com/profile.jpg" alt="Profile Picture">
+        <!-- Profile picture with ember35 (small) -->
+        <img id="ember35" height="40" src="https://example.com/profile.jpg" alt="Profile Picture">
         
-        <!-- Post media with ember41 -->
-        <img id="ember41" src="https://example.com/post-media.jpg" alt="Post Media">
+        <!-- Post media with height > 60px -->
+        <img height="200" src="https://example.com/post-media.jpg" alt="Post Media">
         
-        <!-- Another post media with ember42 -->
-        <img id="ember42" src="https://example.com/post-media-2.jpg" alt="Post Media 2">
+        <!-- Another post media with height > 60px -->
+        <img height="150" src="https://example.com/post-media-2.jpg" alt="Post Media 2">
         
-        <!-- Regular image without ember ID -->
+        <!-- Small image (should be ignored) -->
+        <img height="30" src="https://example.com/small-image.jpg" alt="Small Image">
+        
+        <!-- Regular image without height -->
         <img src="https://example.com/regular.jpg" alt="Regular Image">
     </body>
     </html>
@@ -113,18 +116,21 @@ def test_media_extraction_function():
             print(f"   {i}. Type: {media.get('type')}")
             print(f"      URL: {media.get('url')}")
             print(f"      Priority: {media.get('priority')}")
+            print(f"      Height: {media.get('height', 'None')}px")
+            print(f"      Width: {media.get('width', 'None')}")
+            print(f"      Is Post Media: {media.get('is_post_media', False)}")
             print(f"      Ember ID: {media.get('ember_id', 'None')}")
             print(f"      Is Profile Picture: {media.get('is_profile_picture', False)}")
             print()
         
-        # Check if we found the expected ember ID media
-        ember_media = [m for m in media_urls if m.get('ember_id')]
-        if ember_media:
-            print(f"✅ SUCCESS: Found {len(ember_media)} media items with ember IDs")
-            for media in ember_media:
-                print(f"   - {media.get('ember_id')}: {media.get('url')}")
+        # Check if we found the expected height-based media
+        height_media = [m for m in media_urls if m.get('is_post_media')]
+        if height_media:
+            print(f"✅ SUCCESS: Found {len(height_media)} media items with height > 60px")
+            for media in height_media:
+                print(f"   - Height {media.get('height')}px: {media.get('url')}")
         else:
-            print("❌ FAILURE: No ember ID media found")
+            print("❌ FAILURE: No height-based media found")
             
     except Exception as e:
         print(f"❌ Exception during media extraction: {e}")
@@ -133,13 +139,13 @@ def test_media_extraction_function():
 
 
 if __name__ == "__main__":
-    print("🚀 Starting LinkedIn Ember ID Pattern Tests")
+    print("🚀 Starting LinkedIn Height-Based Post Media Detection Tests")
     print("=" * 60)
     
     # Test the media extraction function first
     test_media_extraction_function()
     
     # Then test the full scraper
-    test_ember_pattern_implementation()
+    test_height_based_implementation()
     
-    print("\n�� Tests completed!") 
+    print("\n🏁 Tests completed!") 

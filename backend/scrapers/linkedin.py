@@ -237,32 +237,46 @@ def extract_post_content_requests(soup: BeautifulSoup) -> str:
 
 
 def extract_media_urls_requests(soup: BeautifulSoup) -> list:
-    """Extract media URLs using requests approach with specific ember ID patterns."""
-    logger.info("🔍 Searching for media in HTML using ember ID patterns...")
+    """Extract media URLs using requests approach with height-based post media detection."""
+    logger.info("🔍 Searching for media in HTML using height-based detection...")
     media_urls = []
     
-    # First, look for post media images with specific ember IDs (highest priority)
-    post_media_ids = ['ember41', 'ember42', 'ember43']
+    # First, look for post media images with height > 60px (highest priority)
+    all_images = soup.find_all('img')
     post_media_images = []
     
-    for ember_id in post_media_ids:
-        img_elements = soup.find_all('img', id=ember_id)
-        for img in img_elements:
-            src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
-            if src and not src.startswith('data:'):
-                logger.info(f"🎯 Found post media image with ember ID {ember_id}: {src[:100]}...")
+    for img in all_images:
+        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src') or img.get('data-delayed-url')
+        if src and not src.startswith('data:'):
+            # Get image dimensions
+            height = img.get('height')
+            width = img.get('width')
+            
+            # Try to parse height as integer
+            try:
+                height_px = int(height) if height else 0
+            except (ValueError, TypeError):
+                height_px = 0
+            
+            # Check if this is a post media image (height > 60px)
+            if height_px > 60:
+                logger.info(f"🎯 Found post media image with height {height_px}px: {src[:100]}...")
                 post_media_images.append({
                     'type': 'image',
                     'url': src,
                     'alt': img.get('alt', ''),
                     'priority': 'highest',
-                    'ember_id': ember_id
+                    'height': height_px,
+                    'width': width,
+                    'is_post_media': True
                 })
     
     # If we found post media images, add them first
     if post_media_images:
+        # Sort by height (larger images first)
+        post_media_images.sort(key=lambda x: x.get('height', 0), reverse=True)
         media_urls.extend(post_media_images)
-        logger.info(f"✅ Found {len(post_media_images)} post media images with ember IDs")
+        logger.info(f"✅ Found {len(post_media_images)} post media images with height > 60px")
     
     # If no post media found, look for profile pictures as fallback
     if not post_media_images:
@@ -284,8 +298,7 @@ def extract_media_urls_requests(soup: BeautifulSoup) -> list:
     
     # Enhanced fallback: Look for any ember IDs that might be close to our targets
     if not media_urls:
-        logger.info("🔍 No specific ember IDs found, looking for any ember IDs...")
-        all_images = soup.find_all('img')
+        logger.info("🔍 No height-based media found, looking for any ember IDs...")
         ember_images = []
         
         for img in all_images:
@@ -326,7 +339,7 @@ def extract_media_urls_requests(soup: BeautifulSoup) -> list:
     
     # If still no media found, fall back to the original method
     if not media_urls:
-        logger.info("🔍 No ember ID media found, falling back to original method...")
+        logger.info("🔍 No height-based or ember ID media found, falling back to original method...")
         
         # Look for images - prioritize post content images
         images = soup.find_all('img')
