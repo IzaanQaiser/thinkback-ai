@@ -200,12 +200,82 @@ def extract_post_content_requests(soup: BeautifulSoup) -> str:
     return content
 
 
+def extract_carousel_images(soup: BeautifulSoup) -> list:
+    """Extract images from LinkedIn carousels, prioritizing the first image (index 0)."""
+    logger.info("🎠 Searching for carousel images...")
+    carousel_images = []
+    found_urls = set()  # Track found URLs to avoid duplicates
+    
+    # Look for carousel containers
+    carousel_selectors = [
+        'div[class*="carousel"]',
+        'div[class*="ssplayer-carousel"]',
+        'ul[class*="carousel-track"]',
+        'div[class*="feed-shared-carousel"]',
+        'div[class*="update-components-carousel"]'
+    ]
+    
+    for selector in carousel_selectors:
+        carousels = soup.select(selector)
+        for carousel in carousels:
+            logger.info(f"🎠 Found carousel: {carousel.get('class', [])}")
+            
+            # Look for slides with data-ssplayer-slide-index="0" (first image)
+            first_slide = carousel.find('li', attrs={'data-ssplayer-slide-index': '0'})
+            if first_slide:
+                logger.info("🎯 Found first carousel slide (index 0)")
+                
+                # Look for image within the first slide
+                img = first_slide.find('img')
+                if img:
+                    src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                    if src and not src.startswith('data:') and src not in found_urls:
+                        logger.info(f"🎯 Found carousel image: {src[:100]}...")
+                        carousel_images.append({
+                            'type': 'image',
+                            'url': src,
+                            'alt': img.get('alt', ''),
+                            'priority': 'carousel_first',
+                            'carousel_index': 0
+                        })
+                        found_urls.add(src)
+                        # Only take the first carousel image
+                        break
+            
+            # If no specific index found, try to get the first slide anyway
+            if not carousel_images:
+                slides = carousel.find_all('li', class_='carousel-slide')
+                if slides:
+                    first_slide = slides[0]
+                    img = first_slide.find('img')
+                    if img:
+                        src = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+                        if src and not src.startswith('data:') and src not in found_urls:
+                            logger.info(f"🎯 Found first carousel slide: {src[:100]}...")
+                            carousel_images.append({
+                                'type': 'image',
+                                'url': src,
+                                'alt': img.get('alt', ''),
+                                'priority': 'carousel_first',
+                                'carousel_index': 0
+                            })
+                            found_urls.add(src)
+    
+    return carousel_images
+
+
 def extract_media_urls_requests(soup: BeautifulSoup) -> list:
     """Extract media URLs using requests approach."""
     logger.info("🔍 Searching for media in HTML...")
     media_urls = []
     
-    # Look for images - prioritize post content images
+    # First, look for carousel images (highest priority)
+    carousel_images = extract_carousel_images(soup)
+    if carousel_images:
+        logger.info(f"🎠 Found {len(carousel_images)} carousel images")
+        media_urls.extend(carousel_images)
+    
+    # Look for regular images - prioritize post content images
     images = soup.find_all('img')
     logger.info(f"📸 Found {len(images)} total images")
     
@@ -319,7 +389,8 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
     if not media_urls:
         return ""
     
-    # Prioritize post content images over profile photos
+    # Prioritize carousel images, then post content images, then profile photos
+    carousel_images = []
     highest_priority_images = []
     post_content_images = []
     profile_images = []
@@ -342,9 +413,11 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
         # Skip profile/sidebar images unless they're highest priority
         is_profile_image = any(pattern in url_lower for pattern in profile_patterns)
         
-        if is_profile_image and media.get('priority') != 'highest':
+        if is_profile_image and media.get('priority') not in ['highest', 'carousel_first']:
             logger.debug(f"⏭️ Skipping profile/sidebar image in thumbnail selection: {url_lower[:50]}...")
             continue
+        elif media.get('priority') == 'carousel_first':
+            carousel_images.append(media)
         elif 'profile-displayphoto' in url_lower or 'profile-displaybackgroundimage' in url_lower:
             profile_images.append(media)
         elif media.get('priority') == 'highest':
@@ -361,8 +434,11 @@ def get_best_thumbnail(media_urls: list, url: str = "") -> str:
             else:
                 other_images.append(media)
     
-    # Return the first highest priority image, then post content image, then profile image
-    if highest_priority_images:
+    # Return carousel image first, then highest priority, then post content, then profile
+    if carousel_images:
+        logger.info(f"🎠 Selected carousel image: {carousel_images[0]['url'][:100]}...")
+        return carousel_images[0]['url']
+    elif highest_priority_images:
         logger.info(f"🎯 Selected highest priority image: {highest_priority_images[0]['url'][:100]}...")
         return highest_priority_images[0]['url']
     elif post_content_images:
