@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Folder, Star, Images, ExternalLink, Trash2 } from 'lucide-react';
 import { FaYoutube, FaReddit, FaInstagram, FaTiktok } from 'react-icons/fa';
@@ -24,6 +24,7 @@ interface ContentCardProps {
   carouselCount?: number;
   expandSummary?: boolean;
   channel?: string;
+  onFeedback?: (entryId: string, originalCategory: string, suggestedCategory: string) => void;
 }
 
 const portraitPlatforms = [
@@ -247,233 +248,235 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
   }
 
   return (
-    <div
-      className="relative block rounded-xl border border-dark-200/80 dark:border-transparent bg-white/5 dark:bg-dark-800/20 backdrop-blur-sm hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[320px] sm:min-h-[380px] flex flex-col h-full cursor-pointer"
-      onClick={handleCardClick}
-      role="button"
-      tabIndex={0}
-    >
-      {/* Thumbnail with overlays */}
-      {thumbnail && (
-        <div
-          className={`relative w-full${platform === 'TikTok Video' ? '' : ''}`}
-          style={{
-            aspectRatio: (() => {
-              const ratio = shouldUseShortsFormat
-                ? portraitAspect  // Use YouTube Shorts format for all non-landscape portraits except YouTube Shorts
-                : (platform === 'TikTok Video' || platform === 'Instagram Post')
-                ? instagramPostAspect
-                : isPortrait
-                ? portraitAspect
-                : landscapeAspect;
-              console.log('Aspect Ratio Debug:', { platform, ratio, shouldUseShortsFormat });
-              return ratio;
-            })(),
-            maxHeight: '250px',
-            ...(platform === 'TikTok Video' ? { margin: '0 auto' } : {}),
-            // Add translucent background for portrait content
-            backgroundColor: (platform === 'TikTok Video' || platform === 'Instagram Post') ? 
-              (theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.1)') : undefined,
-          }}
-        >
-          {/* Open Link Icon */}
-          {getOpenLinkIcon(url)}
-          <img
-            src={getProxiedImageUrl(thumbnail, platform)}
-            alt={title}
-            className={`w-full h-full${platform === 'TikTok Video' ? ' rounded-b-xl' : ' rounded-t-xl'}`}
+    <>
+      <div
+        className="relative block rounded-xl border border-dark-200/80 dark:border-transparent bg-white/5 dark:bg-dark-800/20 backdrop-blur-sm hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[320px] sm:min-h-[380px] flex flex-col h-full cursor-pointer"
+        onClick={handleCardClick}
+        role="button"
+        tabIndex={0}
+      >
+        {/* Thumbnail with overlays */}
+        {thumbnail && (
+          <div
+            className={`relative w-full${platform === 'TikTok Video' ? '' : ''}`}
             style={{
-              display: 'block',
-              width: '100%',
-              height: '100%',
-              objectFit: (platform === 'TikTok Video' || platform === 'Instagram Post') ? 'contain' : 'cover',
-              objectPosition: (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram'))) ? 'center' : 
-                (platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video'))) ? 'center' : undefined,
-              borderRadius: platform === 'TikTok Video' ? '0 0 0.75rem 0.75rem' : '0.75rem',
-              padding: undefined,
-              margin: undefined,
-              // For YouTube videos, try to crop out letterboxing by focusing on the center
-              ...(platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) ? {
-                objectPosition: 'center',
-                objectFit: 'cover',
-              } : {}),
+              aspectRatio: (() => {
+                const ratio = shouldUseShortsFormat
+                  ? portraitAspect  // Use YouTube Shorts format for all non-landscape portraits except YouTube Shorts
+                  : (platform === 'TikTok Video' || platform === 'Instagram Post')
+                  ? instagramPostAspect
+                  : isPortrait
+                  ? portraitAspect
+                  : landscapeAspect;
+                console.log('Aspect Ratio Debug:', { platform, ratio, shouldUseShortsFormat });
+                return ratio;
+              })(),
+              maxHeight: '250px',
+              ...(platform === 'TikTok Video' ? { margin: '0 auto' } : {}),
+              // Add translucent background for portrait content
+              backgroundColor: (platform === 'TikTok Video' || platform === 'Instagram Post') ? 
+                (theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.1)') : undefined,
             }}
-            loading="lazy"
-          />
-          {getPlatformIconOverlay(platform, theme)}
-          {getFavoriteIconOverlay(favorite)}
-          {getCarouselIndicator()}
-        </div>
-      )}
-      {!thumbnail && (
-        <div className="relative w-full bg-dark-200 dark:bg-dark-700 rounded-t-xl flex items-center justify-center" style={{ aspectRatio: shouldUseShortsFormat ? portraitAspect : (isPortrait ? portraitAspect : landscapeAspect) }}>
-          {/* Open Link Icon */}
-          {getOpenLinkIcon(url)}
-          {/* Reddit watermark overlay */}
-          {platform === 'Reddit Post' && (
-            <FaReddit
-              size={80}
-              className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
-              style={{ pointerEvents: 'none' }}
+          >
+            {/* Open Link Icon */}
+            {getOpenLinkIcon(url)}
+            <img
+              src={getProxiedImageUrl(thumbnail, platform)}
+              alt={title}
+              className={`w-full h-full${platform === 'TikTok Video' ? ' rounded-b-xl' : ' rounded-t-xl'}`}
+              style={{
+                display: 'block',
+                width: '100%',
+                height: '100%',
+                objectFit: (platform === 'TikTok Video' || platform === 'Instagram Post') ? 'contain' : 'cover',
+                objectPosition: (platform === 'TikTok Video' || (platform && platform.toLowerCase().includes('instagram'))) ? 'center' : 
+                  (platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video'))) ? 'center' : undefined,
+                borderRadius: platform === 'TikTok Video' ? '0 0 0.75rem 0.75rem' : '0.75rem',
+                padding: undefined,
+                margin: undefined,
+                // For YouTube videos, try to crop out letterboxing by focusing on the center
+                ...(platform && (platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) ? {
+                  objectPosition: 'center',
+                  objectFit: 'cover',
+                } : {}),
+              }}
+              loading="lazy"
             />
-          )}
-          {/* X logo for Twitter/X Post */}
-          {platform === 'Twitter/X Post' && (
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
-              <img
-                src={theme === 'dark' ? '/x-logo-white.png' : '/x-logo-black.png'}
-                alt="X logo watermark"
-                style={{ width: 80, height: 80 }}
+            {getPlatformIconOverlay(platform, theme)}
+            {getFavoriteIconOverlay(favorite)}
+            {getCarouselIndicator()}
+          </div>
+        )}
+        {!thumbnail && (
+          <div className="relative w-full bg-dark-200 dark:bg-dark-700 rounded-t-xl flex items-center justify-center" style={{ aspectRatio: shouldUseShortsFormat ? portraitAspect : (isPortrait ? portraitAspect : landscapeAspect) }}>
+            {/* Open Link Icon */}
+            {getOpenLinkIcon(url)}
+            {/* Reddit watermark overlay */}
+            {platform === 'Reddit Post' && (
+              <FaReddit
+                size={80}
+                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+                style={{ pointerEvents: 'none' }}
               />
-            </span>
-          )}
-          {/* TikTok logo for TikTok Video */}
-          {platform === 'TikTok Video' && (
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
-              <img
-                src={theme === 'dark' ? '/tiktok-logo-white.png' : '/tiktok-logo-black.png'}
-                alt="TikTok logo watermark"
-                style={{ width: 120, height: 120 }}
-              />
-            </span>
-          )}
-          {/* LinkedIn logo for LinkedIn Post */}
-          {(platform === 'LinkedIn Post' || platform === 'LinkedIn Job') && (
-            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
-              <img
-                src={theme === 'dark' ? '/linkedin-logo-white.png' : '/linkedin-logo-black.png'}
-                alt="LinkedIn logo watermark"
-                style={{ width: 80, height: 80 }}
-              />
-            </span>
-          )}
-          {getPlatformIconOverlay(platform, theme)}
-          {getFavoriteIconOverlay(favorite)}
-          {getCarouselIndicator()}
-        </div>
-      )}
-      <div className="flex flex-col flex-1 justify-between h-full">
-        <div className="flex flex-col flex-1 p-3 sm:p-5">
-          <div className="flex items-start space-x-4 h-full">
-            <div className="flex-grow flex flex-col flex-1 min-h-0 h-full">
-              <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-2 text-sm sm:text-base">{title}</h3>
-              {/* Display channel name for YouTube videos, TikTok videos, X posts, and LinkedIn posts, but NOT Instagram posts */}
-              {platform && ((platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) || platform.toLowerCase().includes('tiktok') || platform.toLowerCase().includes('twitter') || platform.toLowerCase().includes('x') || platform.toLowerCase().includes('linkedin')) && channel && (
-                <p className="text-xs sm:text-sm text-dark-500 dark:text-dark-400 mb-1 font-medium">
-                  {channel}
-                </p>
-              )}
+            )}
+            {/* X logo for Twitter/X Post */}
+            {platform === 'Twitter/X Post' && (
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
+                <img
+                  src={theme === 'dark' ? '/x-logo-white.png' : '/x-logo-black.png'}
+                  alt="X logo watermark"
+                  style={{ width: 80, height: 80 }}
+                />
+              </span>
+            )}
+            {/* TikTok logo for TikTok Video */}
+            {platform === 'TikTok Video' && (
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
+                <img
+                  src={theme === 'dark' ? '/tiktok-logo-white.png' : '/tiktok-logo-black.png'}
+                  alt="TikTok logo watermark"
+                  style={{ width: 120, height: 120 }}
+                />
+              </span>
+            )}
+            {/* LinkedIn logo for LinkedIn Post */}
+            {(platform === 'LinkedIn Post' || platform === 'LinkedIn Job') && (
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
+                <img
+                  src={theme === 'dark' ? '/linkedin-logo-white.png' : '/linkedin-logo-black.png'}
+                  alt="LinkedIn logo watermark"
+                  style={{ width: 80, height: 80 }}
+                />
+              </span>
+            )}
+            {getPlatformIconOverlay(platform, theme)}
+            {getFavoriteIconOverlay(favorite)}
+            {getCarouselIndicator()}
+          </div>
+        )}
+        <div className="flex flex-col flex-1 justify-between h-full">
+          <div className="flex flex-col flex-1 p-3 sm:p-5">
+            <div className="flex items-start space-x-4 h-full">
+              <div className="flex-grow flex flex-col flex-1 min-h-0 h-full">
+                <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-2 text-sm sm:text-base">{title}</h3>
+                {/* Display channel name for YouTube videos, TikTok videos, X posts, and LinkedIn posts, but NOT Instagram posts */}
+                {platform && ((platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) || platform.toLowerCase().includes('tiktok') || platform.toLowerCase().includes('twitter') || platform.toLowerCase().includes('x') || platform.toLowerCase().includes('linkedin')) && channel && (
+                  <p className="text-xs sm:text-sm text-dark-500 dark:text-dark-400 mb-1 font-medium">
+                    {channel}
+                  </p>
+                )}
 
-              <div className="flex-1 min-h-0 flex flex-col">
-                <p className={`text-xs sm:text-sm text-dark-600 dark:text-dark-400 flex-1 min-h-0 ${expandSummary ? '' : 'line-clamp-2'}`}>
-                  {notes}
-                </p>
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <p className={`text-xs sm:text-sm text-dark-600 dark:text-dark-400 flex-1 min-h-0 ${expandSummary ? '' : 'line-clamp-2'}`}>
+                    {notes}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div className="pt-3 sm:pt-4 border-t border-dark-200/80 dark:border-dark-700/50 flex justify-between items-center px-3 sm:px-5 pb-3 sm:pb-5" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center space-x-2 text-xs text-dark-500 dark:text-dark-400 relative">
-          <Folder size={12} className="sm:w-3.5 sm:h-3.5" />
-          <span
-            className="font-medium cursor-pointer hover:underline transition-transform duration-150 ease-in-out hover:scale-105 text-xs sm:text-sm"
-            onClick={handleCategoryClick}
-            tabIndex={0}
-            title="Change category"
-          >
-            {category}
-          </span>
-          {categoryModalOpen && categories && onCategoryChange && (
-            <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in-fast"
-              onClick={handleModalClose}
+          <div className="pt-3 sm:pt-4 border-t border-dark-200/80 dark:border-dark-700/50 flex justify-between items-center px-3 sm:px-5 pb-3 sm:pb-5" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center space-x-2 text-xs text-dark-500 dark:text-dark-400 relative">
+            <Folder size={12} className="sm:w-3.5 sm:h-3.5" />
+            <span
+              className="font-medium cursor-pointer hover:underline transition-transform duration-150 ease-in-out hover:scale-105 text-xs sm:text-sm"
+              onClick={handleCategoryClick}
+              tabIndex={0}
+              title="Change category"
             >
+              {category}
+            </span>
+            {categoryModalOpen && categories && onCategoryChange && (
               <div
-                className="bg-white dark:bg-dark-800 rounded-3xl shadow-2xl w-full max-w-md m-4 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 sm:pb-6 transform animate-slide-up-fast relative flex flex-col items-center"
-                onClick={e => e.stopPropagation()}
-                style={{ minHeight: '380px' }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in-fast"
+                onClick={handleModalClose}
               >
-                <button
-                  onClick={handleModalClose}
-                  className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 rounded-full hover:bg-dark-200 dark:hover:bg-dark-700 transition-colors"
-                  title="Close"
+                <div
+                  className="bg-white dark:bg-dark-800 rounded-3xl shadow-2xl w-full max-w-md m-4 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 sm:pb-6 transform animate-slide-up-fast relative flex flex-col items-center"
+                  onClick={e => e.stopPropagation()}
+                  style={{ minHeight: '380px' }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                </button>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-dark-900 dark:text-white mb-6 sm:mb-8 text-center tracking-tight">Reassign Category</h3>
-                <div className="w-full flex-1 flex flex-col justify-center items-center">
-                  <div className="w-full max-h-[280px] sm:max-h-[320px] overflow-y-auto overscroll-contain custom-scrollbar rounded-2xl bg-transparent">
-                    <div className="flex flex-col gap-2 sm:gap-3">
-                      {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map(cat => (
-                        <button
-                          key={cat.id}
-                          className={`w-full text-left px-4 sm:px-6 pr-4 sm:pr-6 py-2 sm:py-3 rounded-xl transition-transform duration-150 text-base sm:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary-400/60 focus:z-10
-                            ${cat.id === categoryId
-                              ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200 font-bold shadow-sm'
-                              : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-800 dark:text-dark-100'}
-                          `}
-                          onClick={() => handleCategorySelect(cat.id)}
-                          disabled={cat.id === categoryId}
-                          style={{ cursor: cat.id === categoryId ? 'default' : 'pointer' }}
-                        >
-                          {cat.name}
-                          {cat.id === categoryId && <span className="ml-2 sm:ml-3 text-sm sm:text-base font-normal opacity-70">(Current)</span>}
-                        </button>
-                      ))}
+                  <button
+                    onClick={handleModalClose}
+                    className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 rounded-full hover:bg-dark-200 dark:hover:bg-dark-700 transition-colors"
+                    title="Close"
+                  >
+                    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </button>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-dark-900 dark:text-white mb-6 sm:mb-8 text-center tracking-tight">Reassign Category</h3>
+                  <div className="w-full flex-1 flex flex-col justify-center items-center">
+                    <div className="w-full max-h-[280px] sm:max-h-[320px] overflow-y-auto overscroll-contain custom-scrollbar rounded-2xl bg-transparent">
+                      <div className="flex flex-col gap-2 sm:gap-3">
+                        {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map(cat => (
+                          <button
+                            key={cat.id}
+                            className={`w-full text-left px-4 sm:px-6 pr-4 sm:pr-6 py-2 sm:py-3 rounded-xl transition-transform duration-150 text-base sm:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary-400/60 focus:z-10
+                              ${cat.id === categoryId
+                                ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200 font-bold shadow-sm'
+                                : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-800 dark:text-dark-100'}
+                            `}
+                            onClick={() => handleCategorySelect(cat.id)}
+                            disabled={cat.id === categoryId}
+                            style={{ cursor: cat.id === categoryId ? 'default' : 'pointer' }}
+                          >
+                            {cat.name}
+                            {cat.id === categoryId && <span className="ml-2 sm:ml-3 text-sm sm:text-base font-normal opacity-70">(Current)</span>}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          {seen ? (
+            )}
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {seen ? (
+              <button
+                type="button"
+                className="uppercase text-xs font-bold text-green-600 dark:text-green-400 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0 transition-transform duration-150 ease-in-out hover:scale-110"
+                onClick={e => { e.preventDefault(); e.stopPropagation(); setSeen(false); localStorage.setItem(`entry-seen-${id}`, 'false'); }}
+                title="Mark as unseen"
+                tabIndex={0}
+              >
+                SEEN
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="uppercase text-xs font-bold text-dark-400 dark:text-dark-500 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0 transition-transform duration-150 ease-in-out hover:scale-110"
+                onClick={e => { e.preventDefault(); e.stopPropagation(); setSeen(true); localStorage.setItem(`entry-seen-${id}`, 'true'); }}
+                title="Mark as seen"
+                tabIndex={0}
+              >
+                UNSEEN
+              </button>
+            )}
+            {/* Favorite Toggle Button */}
             <button
-              type="button"
-              className="uppercase text-xs font-bold text-green-600 dark:text-green-400 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0 transition-transform duration-150 ease-in-out hover:scale-110"
-              onClick={e => { e.preventDefault(); e.stopPropagation(); setSeen(false); localStorage.setItem(`entry-seen-${id}`, 'false'); }}
-              title="Mark as unseen"
-              tabIndex={0}
+              className="p-1 rounded-full bg-white/80 dark:bg-dark-900/80 hover:bg-yellow-100 dark:hover:bg-yellow-900/80 transition-colors shadow-md flex items-center justify-center"
+              title={favorite ? "Remove from favorites" : "Add to favorites"}
+              onClick={handleFavoriteToggle}
+              style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
             >
-              SEEN
+              <Star 
+                size={16} 
+                className={`${favorite ? 'text-yellow-500 fill-current' : 'text-white'}`} 
+              />
             </button>
-          ) : (
+            {/* Delete Icon Button - now in bottom bar */}
             <button
-              type="button"
-              className="uppercase text-xs font-bold text-dark-400 dark:text-dark-500 tracking-wider cursor-pointer select-none bg-transparent border-none outline-none focus:outline-none p-0 m-0 transition-transform duration-150 ease-in-out hover:scale-110"
-              onClick={e => { e.preventDefault(); e.stopPropagation(); setSeen(true); localStorage.setItem(`entry-seen-${id}`, 'true'); }}
-              title="Mark as seen"
-              tabIndex={0}
+              className="p-1 rounded-full bg-white/80 dark:bg-dark-900/80 hover:bg-red-100 dark:hover:bg-red-900/80 transition-colors shadow-md flex items-center justify-center"
+              title="Delete entry"
+              onClick={handleDeleteEntry}
+              style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
             >
-              UNSEEN
+              <Trash2 size={16} className="text-white" />
             </button>
-          )}
-          {/* Favorite Toggle Button */}
-          <button
-            className="p-1 rounded-full bg-white/80 dark:bg-dark-900/80 hover:bg-yellow-100 dark:hover:bg-yellow-900/80 transition-colors shadow-md flex items-center justify-center"
-            title={favorite ? "Remove from favorites" : "Add to favorites"}
-            onClick={handleFavoriteToggle}
-            style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
-          >
-            <Star 
-              size={16} 
-              className={`${favorite ? 'text-yellow-500 fill-current' : 'text-white'}`} 
-            />
-          </button>
-          {/* Delete Icon Button - now in bottom bar */}
-          <button
-            className="p-1 rounded-full bg-white/80 dark:bg-dark-900/80 hover:bg-red-100 dark:hover:bg-red-900/80 transition-colors shadow-md flex items-center justify-center"
-            title="Delete entry"
-            onClick={handleDeleteEntry}
-            style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
-          >
-            <Trash2 size={16} className="text-white" />
-          </button>
-        </div>
+          </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

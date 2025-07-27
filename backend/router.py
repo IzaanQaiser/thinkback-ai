@@ -14,6 +14,7 @@ from firebase import (
     get_categories as get_categories_firebase,
     update_category as update_category_firebase,
     delete_category as delete_category_firebase,
+    store_ai_feedback as store_ai_feedback_firebase,
 )
 from pydantic import BaseModel, EmailStr, Field
 from firebase_admin import auth
@@ -1326,3 +1327,57 @@ def process_mention(mention: Mention):
         raise HTTPException(
             status_code=500, detail=f"Failed to process mention: {str(e)}"
         )
+
+
+@router.post("/api/ai-feedback")
+def submit_ai_feedback(
+    feedback: dict = Body(...),
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Submit feedback about AI classification to improve future performance.
+    """
+    try:
+        # Authenticate user
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+        
+        # Extract feedback data
+        entry_id = feedback.get("entry_id")
+        original_category = feedback.get("original_category")
+        suggested_category = feedback.get("suggested_category")
+        feedback_type = feedback.get("type")  # "correction", "rating", "suggestion"
+        rating = feedback.get("rating")  # 1-5 scale
+        notes = feedback.get("notes", "")
+        
+        # Store feedback in Firebase
+        feedback_data = {
+            "entry_id": entry_id,
+            "original_category": original_category,
+            "suggested_category": suggested_category,
+            "feedback_type": feedback_type,
+            "rating": rating,
+            "notes": notes,
+        }
+        
+        result = store_ai_feedback_firebase(uid, feedback_data)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        print(f"📝 AI Feedback received:")
+        print(f"   User: {uid}")
+        print(f"   Entry: {entry_id}")
+        print(f"   Original: {original_category}")
+        print(f"   Suggested: {suggested_category}")
+        print(f"   Rating: {rating}")
+        print(f"   Feedback ID: {result.get('feedback_id', 'N/A')}")
+        
+        return {"success": True, "message": "Feedback submitted successfully"}
+        
+    except Exception as e:
+        print(f"❌ AI feedback error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))

@@ -8,7 +8,7 @@ import Textarea from '../components/Textarea';
 import Button from '../components/Button';
 import Kbd from '../components/Kbd';
 import { useTheme } from '../contexts/ThemeContext';
-import { createEntry, fetchEntry, fetchCategories } from '../services/api';
+import { createEntry, fetchEntry, fetchCategories, submitAIFeedback } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 type SaveStepStatus = 'pending' | 'in_progress' | 'done';
@@ -91,6 +91,13 @@ const SavePage: React.FC = () => {
   const [lastSavedEntry, setLastSavedEntry] = useState<{ title?: string; category?: string; platform?: string; tags?: string[] } | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
+
+  // AI Feedback state
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState<number>(0);
+  const [feedbackNotes, setFeedbackNotes] = useState('');
+  const [suggestedCategory, setSuggestedCategory] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -229,6 +236,39 @@ const SavePage: React.FC = () => {
     }
   };
 
+  const handleFeedbackSubmit = async () => {
+    if (!currentUser || !lastSavedEntry) return;
+    
+    try {
+      const idToken = await currentUser.getIdToken();
+      
+      const feedback = {
+        entry_id: lastSavedEntry.id,
+        original_category: lastSavedEntry.category,
+        suggested_category: suggestedCategory || undefined,
+        type: 'correction' as const,
+        rating: feedbackRating,
+        notes: feedbackNotes,
+      };
+      
+      await submitAIFeedback(idToken, feedback);
+      
+      setFeedbackSubmitted(true);
+      setShowFeedbackModal(false);
+      
+      // Reset feedback form
+      setTimeout(() => {
+        setFeedbackRating(0);
+        setFeedbackNotes('');
+        setSuggestedCategory('');
+        setFeedbackSubmitted(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white">
       {/* Sticky Header/Navbar */}
@@ -311,10 +351,20 @@ const SavePage: React.FC = () => {
                       </div>
                     )}
                     {lastSavedEntry.tags && lastSavedEntry.tags.length > 0 && (
-                      <div className="text-sm text-dark-700 dark:text-dark-300">
+                      <div className="text-sm text-dark-700 dark:text-dark-300 mb-3">
                         <span className="font-semibold">Tags:</span> {lastSavedEntry.tags.join(', ')}
                       </div>
                     )}
+                    
+                    {/* AI Feedback Button */}
+                    <div className="mt-4 pt-3 border-t border-green-300/40 dark:border-green-800/40">
+                      <button
+                        onClick={() => setShowFeedbackModal(true)}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                      >
+                        Provide Feedback on AI Classification
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -322,6 +372,95 @@ const SavePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* AI Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">AI Classification Feedback</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Current Category</label>
+                <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded">{lastSavedEntry?.category || 'Uncategorized'}</div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Suggested Category (optional)</label>
+                <input
+                  type="text"
+                  value={suggestedCategory}
+                  onChange={(e) => setSuggestedCategory(e.target.value)}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                  placeholder="What category should this be?"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Rating (1-5)</label>
+                <div className="flex space-x-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setFeedbackRating(star)}
+                      className={`p-1 rounded ${
+                        star <= feedbackRating
+                          ? 'text-yellow-500'
+                          : 'text-gray-300 dark:text-gray-600'
+                      }`}
+                    >
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Notes (optional)</label>
+                <textarea
+                  value={feedbackNotes}
+                  onChange={(e) => setFeedbackNotes(e.target.value)}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                  rows={3}
+                  placeholder="Any additional feedback..."
+                />
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => setShowFeedbackModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFeedbackSubmit}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Submit Feedback
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Success Message */}
+      {feedbackSubmitted && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 text-center">
+            <div className="text-green-500 mb-4">
+              <svg className="w-12 h-12 mx-auto" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Thank You!</h3>
+            <p className="text-gray-600 dark:text-gray-400">Your feedback has been submitted and will help improve our AI classification.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

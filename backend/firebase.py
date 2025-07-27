@@ -299,18 +299,168 @@ def update_category(uid: str, category_id: str, update_data: dict):
 
 
 def delete_category(uid: str, category_id: str):
-    """Delete a category from a user's 'categories' subcollection in Firestore"""
+    """Delete a category from Firestore"""
     try:
         db = get_firestore_client()
         if not db:
-            raise Exception("Firestore client not available")
-        category_ref = (
-            db.collection("users")
-            .document(uid)
-            .collection("categories")
-            .document(category_id)
-        )
+            return {"success": False, "error": "Failed to get Firestore client"}
+
+        # Delete the category document
+        category_ref = db.collection("users").document(uid).collection("categories").document(category_id)
         category_ref.delete()
-        return {"success": True}
+
+        return {"success": True, "message": "Category deleted successfully"}
     except Exception as e:
         return {"success": False, "error": f"Failed to delete category: {str(e)}"}
+
+
+# AI Feedback Functions
+def store_ai_feedback(uid: str, feedback_data: dict):
+    """Store AI feedback in Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            return {"success": False, "error": "Failed to get Firestore client"}
+
+        # Add timestamp if not provided
+        if "timestamp" not in feedback_data:
+            from datetime import datetime
+            feedback_data["timestamp"] = datetime.now().isoformat()
+
+        # Add user ID
+        feedback_data["uid"] = uid
+
+        # Store in ai_feedback collection
+        feedback_ref = db.collection("users").document(uid).collection("ai_feedback").document()
+        feedback_ref.set(feedback_data)
+
+        return {
+            "success": True,
+            "message": "Feedback stored successfully",
+            "feedback_id": feedback_ref.id
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Failed to store feedback: {str(e)}"}
+
+
+def get_ai_feedback(uid: str, limit: int = 100):
+    """Get AI feedback for a user from Firestore"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            return {"success": False, "error": "Failed to get Firestore client"}
+
+        # Get feedback documents
+        feedback_ref = db.collection("users").document(uid).collection("ai_feedback")
+        feedback_docs = feedback_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream()
+
+        feedback_list = []
+        for doc in feedback_docs:
+            feedback_data = doc.to_dict()
+            feedback_data["id"] = doc.id
+            feedback_list.append(feedback_data)
+
+        return {
+            "success": True,
+            "feedback": feedback_list,
+            "count": len(feedback_list)
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get feedback: {str(e)}"}
+
+
+def get_all_ai_feedback(limit: int = 1000):
+    """Get all AI feedback across all users (for analysis)"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            return {"success": False, "error": "Failed to get Firestore client"}
+
+        # Get all users
+        users_ref = db.collection("users")
+        users = users_ref.stream()
+
+        all_feedback = []
+        for user_doc in users:
+            uid = user_doc.id
+
+            # Get feedback for this user
+            feedback_ref = user_doc.reference.collection("ai_feedback")
+            feedback_docs = feedback_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit).stream()
+
+            for doc in feedback_docs:
+                feedback_data = doc.to_dict()
+                feedback_data["id"] = doc.id
+                feedback_data["user_id"] = uid
+                all_feedback.append(feedback_data)
+
+        return {
+            "success": True,
+            "feedback": all_feedback,
+            "count": len(all_feedback)
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get all feedback: {str(e)}"}
+
+
+def delete_ai_feedback(uid: str, feedback_id: str):
+    """Delete specific AI feedback"""
+    try:
+        db = get_firestore_client()
+        if not db:
+            return {"success": False, "error": "Failed to get Firestore client"}
+
+        # Delete the feedback document
+        feedback_ref = db.collection("users").document(uid).collection("ai_feedback").document(feedback_id)
+        feedback_ref.delete()
+
+        return {"success": True, "message": "Feedback deleted successfully"}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to delete feedback: {str(e)}"}
+
+
+def analyze_feedback_patterns():
+    """Analyze feedback patterns for AI improvement"""
+    try:
+        # Get all feedback
+        result = get_all_ai_feedback()
+        if not result["success"]:
+            return result
+
+        feedback_list = result["feedback"]
+
+        # Analyze patterns
+        patterns = {
+            "total_feedback": len(feedback_list),
+            "average_rating": 0,
+            "correction_patterns": {},
+            "category_issues": {},
+            "platform_performance": {}
+        }
+
+        if feedback_list:
+            # Calculate average rating
+            ratings = [f.get("rating", 0) for f in feedback_list if f.get("rating")]
+            if ratings:
+                patterns["average_rating"] = sum(ratings) / len(ratings)
+
+            # Analyze corrections
+            corrections = [f for f in feedback_list if f.get("type") == "correction"]
+            for correction in corrections:
+                original = correction.get("original_category", "Unknown")
+                suggested = correction.get("suggested_category", "Unknown")
+
+                if original not in patterns["correction_patterns"]:
+                    patterns["correction_patterns"][original] = {}
+
+                if suggested not in patterns["correction_patterns"][original]:
+                    patterns["correction_patterns"][original][suggested] = 0
+
+                patterns["correction_patterns"][original][suggested] += 1
+
+        return {
+            "success": True,
+            "patterns": patterns
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Failed to analyze feedback patterns: {str(e)}"}

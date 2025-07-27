@@ -195,3 +195,30 @@ export async function cleanupEmptyCategories(idToken: string): Promise<any> {
   }
   return await response.json();
 }
+
+export const submitAIFeedback = async (
+  idToken: string,
+  feedback: {
+    entry_id: string;
+    original_category: string;
+    suggested_category?: string;
+    type: 'correction' | 'rating' | 'suggestion';
+    rating?: number;
+    notes?: string;
+  }
+): Promise<any> => {
+  const response = await fetch(`${API_URL}/api/ai-feedback`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(feedback),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to submit AI feedback');
+  }
+
+  return response.json();
+};
