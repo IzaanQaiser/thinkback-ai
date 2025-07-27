@@ -640,11 +640,20 @@ const DashboardPage: React.FC = () => {
         {/* Sidebar: Quick Access & Categories */}
         <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white/10 dark:bg-dark-900/10 backdrop-blur-sm border-r border-dark-200/50 dark:border-dark-800/50 transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}>
+        } lg:bg-white/10 lg:dark:bg-dark-900/10 lg:backdrop-blur-sm`}>
+          {/* Mobile background with scroll hint */}
+          <div className="lg:hidden absolute inset-0 bg-gradient-to-r from-transparent via-primary-500/5 to-transparent pointer-events-none"></div>
           {/* Mobile scroll indicators - only visible on mobile */}
-          <div className="lg:hidden absolute top-1/2 right-2 transform -translate-y-1/2 w-1 h-16 bg-gradient-to-b from-transparent via-dark-300/30 dark:via-dark-600/30 to-transparent rounded-full opacity-60"></div>
-          <div className="lg:hidden absolute top-4 right-2 w-1 h-8 bg-gradient-to-b from-dark-300/40 dark:from-dark-600/40 to-transparent rounded-full opacity-40"></div>
-          <div className="flex flex-col gap-6 px-6 lg:px-4">
+          <div className="lg:hidden absolute top-1/2 right-3 transform -translate-y-1/2 w-3 h-24 bg-gradient-to-b from-transparent via-primary-500 to-transparent rounded-full opacity-90 animate-pulse"></div>
+          <div className="lg:hidden absolute top-6 right-3 w-3 h-16 bg-gradient-to-b from-primary-500 to-transparent rounded-full opacity-90"></div>
+          <div className="lg:hidden absolute bottom-6 right-3 w-3 h-16 bg-gradient-to-t from-primary-500 to-transparent rounded-full opacity-90"></div>
+          {/* Mobile scroll hint text */}
+          <div className="lg:hidden absolute top-2 right-8 bg-primary-500 text-white text-xs px-2 py-1 rounded-full opacity-90 animate-bounce">
+            Scroll here
+          </div>
+                      <div className="flex flex-col gap-6 px-6 lg:px-4 relative">
+              {/* Mobile scrollable background area - full height and width */}
+              <div className="lg:hidden absolute inset-0 bg-transparent pointer-events-none"></div>
             {/* Mobile close button */}
             <div className="flex justify-end lg:hidden mb-4">
               <button
@@ -994,7 +1003,9 @@ const DashboardPage: React.FC = () => {
               )}
             </div>
             {/* Mobile bottom padding for better scrolling */}
-            <div className="lg:hidden h-20"></div>
+            <div className="lg:hidden h-32"></div>
+            {/* Mobile top padding for better scrolling */}
+            <div className="lg:hidden h-16"></div>
           </div>
         </aside>
         
