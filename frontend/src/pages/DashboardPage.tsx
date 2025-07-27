@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X, Folder, Menu, X as CloseIcon } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X, Folder, Menu, ChevronLeft } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -638,20 +638,18 @@ const DashboardPage: React.FC = () => {
         )}
         
         {/* Sidebar: Quick Access & Categories */}
-        <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white/10 dark:bg-dark-900/10 backdrop-blur-sm border-r border-dark-200/50 dark:border-dark-800/50 transform transition-transform duration-300 ease-in-out ${
+        <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white/5 dark:bg-dark-900/5 backdrop-blur-md border-r border-dark-200/30 dark:border-dark-800/30 transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } lg:bg-white/10 lg:dark:bg-dark-900/10 lg:backdrop-blur-sm`}>
+        } lg:bg-white/10 lg:dark:bg-dark-900/10 lg:backdrop-blur-sm lg:border-dark-200/50 lg:dark:border-dark-800/50`}>
+          {/* Mobile close button - outside sidebar */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden absolute -right-12 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white/10 dark:bg-dark-900/10 backdrop-blur-md border border-dark-200/30 dark:border-dark-800/30 rounded-r-lg flex items-center justify-center hover:bg-white/20 dark:hover:bg-dark-900/20 transition-colors"
+          >
+            <ChevronLeft size={20} className="text-dark-600 dark:text-dark-300" />
+          </button>
 
-                      <div className="flex flex-col gap-6 px-6 lg:px-4">
-            {/* Mobile close button */}
-            <div className="flex justify-end lg:hidden mb-4">
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
-              >
-                <CloseIcon size={20} className="text-dark-600 dark:text-dark-300" />
-              </button>
-            </div>
+                                  <div className="flex flex-col gap-6 px-6 lg:px-4 pt-0">
             
             {/* Quick Access Box - only heading */}
             <div className="flex flex-col space-y-1">
