@@ -688,7 +688,7 @@ const DashboardPage: React.FC = () => {
                         }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                        className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200
                           ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                           ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                           ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
@@ -719,7 +719,7 @@ const DashboardPage: React.FC = () => {
                         }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                        className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200
                           ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                           ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                           ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
@@ -748,7 +748,7 @@ const DashboardPage: React.FC = () => {
                         }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                        className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200
                           ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                           ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                           ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
@@ -779,7 +779,7 @@ const DashboardPage: React.FC = () => {
                         }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                        className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                        className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200
                           ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                           ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                           ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
@@ -973,7 +973,7 @@ const DashboardPage: React.FC = () => {
                               }}
                               disabled={isCategoryEditMode || isQuickAccessEditMode}
                               aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                              className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
+                              className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200
                                 ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                                 ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
                             >
