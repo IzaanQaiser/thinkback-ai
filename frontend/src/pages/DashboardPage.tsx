@@ -641,19 +641,8 @@ const DashboardPage: React.FC = () => {
         <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white/10 dark:bg-dark-900/10 backdrop-blur-sm border-r border-dark-200/50 dark:border-dark-800/50 transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } lg:bg-white/10 lg:dark:bg-dark-900/10 lg:backdrop-blur-sm`}>
-          {/* Mobile background with scroll hint */}
-          <div className="lg:hidden absolute inset-0 bg-gradient-to-r from-transparent via-primary-500/5 to-transparent pointer-events-none"></div>
-          {/* Mobile scroll indicators - only visible on mobile */}
-          <div className="lg:hidden absolute top-1/2 right-3 transform -translate-y-1/2 w-3 h-24 bg-gradient-to-b from-transparent via-primary-500 to-transparent rounded-full opacity-90 animate-pulse"></div>
-          <div className="lg:hidden absolute top-6 right-3 w-3 h-16 bg-gradient-to-b from-primary-500 to-transparent rounded-full opacity-90"></div>
-          <div className="lg:hidden absolute bottom-6 right-3 w-3 h-16 bg-gradient-to-t from-primary-500 to-transparent rounded-full opacity-90"></div>
-          {/* Mobile scroll hint text */}
-          <div className="lg:hidden absolute top-2 right-8 bg-primary-500 text-white text-xs px-2 py-1 rounded-full opacity-90 animate-bounce">
-            Scroll here
-          </div>
-                      <div className="flex flex-col gap-6 px-6 lg:px-4 relative">
-              {/* Mobile scrollable background area - full height and width */}
-              <div className="lg:hidden absolute inset-0 bg-transparent pointer-events-none"></div>
+
+                      <div className="flex flex-col gap-6 px-6 lg:px-4">
             {/* Mobile close button */}
             <div className="flex justify-end lg:hidden mb-4">
               <button
@@ -723,7 +712,7 @@ const DashboardPage: React.FC = () => {
                   );
                 } else if (isVisible) {
                   return (
-                    <div key={category.id} className="touch-none flex items-center group">
+                    <div key={category.id} className="flex items-center group w-full">
                       <button
                         onClick={isQuickAccessEditMode ? undefined : () => {
                           setSelectedCategory(category.id);
@@ -731,7 +720,7 @@ const DashboardPage: React.FC = () => {
                         }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                        className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200
+                        className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200 touch-none
                           ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                           ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                           ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
@@ -740,6 +729,8 @@ const DashboardPage: React.FC = () => {
                           <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
                         </div>
                       </button>
+                      {/* Scrollable area to the right of the button */}
+                      <div className="flex-1 h-9"></div>
                     </div>
                   );
                 } else {
@@ -783,7 +774,7 @@ const DashboardPage: React.FC = () => {
                   );
                 } else if (isVisible) {
                   return (
-                    <div key={platform} className="touch-none flex items-center group">
+                    <div key={platform} className="flex items-center group w-full">
                       <button
                         onClick={isQuickAccessEditMode ? undefined : () => {
                           setSelectedCategory(`platform:${platform}`);
@@ -791,7 +782,7 @@ const DashboardPage: React.FC = () => {
                         }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                        className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200
+                        className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200 touch-none
                           ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                           ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                           ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
@@ -800,6 +791,8 @@ const DashboardPage: React.FC = () => {
                           <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
                         </div>
                       </button>
+                      {/* Scrollable area to the right of the button */}
+                      <div className="flex-1 h-9"></div>
                     </div>
                   );
                 } else {
@@ -976,8 +969,8 @@ const DashboardPage: React.FC = () => {
                   {sidebarCategories.slice(3).map((category) => {
                     return (
                       <React.Fragment key={category.id}>
-                        <div className="touch-none">
-                          <div className="flex items-center group">
+                        <div className="w-full">
+                          <div className="flex items-center group w-full">
                             <button
                               onClick={isQuickAccessEditMode ? undefined : () => {
                                 setSelectedCategory(category.id);
@@ -985,7 +978,7 @@ const DashboardPage: React.FC = () => {
                               }}
                               disabled={isCategoryEditMode || isQuickAccessEditMode}
                               aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
-                              className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200
+                              className={`flex items-center w-fit h-9 rounded-full px-4 transition-colors duration-200 touch-none
                                 ${selectedCategory === category.id ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                                 ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}`}
                             >
@@ -993,6 +986,8 @@ const DashboardPage: React.FC = () => {
                                 <span className="font-medium text-sm flex-grow truncate">{category.name}</span>
                               </div>
                             </button>
+                            {/* Scrollable area to the right of the button */}
+                            <div className="flex-1 h-9"></div>
                             {/* Rename button hidden in normal mode */}
                           </div>
                         </div>
@@ -1002,10 +997,7 @@ const DashboardPage: React.FC = () => {
                 </>
               )}
             </div>
-            {/* Mobile bottom padding for better scrolling */}
-            <div className="lg:hidden h-32"></div>
-            {/* Mobile top padding for better scrolling */}
-            <div className="lg:hidden h-16"></div>
+
           </div>
         </aside>
         
