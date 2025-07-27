@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Folder, Star, Images, ExternalLink, Trash2 } from 'lucide-react';
 import { FaYoutube, FaReddit, FaInstagram, FaTiktok } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { createPortal } from 'react-dom';
 
 interface ContentCardProps {
     id: string;
@@ -385,7 +386,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
             >
               {category}
             </span>
-            {categoryModalOpen && categories && onCategoryChange && (
+            {categoryModalOpen && categories && onCategoryChange && createPortal(
               <div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in-fast"
                 onClick={handleModalClose}
@@ -397,7 +398,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
                 >
                   <button
                     onClick={handleModalClose}
-                    className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 rounded-full hover:bg-dark-200 dark:hover:bg-dark-700 transition-colors"
+                    className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 rounded-full hover:bg-dark-200 dark:hover:bg-dark-700 transition-colors text-white"
                     title="Close"
                   >
                     <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -426,7 +427,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
                     </div>
                   </div>
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
