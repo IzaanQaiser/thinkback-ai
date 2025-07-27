@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Debug - Thinkback.ai</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 PWA Debug - Thinkback.ai</h1>
+    
+    <div class="debug-section">
+        <h2>📱 PWA Installation Status</h2>
+        <div id="pwa-status" class="status info">Checking...</div>
+        <div id="display-mode" class="status info">Checking display mode...</div>
+        <button onclick="checkPWAStatus()">Refresh PWA Status</button>
+    </div>
+
+    <div class="debug-section">
+        <h2>🔧 Service Worker Status</h2>
+        <div id="sw-status" class="status info">Checking...</div>
+        <div id="sw-details"></div>
+        <button onclick="checkServiceWorker()">Refresh SW Status</button>
+    </div>
+
+    <div class="debug-section">
+        <h2>📄 Manifest Status</h2>
+        <div id="manifest-status" class="status info">Checking...</div>
+        <div id="manifest-details"></div>
+        <button onclick="checkManifest()">Refresh Manifest</button>
+    </div>
+
+    <div class="debug-section">
+        <h2>🔗 Share Target Configuration</h2>
+        <div id="share-target-status" class="status info">Checking...</div>
+        <div id="share-target-details"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>🌐 Network & Security</h2>
+        <div id="network-status" class="status info">Checking...</div>
+        <div id="https-status" class="status info">Checking HTTPS...</div>
+    </div>
+
+    <div class="debug-section">
+        <h2>📋 iOS Share Sheet Troubleshooting</h2>
+        <div class="status warning">
+            <strong>If PWA is installed but not in share sheet:</strong>
+            <ol>
+                <li>Make sure you're using Safari (not Chrome/Firefox)</li>
+                <li>Try uninstalling and reinstalling the PWA</li>
+                <li>Check if the app supports the content type you're sharing</li>
+                <li>Try sharing different types of content (URLs, text, images)</li>
+                <li>Restart your device and try again</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Check PWA installation status
+        function checkPWAStatus() {
+            const statusDiv = document.getElementById('pwa-status');
+            const displayDiv = document.getElementById('display-mode');
+            
+            if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ PWA is installed and running in standalone mode';
+            } else if (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ PWA is installed and running in minimal-ui mode';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ PWA is not installed or not running in standalone mode';
+            }
+
+            // Check display mode
+            const displayMode = window.matchMedia('(display-mode: standalone)').matches ? 'standalone' :
+                               window.matchMedia('(display-mode: minimal-ui)').matches ? 'minimal-ui' :
+                               window.matchMedia('(display-mode: fullscreen)').matches ? 'fullscreen' : 'browser';
+            
+            displayDiv.className = 'status info';
+            displayDiv.textContent = `Display Mode: ${displayMode}`;
+        }
+
+        // Check service worker
+        function checkServiceWorker() {
+            const statusDiv = document.getElementById('sw-status');
+            const detailsDiv = document.getElementById('sw-details');
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    if (registrations.length > 0) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = `✅ Service Worker registered: ${registrations.length} registration(s)`;
+                        
+                        let details = '<h4>Service Worker Details:</h4>';
+                        registrations.forEach((reg, index) => {
+                            details += `<p><strong>SW ${index + 1}:</strong> ${reg.scope}</p>`;
+                            details += `<p><strong>State:</strong> ${reg.active ? 'Active' : 'Installing'}</p>`;
+                        });
+                        detailsDiv.innerHTML = details;
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ No service worker registrations found';
+                        detailsDiv.innerHTML = '';
+                    }
+                });
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Service Worker not supported';
+                detailsDiv.innerHTML = '';
+            }
+        }
+
+        // Check manifest
+        function checkManifest() {
+            const statusDiv = document.getElementById('manifest-status');
+            const detailsDiv = document.getElementById('manifest-details');
+            
+            if ('serviceWorker' in navigator) {
+                fetch('/manifest.json')
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            throw new Error('Manifest not found');
+                        }
+                    })
+                    .then(manifest => {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '✅ Manifest loaded successfully';
+                        
+                        let details = '<h4>Manifest Details:</h4>';
+                        details += `<p><strong>Name:</strong> ${manifest.name}</p>`;
+                        details += `<p><strong>Short Name:</strong> ${manifest.short_name}</p>`;
+                        details += `<p><strong>Start URL:</strong> ${manifest.start_url}</p>`;
+                        details += `<p><strong>Display:</strong> ${manifest.display}</p>`;
+                        
+                        if (manifest.share_target) {
+                            details += `<p><strong>Share Target:</strong> ✅ Configured</p>`;
+                            details += `<p><strong>Action:</strong> ${manifest.share_target.action}</p>`;
+                            details += `<p><strong>Method:</strong> ${manifest.share_target.method}</p>`;
+                        } else {
+                            details += `<p><strong>Share Target:</strong> ❌ Not configured</p>`;
+                        }
+                        
+                        detailsDiv.innerHTML = details;
+                    })
+                    .catch(error => {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = `❌ Manifest error: ${error.message}`;
+                        detailsDiv.innerHTML = '';
+                    });
+            }
+        }
+
+        // Check network and security
+        function checkNetwork() {
+            const networkDiv = document.getElementById('network-status');
+            const httpsDiv = document.getElementById('https-status');
+            
+            // Check if HTTPS
+            if (location.protocol === 'https:') {
+                httpsDiv.className = 'status success';
+                httpsDiv.textContent = '✅ HTTPS is enabled';
+            } else {
+                httpsDiv.className = 'status error';
+                httpsDiv.textContent = '❌ HTTPS is required for PWA functionality';
+            }
+            
+            // Check network status
+            if (navigator.onLine) {
+                networkDiv.className = 'status success';
+                networkDiv.textContent = '✅ Online';
+            } else {
+                networkDiv.className = 'status error';
+                networkDiv.textContent = '❌ Offline';
+            }
+        }
+
+        // Check share target configuration
+        function checkShareTarget() {
+            const statusDiv = document.getElementById('share-target-status');
+            const detailsDiv = document.getElementById('share-target-details');
+            
+            fetch('/manifest.json')
+                .then(response => response.json())
+                .then(manifest => {
+                    if (manifest.share_target) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '✅ Share target configured in manifest';
+                        
+                        let details = '<h4>Share Target Configuration:</h4>';
+                        details += `<pre>${JSON.stringify(manifest.share_target, null, 2)}</pre>`;
+                        detailsDiv.innerHTML = details;
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ Share target not configured in manifest';
+                        detailsDiv.innerHTML = '';
+                    }
+                })
+                .catch(error => {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Error checking share target: ${error.message}`;
+                    detailsDiv.innerHTML = '';
+                });
+        }
+
+        // Initialize all checks
+        document.addEventListener('DOMContentLoaded', () => {
+            checkPWAStatus();
+            checkServiceWorker();
+            checkManifest();
+            checkNetwork();
+            checkShareTarget();
+        });
+    </script>
+</body>
+</html> 

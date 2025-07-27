@@ -40,8 +40,7 @@
   ],
   "share_target": {
     "action": "/save",
-    "method": "POST",
-    "enctype": "multipart/form-data",
+    "method": "GET",
     "params": {
       "title": "title",
       "text": "text",

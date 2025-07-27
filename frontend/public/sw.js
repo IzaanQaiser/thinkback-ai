@@ -28,27 +28,19 @@ self.addEventListener('fetch', (event) => {
 
 // Handle share target
 self.addEventListener('fetch', (event) => {
-  if (event.request.method === 'POST' && event.request.url.includes('/save')) {
-    event.respondWith(
-      (async () => {
-        const formData = await event.request.formData();
-        const title = formData.get('title') || '';
-        const text = formData.get('text') || '';
-        const url = formData.get('url') || '';
-        
-        // Store the shared data in localStorage or send to your API
-        const sharedData = { title, text, url, timestamp: Date.now() };
-        
-        // You can store this temporarily and handle it when the app loads
-        // For now, we'll redirect to the save page with the data
-        const searchParams = new URLSearchParams();
-        if (title) searchParams.append('title', title);
-        if (text) searchParams.append('text', text);
-        if (url) searchParams.append('url', url);
-        
-        return Response.redirect(`/save?${searchParams.toString()}`, 303);
-      })()
-    );
+  if (event.request.url.includes('/save') && event.request.method === 'GET') {
+    const url = new URL(event.request.url);
+    const title = url.searchParams.get('title');
+    const text = url.searchParams.get('text');
+    const sharedUrl = url.searchParams.get('url');
+    
+    // If this is a share target request with parameters, handle it
+    if (title || text || sharedUrl) {
+      console.log('Share target request received:', { title, text, url: sharedUrl });
+      
+      // For now, just let the request pass through to the save page
+      // The save page will handle the URL parameters
+    }
   }
 });
 
