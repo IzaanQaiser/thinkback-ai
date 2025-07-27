@@ -28,19 +28,39 @@ self.addEventListener('fetch', (event) => {
 
 // Handle share target
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('/save') && event.request.method === 'GET') {
-    const url = new URL(event.request.url);
-    const title = url.searchParams.get('title');
-    const text = url.searchParams.get('text');
-    const sharedUrl = url.searchParams.get('url');
-    
-    // If this is a share target request with parameters, handle it
-    if (title || text || sharedUrl) {
-      console.log('Share target request received:', { title, text, url: sharedUrl });
-      
-      // For now, just let the request pass through to the save page
-      // The save page will handle the URL parameters
-    }
+  if (event.request.method === 'POST' && event.request.url.includes('/save')) {
+    event.respondWith(
+      (async () => {
+        try {
+          const formData = await event.request.formData();
+          const title = formData.get('title') || '';
+          const text = formData.get('text') || '';
+          const url = formData.get('url') || '';
+          
+          console.log('Share target POST received:', { title, text, url });
+          
+          // Store the shared data temporarily
+          const sharedData = { title, text, url, timestamp: Date.now() };
+          
+          // Store in localStorage for the app to access
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('sharedContent', JSON.stringify(sharedData));
+          }
+          
+          // Redirect to the save page with the data as URL parameters
+          const searchParams = new URLSearchParams();
+          if (title) searchParams.append('title', title);
+          if (text) searchParams.append('text', text);
+          if (url) searchParams.append('url', url);
+          
+          return Response.redirect(`/save?${searchParams.toString()}`, 303);
+        } catch (error) {
+          console.error('Error handling share target:', error);
+          // Fallback: redirect to save page
+          return Response.redirect('/save', 303);
+        }
+      })()
+    );
   }
 });
 

@@ -135,12 +135,38 @@ const SavePage: React.FC = () => {
     const sharedTitle = searchParams.get('title');
     const sharedText = searchParams.get('text');
     
-    if (sharedUrl) {
-      setUrl(sharedUrl);
-      // If there's shared content, you could pre-populate other fields
+    if (sharedUrl || sharedTitle || sharedText) {
+      // Pre-populate the form with shared content
+      if (sharedUrl) setUrl(sharedUrl);
+      
+      // Show a notification that content was shared
       console.log('Received shared content:', { url: sharedUrl, title: sharedTitle, text: sharedText });
+      
+      // If this is from a share target, show a success message
+      if (sharedUrl || sharedTitle) {
+        // You could show a toast notification here
+        console.log('Content shared successfully! Ready to save.');
+      }
     }
   }, [searchParams]);
+
+  // Also check localStorage for shared content (fallback)
+  useEffect(() => {
+    try {
+      const storedContent = localStorage.getItem('sharedContent');
+      if (storedContent) {
+        const parsed = JSON.parse(storedContent);
+        if (parsed.url && !url) {
+          setUrl(parsed.url);
+          console.log('Loaded shared content from localStorage:', parsed);
+        }
+        // Clear the stored content after using it
+        localStorage.removeItem('sharedContent');
+      }
+    } catch (error) {
+      console.error('Error loading shared content from localStorage:', error);
+    }
+  }, [url]);
 
   useEffect(() => {
     if (urlInputRef.current && !showProgress) {
