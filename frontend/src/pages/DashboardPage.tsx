@@ -316,6 +316,7 @@ const DashboardPage: React.FC = () => {
           // Force the hover state by adding the actual hover styles directly
           entryElement.style.borderColor = 'rgba(59, 130, 246, 0.3)'; // primary-500/30
           entryElement.style.backgroundColor = 'rgba(229, 231, 235, 0.5)'; // dark-200/50
+          entryElement.style.borderRadius = '0.75rem'; // rounded-xl to match ContentCard
           if (document.documentElement.classList.contains('dark')) {
             entryElement.style.backgroundColor = 'rgba(31, 41, 55, 1)'; // dark-800
           }
@@ -325,6 +326,7 @@ const DashboardPage: React.FC = () => {
             // Remove the forced styles
             entryElement.style.borderColor = '';
             entryElement.style.backgroundColor = '';
+            entryElement.style.borderRadius = '';
             entryElement.style.transition = '';
           }, 3000);
         }

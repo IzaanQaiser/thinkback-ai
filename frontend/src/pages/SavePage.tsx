@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Loader2, Clipboard } from 'lucide-react';
 import { FaYoutube, FaTiktok, FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Logo from '../components/Logo';
 import Input from '../components/Input';
@@ -388,6 +388,46 @@ const SavePage: React.FC = () => {
     }
   };
 
+  const handlePasteFromClipboard = async () => {
+    try {
+      // Check if clipboard API is available
+      if (!navigator.clipboard) {
+        console.warn('Clipboard API not available');
+        return;
+      }
+      
+      const clipboardText = await navigator.clipboard.readText();
+      if (clipboardText) {
+        setUrl(clipboardText);
+        // Focus the input after pasting
+        if (urlInputRef.current) {
+          urlInputRef.current.focus();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to read clipboard:', error);
+      // Fallback: try to use the older clipboard API
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = '';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        document.execCommand('paste');
+        const clipboardText = textArea.value;
+        document.body.removeChild(textArea);
+        
+        if (clipboardText) {
+          setUrl(clipboardText);
+          if (urlInputRef.current) {
+            urlInputRef.current.focus();
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Fallback clipboard method also failed:', fallbackError);
+      }
+    }
+  };
+
   const handleFeedbackSubmit = async () => {
     if (!currentUser || !lastSavedEntry) return;
     
@@ -456,14 +496,16 @@ const SavePage: React.FC = () => {
                 className="w-full"
                 disabled={showProgress}
                 ref={urlInputRef}
+                endIcon={<Clipboard size={18} />}
+                onEndIconClick={handlePasteFromClipboard}
               />
               {/* Classification Method */}
               <div className="w-full">
                 <label className="block text-sm font-medium text-dark-900 dark:text-white mb-3">
                   Classification Method
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className={`relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300 ${
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <label className={`relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex-1 min-h-[60px] ${
                     classificationMethod === 'ai'
                       ? 'border-primary-500 bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
                       : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-700 dark:text-dark-300 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10'
@@ -478,7 +520,7 @@ const SavePage: React.FC = () => {
                       className="sr-only"
                     />
                     <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                         classificationMethod === 'ai'
                           ? 'border-white bg-white'
                           : 'border-dark-300 dark:border-dark-600'
@@ -487,11 +529,11 @@ const SavePage: React.FC = () => {
                           <div className="w-2.5 h-2.5 bg-primary-500 rounded-full"></div>
                         )}
                       </div>
-                      <span className="text-sm font-semibold">AI Classification</span>
+                      <span className="text-sm font-semibold text-center">AI Classification</span>
                     </div>
                   </label>
                   
-                  <label className={`relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300 ${
+                  <label className={`relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex-1 min-h-[60px] ${
                     classificationMethod === 'manual'
                       ? 'border-primary-500 bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
                       : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-700 dark:text-dark-300 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10'
@@ -506,7 +548,7 @@ const SavePage: React.FC = () => {
                       className="sr-only"
                     />
                     <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                         classificationMethod === 'manual'
                           ? 'border-white bg-white'
                           : 'border-dark-300 dark:border-dark-600'
@@ -515,7 +557,7 @@ const SavePage: React.FC = () => {
                           <div className="w-2.5 h-2.5 bg-primary-500 rounded-full"></div>
                         )}
                       </div>
-                      <span className="text-sm font-semibold">Manual Selection</span>
+                      <span className="text-sm font-semibold text-center">Manual Selection</span>
                     </div>
                   </label>
                 </div>
