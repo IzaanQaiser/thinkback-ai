@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Test - Thinkback.ai</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>PWA Test Page - Thinkback.ai</h1>
+    
+    <div class="test-section">
+        <h2>PWA Installation Status</h2>
+        <div id="pwa-status" class="status info">Checking PWA status...</div>
+        <button onclick="checkPWAStatus()">Check PWA Status</button>
+        <button onclick="installPWA()">Install PWA</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Service Worker Status</h2>
+        <div id="sw-status" class="status info">Checking service worker...</div>
+        <button onclick="checkServiceWorker()">Check Service Worker</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Share Target Test</h2>
+        <div id="share-status" class="status info">Share target functionality test</div>
+        <p>To test share target:</p>
+        <ol>
+            <li>Install this as a PWA</li>
+            <li>Go to any app (Instagram, YouTube, etc.)</li>
+            <li>Tap share</li>
+            <li>Look for "Thinkback" in the share sheet</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>URL Parameters Test</h2>
+        <div id="url-params" class="status info">No URL parameters detected</div>
+        <p>Add ?url=test&title=Test&text=TestContent to the URL to test parameter handling</p>
+    </div>
+
+    <script>
+        let deferredPrompt;
+
+        // Check PWA installation status
+        function checkPWAStatus() {
+            const statusDiv = document.getElementById('pwa-status');
+            
+            if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ PWA is installed and running in standalone mode';
+            } else {
+                statusDiv.className = 'status info';
+                statusDiv.textContent = 'ℹ️ PWA is not installed or not running in standalone mode';
+            }
+        }
+
+        // Check service worker status
+        function checkServiceWorker() {
+            const statusDiv = document.getElementById('sw-status');
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    if (registrations.length > 0) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = `✅ Service Worker registered: ${registrations.length} registration(s)`;
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ No service worker registrations found';
+                    }
+                });
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Service Worker not supported';
+            }
+        }
+
+        // Install PWA
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    } else {
+                        console.log('User dismissed the install prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                alert('Install prompt not available. Try refreshing the page.');
+            }
+        }
+
+        // Check URL parameters
+        function checkURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const url = urlParams.get('url');
+            const title = urlParams.get('title');
+            const text = urlParams.get('text');
+            
+            const paramsDiv = document.getElementById('url-params');
+            
+            if (url || title || text) {
+                paramsDiv.className = 'status success';
+                paramsDiv.innerHTML = `
+                    <strong>URL Parameters detected:</strong><br>
+                    URL: ${url || 'none'}<br>
+                    Title: ${title || 'none'}<br>
+                    Text: ${text || 'none'}
+                `;
+            } else {
+                paramsDiv.className = 'status info';
+                paramsDiv.textContent = 'No URL parameters detected';
+            }
+        }
+
+        // Event listeners
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('Install prompt ready');
+        });
+
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('PWA installed');
+            checkPWAStatus();
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkPWAStatus();
+            checkServiceWorker();
+            checkURLParams();
+        });
+    </script>
+</body>
+</html> 

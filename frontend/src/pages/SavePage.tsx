@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, CheckCircle, Link as LinkIcon, FileText, Loader2, Clipboard } from 'lucide-react';
 import { FaYoutube, FaTiktok, FaReddit, FaInstagram, FaTwitter } from 'react-icons/fa';
 import Logo from '../components/Logo';
@@ -91,6 +91,7 @@ const SavePage: React.FC = () => {
   const [url, setUrl] = useState('');
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { theme } = useTheme();
   const { currentUser } = useAuth();
   const [stepStatuses, setStepStatuses] = useState<SaveStepStatus[]>(Array(SAVE_STEPS.length).fill('pending'));
@@ -127,6 +128,19 @@ const SavePage: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [navigate]);
+
+  // Handle shared content from URL parameters (PWA share target)
+  useEffect(() => {
+    const sharedUrl = searchParams.get('url');
+    const sharedTitle = searchParams.get('title');
+    const sharedText = searchParams.get('text');
+    
+    if (sharedUrl) {
+      setUrl(sharedUrl);
+      // If there's shared content, you could pre-populate other fields
+      console.log('Received shared content:', { url: sharedUrl, title: sharedTitle, text: sharedText });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (urlInputRef.current && !showProgress) {

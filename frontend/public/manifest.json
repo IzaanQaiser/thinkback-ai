@@ -1,0 +1,51 @@
+{
+  "name": "Thinkback.ai - Remember what matters",
+  "short_name": "Thinkback",
+  "description": "AI-powered personal memory system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/thinkback-ai-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/thinkback-ai-logo-dark.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Save Content",
+      "short_name": "Save",
+      "description": "Save content to Thinkback",
+      "url": "/save",
+      "icons": [
+        {
+          "src": "/thinkback-ai-icon.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/save",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+} 
