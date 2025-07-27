@@ -127,7 +127,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
         return (
           <span className={baseClass}>
             <img 
-              src="/linkedin-video-white.png" 
+              src={theme === 'dark' ? '/linkedin-logo-white.png' : '/linkedin-logo-black.png'} 
               alt="LinkedIn" 
               width={size} 
               height={size}
@@ -363,6 +363,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
                 src={theme === 'dark' ? '/tiktok-logo-white.png' : '/tiktok-logo-black.png'}
                 alt="TikTok logo watermark"
                 style={{ width: 120, height: 120 }}
+              />
+            </span>
+          )}
+          {/* LinkedIn logo for LinkedIn Post */}
+          {(platform === 'LinkedIn Post' || platform === 'LinkedIn Job') && (
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20" style={{ pointerEvents: 'none' }}>
+              <img
+                src={theme === 'dark' ? '/linkedin-logo-white.png' : '/linkedin-logo-black.png'}
+                alt="LinkedIn logo watermark"
+                style={{ width: 80, height: 80 }}
               />
             </span>
           )}
