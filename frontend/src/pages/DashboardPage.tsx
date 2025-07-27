@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X, Folder, Menu, ChevronLeft } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X, Folder, ChevronLeft } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -37,13 +37,11 @@ const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const [committedSearchQuery, setCommittedSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
-  const navigate = useNavigate();
   const [isMac, setIsMac] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'Recent');
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);
@@ -164,10 +162,17 @@ const DashboardPage: React.FC = () => {
     loadCategories();
   }, [currentUser]);
 
-  // Main dashboard results use committedSearchQuery
-  const filteredData = entries.filter(item =>
-    item.title && item.title.toLowerCase().includes(committedSearchQuery.toLowerCase())
-  );
+  // Main dashboard results use searchQuery for real-time filtering
+  const filteredData = entries.filter(item => {
+    if (!searchQuery.trim()) return true; // Show all entries when search is empty
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      item.title && item.title.toLowerCase().includes(query) ||
+      item.notes && item.notes.toLowerCase().includes(query) ||
+      item.tags && item.tags.some(tag => tag.toLowerCase().includes(query))
+    );
+  });
 
   // Get suggestions for autosuggest dropdown
   const getSuggestions = () => {
@@ -277,14 +282,7 @@ const DashboardPage: React.FC = () => {
     entriesToShow = filteredData.filter((item) => normalizePlatformKey(item.platform || '') === platform);
   }
 
-  // Update committedSearchQuery only on search submit
-  const handleSearchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      setCommittedSearchQuery(searchQuery);
-      setShowSuggestions(false);
-      setSelectedSuggestionIndex(-1);
-    }
-  };
+
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -297,7 +295,45 @@ const DashboardPage: React.FC = () => {
     setSearchQuery('');
     setShowSuggestions(false);
     setSelectedSuggestionIndex(-1);
-    navigate(`/view/${entry.id}`);
+    
+    // Find the category this entry belongs to
+    const entryCategoryId = entry.category_ids?.[0];
+    if (entryCategoryId) {
+      // Switch to the category containing this entry
+      setSelectedCategory(entryCategoryId);
+      sessionStorage.setItem('lastSelectedCategory', entryCategoryId);
+      
+      // Scroll to the entry after a short delay to ensure the category has loaded
+      setTimeout(() => {
+        const entryElement = document.getElementById(`entry-${entry.id}`);
+        console.log('Looking for entry element:', `entry-${entry.id}`, entryElement);
+        if (entryElement) {
+          entryElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          
+          // Force the hover state by adding the actual hover styles directly
+          entryElement.style.borderColor = 'rgba(59, 130, 246, 0.3)'; // primary-500/30
+          entryElement.style.backgroundColor = 'rgba(229, 231, 235, 0.5)'; // dark-200/50
+          if (document.documentElement.classList.contains('dark')) {
+            entryElement.style.backgroundColor = 'rgba(31, 41, 55, 1)'; // dark-800
+          }
+          entryElement.style.transition = 'all 0.2s ease-in-out';
+          
+          setTimeout(() => {
+            // Remove the forced styles
+            entryElement.style.borderColor = '';
+            entryElement.style.backgroundColor = '';
+            entryElement.style.transition = '';
+          }, 3000);
+        }
+      }, 100);
+    } else {
+      // If no category, switch to 'Recent'
+      setSelectedCategory('Recent');
+      sessionStorage.setItem('lastSelectedCategory', 'Recent');
+    }
   };
 
   const handleDeleteCategory = async (category: Category) => {
@@ -540,24 +576,21 @@ const DashboardPage: React.FC = () => {
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
-              >
-                <Menu size={20} className="text-dark-600 dark:text-dark-300" />
-              </button>
               <Logo size="sm" />
             </div>
             <div className="flex items-center space-x-2">
-              <Link to="/save" className="flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden flex items-center justify-center h-10 px-3 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white min-w-[80px]"
+                title="Open categories"
+              >
+                <span className="font-medium text-xs leading-none">Categories</span>
+              </button>
+              <Link to="/save" className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
                 <Plus size={16} className="text-gray-600 dark:text-white" />
-                <span className="font-medium text-sm hidden sm:inline">Save</span>
-                <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+I</Kbd>
               </Link>
-              <Link to="/account" className="flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
+              <Link to="/account" className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
                 <UserIcon size={20} className="text-dark-900 dark:text-white" />
-                <span className="text-dark-800 dark:text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span>
-                <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+M</Kbd>
               </Link>
             </div>
           </div>
@@ -571,7 +604,7 @@ const DashboardPage: React.FC = () => {
             <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
               <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
               <div className="relative w-full">
-                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-12 sm:pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={handleSearchChange} autoComplete="off" onKeyDown={handleSearchInputKeyDown} />
+                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-12 sm:pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={handleSearchChange} autoComplete="off" />
               </div>
               <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
             </div>
@@ -1055,6 +1088,7 @@ const DashboardPage: React.FC = () => {
                 return (
                   <div
                     key={entry.id}
+                    id={`entry-${entry.id}`}
                     ref={(el) => {
                       cardRefs.current[entry.id] = el;
                     }}
