@@ -314,18 +314,30 @@ def create_entry(
     categories = cat_result["categories"]  # List of dicts with 'id' and 'name'
     print(f"   ✅ Found {len(categories)} categories")
 
-    # Call the classification agent
-    print(f"🤖 Starting AI enrichment...")
-    
-    # For YouTube content, run AI classification but skip summary generation
-    if platform and platform.lower() in ["youtube video", "youtube shorts"]:
-        print(f"   📺 YouTube content detected - running AI classification without summary")
-        # Run AI classification but modify the result to remove summary
-        ai_result = classify_entry(saved_entry, categories)
-        # Remove summary for YouTube content
-        ai_result["summary"] = ""
+    # Check if this is a manual classification (entry already has category_ids)
+    if entry_dict.get("category_ids") and len(entry_dict["category_ids"]) > 0:
+        print(f"🤖 Manual classification detected - skipping AI enrichment")
+        print(f"   📝 Using manually selected category: {entry_dict['category_ids']}")
+        # For manual classification, use the existing data without AI processing
+        ai_result = {
+            "category": {"id": entry_dict["category_ids"][0]},
+            "title": entry_dict.get("title", ""),
+            "tags": entry_dict.get("tags", []),
+            "summary": ""
+        }
     else:
-        ai_result = classify_entry(saved_entry, categories)
+        # Call the classification agent
+        print(f"🤖 Starting AI enrichment...")
+        
+        # For YouTube content, run AI classification but skip summary generation
+        if platform and platform.lower() in ["youtube video", "youtube shorts"]:
+            print(f"   📺 YouTube content detected - running AI classification without summary")
+            # Run AI classification but modify the result to remove summary
+            ai_result = classify_entry(saved_entry, categories)
+            # Remove summary for YouTube content
+            ai_result["summary"] = ""
+        else:
+            ai_result = classify_entry(saved_entry, categories)
 
     print(f"🧠 AI Enrichment Results:")
     print(f"   Category: {ai_result.get('category', {})}")
@@ -376,8 +388,12 @@ def create_entry(
     # Decide which title to use
     final_title = ai_result.get("title", "")
     
+    # For manual classification, use the existing title
+    if entry_dict.get("category_ids") and len(entry_dict["category_ids"]) > 0:
+        final_title = entry_dict.get("title", "")
+        print(f"📝 Using manual classification title: {final_title}")
     # For Instagram posts, prioritize the caption over AI-generated titles
-    if platform and platform.lower() in ["instagram post", "instagram reel"]:
+    elif platform and platform.lower() in ["instagram post", "instagram reel"]:
         caption = scraped_data.get("description", "") if scraped_data else ""
         if caption and caption.strip():
             # Clean up the caption by removing hashtags at the end
@@ -1025,7 +1041,7 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
     print(f"   Input data: {data}")
 
     url = data["url"]
-    user_notes = data.get("user_notes", "")
+    user_notes = data.get("user_notes", "")  # Keep for backward compatibility
 
     print(f"   URL: {url}")
     print(f"   User notes: {user_notes}")

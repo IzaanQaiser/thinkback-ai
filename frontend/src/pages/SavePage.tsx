@@ -23,6 +23,13 @@ const SAVE_STEPS = [
   'Save Process',
 ];
 
+const MANUAL_SAVE_STEPS = [
+  'Authentication',
+  'Platform Detection',
+  'Platform Scraping',
+  'Save to Database',
+];
+
 interface SaveProgressDisplayProps {
   stepStatuses: SaveStepStatus[];
   currentStep: number;
@@ -39,6 +46,9 @@ const SaveProgressDisplay: React.FC<SaveProgressDisplayProps> = ({ stepStatuses,
     return () => clearInterval(interval);
   }, [stepStatuses, currentStep]);
 
+  // Determine which steps to show based on the number of statuses
+  const steps = stepStatuses.length === MANUAL_SAVE_STEPS.length ? MANUAL_SAVE_STEPS : SAVE_STEPS;
+
   return (
     <div className="w-full max-w-lg mx-auto mb-8 bg-white/80 dark:bg-dark-900/70 rounded-2xl shadow p-6 border border-dark-200/40 dark:border-dark-800/40">
       <h2
@@ -48,7 +58,7 @@ const SaveProgressDisplay: React.FC<SaveProgressDisplayProps> = ({ stepStatuses,
         Save Progress
       </h2>
       <ol className="space-y-3">
-        {SAVE_STEPS.map((step, idx) => {
+        {steps.map((step, idx) => {
           const status = stepStatuses[idx];
           return (
             <li key={step} className="flex items-center gap-3 text-base relative">
@@ -79,7 +89,6 @@ const SaveProgressDisplay: React.FC<SaveProgressDisplayProps> = ({ stepStatuses,
 
 const SavePage: React.FC = () => {
   const [url, setUrl] = useState('');
-  const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -88,9 +97,13 @@ const SavePage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
   const urlInputRef = useRef<HTMLInputElement>(null);
-  const [lastSavedEntry, setLastSavedEntry] = useState<{ title?: string; category?: string; platform?: string; tags?: string[] } | null>(null);
+  const [lastSavedEntry, setLastSavedEntry] = useState<{ title?: string; category?: string; platform?: string; tags?: string[]; classificationMethod?: 'ai' | 'manual' } | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoryMap, setCategoryMap] = useState<{ [id: string]: string }>({});
+
+  // Classification method state
+  const [classificationMethod, setClassificationMethod] = useState<'ai' | 'manual'>('ai');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
 
   // AI Feedback state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -121,6 +134,24 @@ const SavePage: React.FC = () => {
     }
   }, [showProgress]);
 
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategoriesData = async () => {
+      if (!currentUser) return;
+      try {
+        const idToken = await currentUser.getIdToken();
+        const cats = await fetchCategories(idToken);
+        setCategories(cats);
+        const map: { [id: string]: string } = {};
+        cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+        setCategoryMap(map);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+    fetchCategoriesData();
+  }, [currentUser]);
+
   // Helper to advance steps
   const markStep = (idx: number, status: SaveStepStatus) => {
     setStepStatuses((prev) => {
@@ -134,7 +165,10 @@ const SavePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setShowProgress(true);
-    setStepStatuses(Array(SAVE_STEPS.length).fill('pending'));
+    
+    // Initialize steps based on classification method
+    const steps = classificationMethod === 'manual' ? MANUAL_SAVE_STEPS : SAVE_STEPS;
+    setStepStatuses(Array(steps.length).fill('pending'));
     setCurrentStep(0);
     // 1. Authentication
     markStep(0, 'in_progress');
@@ -146,93 +180,178 @@ const SavePage: React.FC = () => {
       markStep(0, 'done');
       markStep(1, 'in_progress');
       // 2. Platform Detection
-      const enrichPromise = fetch(`${API_URL}/api/enrich-entry`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ url, user_notes: notes }),
-      });
-      markStep(1, 'done');
-      markStep(2, 'in_progress');
-      const enrichResponse = await enrichPromise;
-      markStep(2, 'done');
-      markStep(3, 'in_progress');
-      // 3. AI Pipeline (enrichment)
-      if (!enrichResponse.ok) throw new Error('Failed to enrich entry');
-      const enrichResult = await enrichResponse.json();
-      markStep(3, 'done');
-      markStep(4, 'in_progress');
-      // 4. Classification (category assignment)
-      let categoryId = null;
-      let didCategory = false;
-      let categoryName = '';
-      if (enrichResult.ai.category) {
-        if (enrichResult.ai.category.id) {
-          categoryId = enrichResult.ai.category.id;
-          categoryName = enrichResult.ai.category.name || '';
-        } else if (enrichResult.ai.category.name) {
-          didCategory = true;
-          categoryName = enrichResult.ai.category.name;
-          const categoryResponse = await fetch(`${API_URL}/api/categories`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${idToken}`,
-            },
-            body: JSON.stringify({ name: enrichResult.ai.category.name }),
-          });
-          if (categoryResponse.ok) {
-            const newCategory = await categoryResponse.json();
-            categoryId = newCategory.id;
+      let enrichResult = null;
+      let title = '';
+      let tags: string[] = [];
+      let thumbnail = '';
+      
+      if (classificationMethod === 'ai') {
+        // Use AI pipeline for enrichment
+        const enrichPromise = fetch(`${API_URL}/api/enrich-entry`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ url }),
+        });
+        markStep(1, 'done');
+        markStep(2, 'in_progress');
+        const enrichResponse = await enrichPromise;
+        markStep(2, 'done');
+        markStep(3, 'in_progress');
+        // 3. AI Pipeline (enrichment)
+        if (!enrichResponse.ok) throw new Error('Failed to enrich entry');
+        enrichResult = await enrichResponse.json();
+        title = enrichResult.ai.title || '';
+        tags = enrichResult.ai.tags || [];
+        thumbnail = enrichResult.thumbnail || '';
+        markStep(3, 'done');
+        markStep(4, 'in_progress');
+        // 4. AI Classification
+        let categoryId = null;
+        let categoryName = '';
+        
+        if (enrichResult.ai.category) {
+          if (enrichResult.ai.category.id) {
+            categoryId = enrichResult.ai.category.id;
+            categoryName = enrichResult.ai.category.name || '';
+          } else if (enrichResult.ai.category.name) {
+            categoryName = enrichResult.ai.category.name;
+            const categoryResponse = await fetch(`${API_URL}/api/categories`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify({ name: enrichResult.ai.category.name }),
+            });
+            if (categoryResponse.ok) {
+              const newCategory = await categoryResponse.json();
+              categoryId = newCategory.id;
+            }
           }
         }
+        
+        // 5. Save to Database
+        const entryData = {
+          url,
+          title,
+          tags,
+          category_ids: categoryId ? [categoryId] : [],
+          ...(thumbnail ? { thumbnail } : {}),
+        };
+        
+        const savedEntry = await createEntry(idToken, entryData);
+        // Fetch the actual saved entry for accurate info
+        let entryForSummary = savedEntry;
+        if (!savedEntry.title || !savedEntry.category || !savedEntry.tags) {
+          entryForSummary = await fetchEntry(idToken, savedEntry.id);
+        }
+        // Fetch categories and build categoryMap
+        const cats = await fetchCategories(idToken);
+        setCategories(cats);
+        const map: { [id: string]: string } = {};
+        cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+        setCategoryMap(map);
+        // Resolve category name using category_ids
+        let summaryCategory = 'Uncategorized';
+        if (entryForSummary.category_ids && entryForSummary.category_ids.length > 0) {
+          const catId = entryForSummary.category_ids[0];
+          summaryCategory = map[catId] || 'Uncategorized';
+        }
+        markStep(4, 'done');
+        markStep(5, 'done');
+        markStep(6, 'in_progress');
+        // 6. Save Process
+        setSaved(true);
+        setLastSavedEntry({
+          title: entryForSummary.title,
+          category: summaryCategory,
+          platform: entryForSummary.platform,
+          tags: entryForSummary.tags,
+          classificationMethod: 'ai',
+        });
+        setUrl('');
+        setClassificationMethod('ai');
+        setSelectedCategoryId('');
+        markStep(6, 'done');
+        // Reset progress state to allow new saves
+        setShowProgress(false);
+        
+      } else {
+        // Manual classification - simple flow
+        markStep(1, 'done');
+        markStep(2, 'in_progress');
+        // 2. Platform Scraping
+        const scrapeResponse = await fetch(`${API_URL}/api/scrape`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ url }),
+        });
+        markStep(2, 'done');
+        markStep(3, 'in_progress');
+        // 3. Save to Database
+        let categoryId = null;
+        if (selectedCategoryId) {
+          categoryId = selectedCategoryId;
+        }
+        
+        // Get basic scraped data
+        let scrapedData = {};
+        let title = '';
+        let thumbnail = '';
+        if (scrapeResponse.ok) {
+          scrapedData = await scrapeResponse.json();
+          title = scrapedData.title || '';
+          thumbnail = scrapedData.thumbnail || '';
+        }
+        
+        const entryData = {
+          url,
+          title,
+          tags: [], // No AI tags for manual classification
+          category_ids: categoryId ? [categoryId] : [],
+          ...(thumbnail ? { thumbnail } : {}),
+        };
+        
+        const savedEntry = await createEntry(idToken, entryData);
+        // Fetch the actual saved entry for accurate info
+        let entryForSummary = savedEntry;
+        if (!savedEntry.title || !savedEntry.category || !savedEntry.tags) {
+          entryForSummary = await fetchEntry(idToken, savedEntry.id);
+        }
+        // Fetch categories and build categoryMap
+        const cats = await fetchCategories(idToken);
+        setCategories(cats);
+        const map: { [id: string]: string } = {};
+        cats.forEach((cat: any) => { map[cat.id] = cat.name; });
+        setCategoryMap(map);
+        // Resolve category name using category_ids
+        let summaryCategory = 'Uncategorized';
+        if (entryForSummary.category_ids && entryForSummary.category_ids.length > 0) {
+          const catId = entryForSummary.category_ids[0];
+          summaryCategory = map[catId] || 'Uncategorized';
+        }
+        markStep(3, 'done');
+        // Save Process
+        setSaved(true);
+        setLastSavedEntry({
+          title: entryForSummary.title,
+          category: summaryCategory,
+          platform: entryForSummary.platform,
+          tags: entryForSummary.tags,
+          classificationMethod: 'manual',
+        });
+        setUrl('');
+        setClassificationMethod('ai');
+        setSelectedCategoryId('');
+        // Reset progress state to allow new saves
+        setShowProgress(false);
       }
-      markStep(4, 'done');
-      markStep(5, 'in_progress');
-      // 5. Save to Database
-      const entryData = {
-        url,
-        notes,
-        title: enrichResult.ai.title || '',
-        tags: enrichResult.ai.tags || [],
-        category_ids: categoryId ? [categoryId] : [],
-        ...(enrichResult.thumbnail ? { thumbnail: enrichResult.thumbnail } : {}),
-      };
-      const savedEntry = await createEntry(idToken, entryData);
-      // Fetch the actual saved entry for accurate info
-      let entryForSummary = savedEntry;
-      if (!savedEntry.title || !savedEntry.category || !savedEntry.tags) {
-        entryForSummary = await fetchEntry(idToken, savedEntry.id);
-      }
-      // Fetch categories and build categoryMap
-      const cats = await fetchCategories(idToken);
-      setCategories(cats);
-      const map: { [id: string]: string } = {};
-      cats.forEach((cat: any) => { map[cat.id] = cat.name; });
-      setCategoryMap(map);
-      // Resolve category name using category_ids
-      let summaryCategory = 'Uncategorized';
-      if (entryForSummary.category_ids && entryForSummary.category_ids.length > 0) {
-        const catId = entryForSummary.category_ids[0];
-        summaryCategory = map[catId] || 'Uncategorized';
-      }
-      markStep(5, 'done');
-      markStep(6, 'in_progress');
-      // 6. Save Process
-      setSaved(true);
-      setLastSavedEntry({
-        title: entryForSummary.title,
-        category: summaryCategory,
-        platform: entryForSummary.platform,
-        tags: entryForSummary.tags,
-      });
-      setUrl('');
-      setNotes('');
-      markStep(6, 'done');
-      // Reset progress state to allow new saves
-      setShowProgress(false);
     } catch (error) {
       console.error('[Save] Error:', error);
       // Reset progress state on error to allow retry
@@ -309,15 +428,98 @@ const SavePage: React.FC = () => {
                 disabled={showProgress}
                 ref={urlInputRef}
               />
-              <Textarea
-                label="Personal Notes (Optional)"
-                placeholder="Add your thoughts, tags, or context..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-                className="w-full"
-                disabled={showProgress}
-              />
+              {/* Classification Method */}
+              <div className="w-full">
+                <label className="block text-sm font-medium text-dark-900 dark:text-white mb-3">
+                  Classification Method
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className={`relative flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                    classificationMethod === 'ai'
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                      : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-600 dark:text-dark-400 hover:border-primary-300 dark:hover:border-primary-600'
+                  } ${showProgress ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <input
+                      type="radio"
+                      name="classificationMethod"
+                      value="ai"
+                      checked={classificationMethod === 'ai'}
+                      onChange={(e) => setClassificationMethod(e.target.value as 'ai' | 'manual')}
+                      disabled={showProgress}
+                      className="sr-only"
+                    />
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        classificationMethod === 'ai'
+                          ? 'border-primary-500 bg-primary-500'
+                          : 'border-dark-300 dark:border-dark-600'
+                      }`}>
+                        {classificationMethod === 'ai' && (
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">AI Classification</span>
+                    </div>
+                  </label>
+                  
+                  <label className={`relative flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                    classificationMethod === 'manual'
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                      : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-600 dark:text-dark-400 hover:border-primary-300 dark:hover:border-primary-600'
+                  } ${showProgress ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <input
+                      type="radio"
+                      name="classificationMethod"
+                      value="manual"
+                      checked={classificationMethod === 'manual'}
+                      onChange={(e) => setClassificationMethod(e.target.value as 'ai' | 'manual')}
+                      disabled={showProgress}
+                      className="sr-only"
+                    />
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        classificationMethod === 'manual'
+                          ? 'border-primary-500 bg-primary-500'
+                          : 'border-dark-300 dark:border-dark-600'
+                      }`}>
+                        {classificationMethod === 'manual' && (
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">Manual Selection</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Manual Category Selection */}
+              {classificationMethod === 'manual' && (
+                <div className="w-full">
+                  <label className="block text-sm font-medium text-dark-900 dark:text-white mb-2">
+                    Select Category
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedCategoryId}
+                      onChange={(e) => setSelectedCategoryId(e.target.value)}
+                      disabled={showProgress}
+                      className="w-full px-4 py-3 border border-dark-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 disabled:opacity-50 disabled:cursor-not-allowed appearance-none pr-10"
+                    >
+                      <option value="">Choose a category...</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-4 h-4 text-dark-400 dark:text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              )}
               <Button type="submit" className="w-full py-3 text-lg rounded-full font-semibold flex items-center justify-center gap-2" disabled={showProgress}>
                 <Save size={20} />
                 Save to Vault
@@ -360,22 +562,24 @@ const SavePage: React.FC = () => {
                       </div>
                     )}
                     
-                    {/* AI Feedback Button */}
-                    <div className="mt-4 pt-3 border-t border-green-300/40 dark:border-green-800/40">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">AI classified as "{lastSavedEntry.category || 'Uncategorized'}"</span>
+                    {/* AI Feedback Button - Only show for AI classifications */}
+                    {lastSavedEntry.classificationMethod === 'ai' && (
+                      <div className="mt-4 pt-3 border-t border-green-300/40 dark:border-green-800/40">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">AI classified as "{lastSavedEntry.category || 'Uncategorized'}"</span>
+                        </div>
+                        <button
+                          onClick={() => setShowFeedbackModal(true)}
+                          className="w-full px-3 py-2 bg-green-100/60 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-300/40 dark:border-green-800/40 rounded-lg hover:bg-green-200/80 dark:hover:bg-green-900/40 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          Help improve AI classification
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setShowFeedbackModal(true)}
-                        className="w-full px-3 py-2 bg-green-100/60 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-300/40 dark:border-green-800/40 rounded-lg hover:bg-green-200/80 dark:hover:bg-green-900/40 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        Help improve AI classification
-                      </button>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
