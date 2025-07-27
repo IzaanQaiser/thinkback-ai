@@ -641,6 +641,9 @@ const DashboardPage: React.FC = () => {
         <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white/10 dark:bg-dark-900/10 backdrop-blur-sm border-r border-dark-200/50 dark:border-dark-800/50 transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}>
+          {/* Mobile scroll indicators - only visible on mobile */}
+          <div className="lg:hidden absolute top-1/2 right-2 transform -translate-y-1/2 w-1 h-16 bg-gradient-to-b from-transparent via-dark-300/30 dark:via-dark-600/30 to-transparent rounded-full opacity-60"></div>
+          <div className="lg:hidden absolute top-4 right-2 w-1 h-8 bg-gradient-to-b from-dark-300/40 dark:from-dark-600/40 to-transparent rounded-full opacity-40"></div>
           <div className="flex flex-col gap-6 px-6 lg:px-4">
             {/* Mobile close button */}
             <div className="flex justify-end lg:hidden mb-4">
@@ -990,6 +993,8 @@ const DashboardPage: React.FC = () => {
                 </>
               )}
             </div>
+            {/* Mobile bottom padding for better scrolling */}
+            <div className="lg:hidden h-20"></div>
           </div>
         </aside>
         
