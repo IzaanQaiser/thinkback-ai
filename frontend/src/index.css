@@ -31,6 +31,31 @@ html, body {
   -webkit-line-clamp: 3;
 }
 
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  /* Improve touch targets */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better text readability on mobile */
+  .text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  
+  /* Improve card spacing on mobile */
+  .grid {
+    gap: 1rem;
+  }
+  
+  /* Better modal sizing on mobile */
+  .max-w-md {
+    max-width: calc(100vw - 2rem);
+  }
+}
+
 /* Light theme custom autofill */
 html:not(.dark) input:-webkit-autofill,
 html:not(.dark) input:-webkit-autofill:hover,
@@ -107,4 +132,41 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
   scrollbar-width: thin;
   scrollbar-color: #374151 #232b36;
   padding-right: 8px;
+}
+
+/* Mobile sidebar animations */
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Improve mobile touch interactions */
+@media (max-width: 640px) {
+  /* Prevent zoom on input focus */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  
+  /* Better touch feedback */
+  button:active, [role="button"]:active {
+    transform: scale(0.95);
+  }
+  
+  /* Improve modal backdrop on mobile */
+  .fixed.inset-0 {
+    backdrop-filter: blur(4px);
+  }
 }

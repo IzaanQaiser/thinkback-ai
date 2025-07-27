@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X, Folder } from 'lucide-react';
+import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X, Folder, Menu, X as CloseIcon } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -81,6 +81,7 @@ const DashboardPage: React.FC = () => {
   const [renameLoading, setRenameLoading] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const [categoriesToDelete, setCategoriesToDelete] = useState<Category[] | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -237,7 +238,10 @@ const DashboardPage: React.FC = () => {
     ...protectedCategories.map((name) => ({ id: name, name, ai_generated: false })),
     ...categories
       .filter((cat: Category) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized')
-      .sort((a, b) => a.name.localeCompare(b.name)),
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .filter((cat: Category, index: number, self: Category[]) => 
+        index === self.findIndex((c: Category) => c.name === cat.name)
+      ), // Remove duplicates based on name
   ];
 
   let mainHeading = '';
@@ -501,16 +505,26 @@ const DashboardPage: React.FC = () => {
     <div className="fixed inset-0 w-full h-full bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 text-dark-900 dark:text-white flex flex-col">
       {/* Sticky Navbar */}
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/50 dark:border-dark-800/50">
-        <div className="max-w-screen-2xl mx-auto px-6 py-4">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <Logo size="sm" />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
+              >
+                <Menu size={20} className="text-dark-600 dark:text-dark-300" />
+              </button>
+              <Logo size="sm" />
+            </div>
             <div className="flex items-center space-x-2">
-              <Link to="/save" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
-                <Plus size={16} className="text-gray-600 dark:text-white" /><span className="font-medium text-sm hidden sm:inline">Save</span>
+              <Link to="/save" className="flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
+                <Plus size={16} className="text-gray-600 dark:text-white" />
+                <span className="font-medium text-sm hidden sm:inline">Save</span>
                 <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+I</Kbd>
               </Link>
-              <Link to="/account" className="flex items-center space-x-2 sm:space-x-3 px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
-                <UserIcon size={20} className="text-dark-900 dark:text-white" /><span className="text-dark-800 dark:text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span>
+              <Link to="/account" className="flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
+                <UserIcon size={20} className="text-dark-900 dark:text-white" />
+                <span className="text-dark-800 dark:text-white font-medium text-sm hidden sm:block">{currentUser?.email}</span>
                 <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+M</Kbd>
               </Link>
             </div>
@@ -520,12 +534,12 @@ const DashboardPage: React.FC = () => {
 
       {/* Sticky Search Bar */}
       <div className="sticky top-[64px] z-20 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/30 dark:border-dark-800/30">
-        <div className="max-w-screen-2xl mx-auto px-6 py-4">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4">
           <div className="relative">
             <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
+              <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
               <div className="relative w-full">
-                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={handleSearchChange} autoComplete="off" onKeyDown={handleSearchInputKeyDown} />
+                <input ref={searchInputRef} type="text" placeholder="Search your vault..." className="w-full bg-transparent py-3 pl-12 sm:pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" value={searchQuery} onChange={handleSearchChange} autoComplete="off" onKeyDown={handleSearchInputKeyDown} />
               </div>
               <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
             </div>
@@ -582,10 +596,30 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Main Content Layout: Sidebar + Entry Section */}
-      <div className="flex flex-1 min-h-0 max-w-screen-2xl mx-auto w-full px-6 py-0 gap-8">
+      <div className="flex flex-1 min-h-0 max-w-screen-2xl mx-auto w-full px-4 sm:px-6 py-0 gap-4 lg:gap-8">
+        {/* Mobile Sidebar Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        
         {/* Sidebar: Quick Access & Categories */}
-        <aside className="w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8">
-          <div className="flex flex-col gap-6">
+        <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white dark:bg-dark-900 border-r border-dark-200/50 dark:border-dark-800/50 transform transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}>
+          <div className="flex flex-col gap-6 px-4 lg:px-0">
+            {/* Mobile close button */}
+            <div className="flex justify-end lg:hidden mb-4">
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
+              >
+                <CloseIcon size={20} className="text-dark-600 dark:text-dark-300" />
+              </button>
+            </div>
+            
             {/* Quick Access Box - only heading */}
             <div className="flex flex-col space-y-1">
               <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50 mt-0">
@@ -616,7 +650,10 @@ const DashboardPage: React.FC = () => {
                   return (
                     <div key={category.id} className="touch-none flex items-center group">
                       <button
-                        onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                        onClick={isQuickAccessEditMode ? undefined : () => {
+                          setSelectedCategory(category.id);
+                          setSidebarOpen(false);
+                        }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
                         className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
@@ -644,7 +681,10 @@ const DashboardPage: React.FC = () => {
                   return (
                     <div key={category.id} className="touch-none flex items-center group">
                       <button
-                        onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                        onClick={isQuickAccessEditMode ? undefined : () => {
+                          setSelectedCategory(category.id);
+                          setSidebarOpen(false);
+                        }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
                         className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
@@ -670,7 +710,10 @@ const DashboardPage: React.FC = () => {
                   return (
                     <div key={platform} className="touch-none flex items-center group">
                       <button
-                        onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(`platform:${platform}`)}
+                        onClick={isQuickAccessEditMode ? undefined : () => {
+                          setSelectedCategory(`platform:${platform}`);
+                          setSidebarOpen(false);
+                        }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
                         className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
@@ -698,7 +741,10 @@ const DashboardPage: React.FC = () => {
                   return (
                     <div key={platform} className="touch-none flex items-center group">
                       <button
-                        onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(`platform:${platform}`)}
+                        onClick={isQuickAccessEditMode ? undefined : () => {
+                          setSelectedCategory(`platform:${platform}`);
+                          setSidebarOpen(false);
+                        }}
                         disabled={isCategoryEditMode || isQuickAccessEditMode}
                         aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
                         className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
@@ -889,7 +935,10 @@ const DashboardPage: React.FC = () => {
                         <div className="touch-none">
                           <div className="flex items-center group">
                             <button
-                              onClick={isQuickAccessEditMode ? undefined : () => setSelectedCategory(category.id)}
+                              onClick={isQuickAccessEditMode ? undefined : () => {
+                                setSelectedCategory(category.id);
+                                setSidebarOpen(false);
+                              }}
                               disabled={isCategoryEditMode || isQuickAccessEditMode}
                               aria-disabled={isQuickAccessEditMode ? 'true' : undefined}
                               className={`flex items-center flex-1 h-9 rounded-full px-4 transition-colors duration-200
@@ -911,11 +960,12 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
         </aside>
+        
         {/* Main Entry Section */}
         <main className="flex-1 h-full overflow-y-auto hide-scrollbar pt-8 pb-8">
           {mainHeading && (
             <h2
-              className="text-2xl sm:text-3xl font-extrabold text-center mb-6"
+              className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-center mb-6 px-4"
               style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}
             >
               {mainHeading}
@@ -925,36 +975,36 @@ const DashboardPage: React.FC = () => {
             <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>
           ) : entriesToShow.length === 0 ? (
             selectedCategory === 'Favorites' ? (
-              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400 px-4">
                 <span className="mb-6">
                   <svg width="72" height="72" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-dark-400 dark:text-dark-500">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" />
                   </svg>
                 </span>
-                <div className="text-2xl font-semibold mb-2">No favorites yet.</div>
-                <div className="text-base text-dark-400 dark:text-dark-500 text-center max-w-xs">
+                <div className="text-xl sm:text-2xl font-semibold mb-2">No favorites yet.</div>
+                <div className="text-sm sm:text-base text-dark-400 dark:text-dark-500 text-center max-w-xs">
                   Click the <span className="inline align-text-bottom"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="inline text-dark-400 dark:text-dark-500 relative top-[2px]"><path strokeLinecap="round" strokeLinejoin="round" d="M12 17.75l-6.16 3.24 1.18-6.88-5-4.87 6.91-1L12 2.5l3.09 6.24 6.91 1-5 4.87 1.18 6.88z" /></svg></span> icon on any entry to add it to your Favorites!
                 </div>
               </div>
             ) : selectedCategory === 'Recent' ? (
-              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400 px-4">
                 <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
-                <div className="text-2xl font-semibold mb-2">No entries added in the last 8 hours.</div>
-                <div className="text-base text-dark-400 dark:text-dark-500">
+                <div className="text-xl sm:text-2xl font-semibold mb-2">No entries added in the last 8 hours.</div>
+                <div className="text-sm sm:text-base text-dark-400 dark:text-dark-500 text-center">
                   Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400">
+              <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400 px-4">
                 <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
-                <div className="text-2xl font-semibold mb-2">No entries found.</div>
-                <div className="text-base text-dark-400 dark:text-dark-500">
+                <div className="text-xl sm:text-2xl font-semibold mb-2">No entries found.</div>
+                <div className="text-sm sm:text-base text-dark-400 dark:text-dark-500 text-center">
                   Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
                 </div>
               </div>
             )
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-0">
               {entriesToShow.map((entry) => {
                 // Map the first category ID to its name
                 let categoryName = 'Unknown';

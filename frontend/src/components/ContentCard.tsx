@@ -277,7 +277,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
 
   return (
     <div
-      className="relative block bg-dark-100 dark:bg-dark-800/50 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[380px] flex flex-col h-full cursor-pointer"
+      className="relative block bg-dark-100 dark:bg-dark-800/50 rounded-xl border border-dark-200/80 dark:border-transparent hover:border-primary-500/30 hover:bg-dark-200/50 dark:hover:bg-dark-800 transition-all duration-200 group overflow-hidden min-h-[320px] sm:min-h-[380px] flex flex-col h-full cursor-pointer"
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
@@ -298,7 +298,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
               console.log('Aspect Ratio Debug:', { platform, ratio, shouldUseShortsFormat });
               return ratio;
             })(),
-            maxHeight: '300px',
+            maxHeight: '250px',
             ...(platform === 'TikTok Video' ? { margin: '0 auto' } : {}),
             // Add translucent background for portrait content
             backgroundColor: (platform === 'TikTok Video' || platform === 'Instagram Post') ? 
@@ -382,30 +382,30 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
         </div>
       )}
       <div className="flex flex-col flex-1 justify-between h-full">
-        <div className="flex-1 p-5 flex flex-col">
+        <div className="flex flex-col flex-1 p-3 sm:p-5">
           <div className="flex items-start space-x-4 h-full">
             <div className="flex-grow flex flex-col flex-1 min-h-0 h-full">
-              <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-2">{title}</h3>
+              <h3 className="font-semibold text-dark-900 dark:text-white mb-1 leading-snug line-clamp-2 text-sm sm:text-base">{title}</h3>
               {/* Display channel name for YouTube videos, TikTok videos, X posts, and LinkedIn posts, but NOT Instagram posts */}
               {platform && ((platform.toLowerCase().includes('youtube') || platform.toLowerCase().includes('video')) || platform.toLowerCase().includes('tiktok') || platform.toLowerCase().includes('twitter') || platform.toLowerCase().includes('x') || platform.toLowerCase().includes('linkedin')) && channel && (
-                <p className="text-sm text-dark-500 dark:text-dark-400 mb-1 font-medium">
+                <p className="text-xs sm:text-sm text-dark-500 dark:text-dark-400 mb-1 font-medium">
                   {channel}
                 </p>
               )}
 
               <div className="flex-1 min-h-0 flex flex-col">
-                <p className={`text-sm text-dark-600 dark:text-dark-400 flex-1 min-h-0 ${expandSummary ? '' : 'line-clamp-2'}`}>
+                <p className={`text-xs sm:text-sm text-dark-600 dark:text-dark-400 flex-1 min-h-0 ${expandSummary ? '' : 'line-clamp-2'}`}>
                   {notes}
                 </p>
               </div>
             </div>
           </div>
         </div>
-        <div className="pt-4 border-t border-dark-200/80 dark:border-dark-700/50 flex justify-between items-center px-5 pb-5" onClick={e => e.stopPropagation()}>
+        <div className="pt-3 sm:pt-4 border-t border-dark-200/80 dark:border-dark-700/50 flex justify-between items-center px-3 sm:px-5 pb-3 sm:pb-5" onClick={e => e.stopPropagation()}>
         <div className="flex items-center space-x-2 text-xs text-dark-500 dark:text-dark-400 relative">
-          <Folder size={14} />
+          <Folder size={12} className="sm:w-3.5 sm:h-3.5" />
           <span
-            className="font-medium cursor-pointer hover:underline transition-transform duration-150 ease-in-out hover:scale-105"
+            className="font-medium cursor-pointer hover:underline transition-transform duration-150 ease-in-out hover:scale-105 text-xs sm:text-sm"
             onClick={handleCategoryClick}
             tabIndex={0}
             title="Change category"
@@ -418,25 +418,25 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
               onClick={handleModalClose}
             >
               <div
-                className="bg-white dark:bg-dark-800 rounded-3xl shadow-2xl w-full max-w-md m-4 px-8 pt-8 pb-6 transform animate-slide-up-fast relative flex flex-col items-center"
+                className="bg-white dark:bg-dark-800 rounded-3xl shadow-2xl w-full max-w-md m-4 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 sm:pb-6 transform animate-slide-up-fast relative flex flex-col items-center"
                 onClick={e => e.stopPropagation()}
-                style={{ minHeight: '420px' }}
+                style={{ minHeight: '380px' }}
               >
                 <button
                   onClick={handleModalClose}
-                  className="absolute top-6 right-6 p-2 rounded-full hover:bg-dark-200 dark:hover:bg-dark-700 transition-colors"
+                  className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 rounded-full hover:bg-dark-200 dark:hover:bg-dark-700 transition-colors"
                   title="Close"
                 >
-                  <svg width="28" height="28" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L14 14M14 6L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                 </button>
-                <h3 className="text-2xl font-extrabold text-dark-900 dark:text-white mb-8 text-center tracking-tight">Reassign Category</h3>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-dark-900 dark:text-white mb-6 sm:mb-8 text-center tracking-tight">Reassign Category</h3>
                 <div className="w-full flex-1 flex flex-col justify-center items-center">
-                  <div className="w-full max-h-[320px] overflow-y-auto overscroll-contain custom-scrollbar rounded-2xl bg-transparent">
-                    <div className="flex flex-col gap-3">
+                  <div className="w-full max-h-[280px] sm:max-h-[320px] overflow-y-auto overscroll-contain custom-scrollbar rounded-2xl bg-transparent">
+                    <div className="flex flex-col gap-2 sm:gap-3">
                       {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map(cat => (
                         <button
                           key={cat.id}
-                          className={`w-full text-left px-6 pr-6 py-3 rounded-xl transition-transform duration-150 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary-400/60 focus:z-10
+                          className={`w-full text-left px-4 sm:px-6 pr-4 sm:pr-6 py-2 sm:py-3 rounded-xl transition-transform duration-150 text-base sm:text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary-400/60 focus:z-10
                             ${cat.id === categoryId
                               ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200 font-bold shadow-sm'
                               : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-800 dark:text-dark-100'}
@@ -446,7 +446,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
                           style={{ cursor: cat.id === categoryId ? 'default' : 'pointer' }}
                         >
                           {cat.name}
-                          {cat.id === categoryId && <span className="ml-3 text-base font-normal opacity-70">(Current)</span>}
+                          {cat.id === categoryId && <span className="ml-2 sm:ml-3 text-sm sm:text-base font-normal opacity-70">(Current)</span>}
                         </button>
                       ))}
                     </div>
@@ -456,7 +456,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {seen ? (
             <button
               type="button"
@@ -486,7 +486,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
             style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
           >
             <Star 
-              size={18} 
+              size={16} 
               className={`${favorite ? 'text-yellow-500 fill-current' : 'text-white'}`} 
             />
           </button>
@@ -497,7 +497,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
             onClick={e => { e.preventDefault(); e.stopPropagation(); setShowDeleteModal(true); }}
             style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
           >
-            <Trash2 size={18} className="text-white" />
+            <Trash2 size={16} className="text-white" />
           </button>
         </div>
         </div>
@@ -505,25 +505,25 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in-fast" onClick={() => setShowDeleteModal(false)}>
-          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md m-8 p-6 transform animate-slide-up-fast" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md m-4 sm:m-8 p-4 sm:p-6 transform animate-slide-up-fast" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
-                <Trash2 size={24} className="text-red-500" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+                <Trash2 size={20} className="sm:w-6 sm:h-6 text-red-500" />
               </div>
-              <h2 className="text-xl font-bold text-dark-900 dark:text-white">Delete Entry?</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-dark-900 dark:text-white">Delete Entry?</h2>
             </div>
             <p className="text-sm text-dark-600 dark:text-dark-300 mb-4">Are you sure you want to permanently delete "{title}"? This action cannot be undone.</p>
             {deleteError && <div className="bg-red-500/10 text-red-500 dark:text-red-400 p-3 rounded-lg text-sm mb-3">{deleteError}</div>}
             <div className="flex justify-end gap-3 mt-6">
               <button
-                className="px-4 py-2 rounded-full border border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors"
+                className="px-3 sm:px-4 py-2 rounded-full border border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors text-sm"
                 onClick={() => setShowDeleteModal(false)}
                 disabled={deleteLoading}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-60"
+                className="px-3 sm:px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-60 text-sm"
                 onClick={handleDeleteEntry}
                 disabled={deleteLoading}
               >
