@@ -104,6 +104,7 @@ const SavePage: React.FC = () => {
   // Classification method state
   const [classificationMethod, setClassificationMethod] = useState<'ai' | 'manual'>('ai');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [newCategoryName, setNewCategoryName] = useState<string>('');
 
   // AI Feedback state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -275,6 +276,7 @@ const SavePage: React.FC = () => {
         setUrl('');
         setClassificationMethod('ai');
         setSelectedCategoryId('');
+        setNewCategoryName('');
         markStep(6, 'done');
         // Reset progress state to allow new saves
         setShowProgress(false);
@@ -296,7 +298,24 @@ const SavePage: React.FC = () => {
         markStep(3, 'in_progress');
         // 3. Save to Database
         let categoryId = null;
-        if (selectedCategoryId) {
+        if (selectedCategoryId === 'new' && newCategoryName.trim()) {
+          // Create new category
+          const categoryResponse = await fetch(`${API_URL}/api/categories`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({ 
+              name: newCategoryName.trim(),
+              ai_generated: false 
+            }),
+          });
+          if (categoryResponse.ok) {
+            const newCategory = await categoryResponse.json();
+            categoryId = newCategory.id;
+          }
+        } else if (selectedCategoryId && selectedCategoryId !== 'new') {
           categoryId = selectedCategoryId;
         }
         
@@ -349,6 +368,7 @@ const SavePage: React.FC = () => {
         setUrl('');
         setClassificationMethod('ai');
         setSelectedCategoryId('');
+        setNewCategoryName('');
         // Reset progress state to allow new saves
         setShowProgress(false);
       }
@@ -433,11 +453,11 @@ const SavePage: React.FC = () => {
                 <label className="block text-sm font-medium text-dark-900 dark:text-white mb-3">
                   Classification Method
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className={`relative flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                <div className="grid grid-cols-2 gap-3">
+                  <label className={`relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300 ${
                     classificationMethod === 'ai'
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                      : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-600 dark:text-dark-400 hover:border-primary-300 dark:hover:border-primary-600'
+                      ? 'border-primary-500 bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
+                      : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-700 dark:text-dark-300 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10'
                   } ${showProgress ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <input
                       type="radio"
@@ -448,24 +468,24 @@ const SavePage: React.FC = () => {
                       disabled={showProgress}
                       className="sr-only"
                     />
-                    <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                         classificationMethod === 'ai'
-                          ? 'border-primary-500 bg-primary-500'
+                          ? 'border-white bg-white'
                           : 'border-dark-300 dark:border-dark-600'
                       }`}>
                         {classificationMethod === 'ai' && (
-                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                          <div className="w-2.5 h-2.5 bg-primary-500 rounded-full"></div>
                         )}
                       </div>
-                      <span className="text-sm font-medium">AI Classification</span>
+                      <span className="text-sm font-semibold">AI Classification</span>
                     </div>
                   </label>
                   
-                  <label className={`relative flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                  <label className={`relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300 ${
                     classificationMethod === 'manual'
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                      : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-600 dark:text-dark-400 hover:border-primary-300 dark:hover:border-primary-600'
+                      ? 'border-primary-500 bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
+                      : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-700 dark:text-dark-300 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10'
                   } ${showProgress ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <input
                       type="radio"
@@ -476,17 +496,17 @@ const SavePage: React.FC = () => {
                       disabled={showProgress}
                       className="sr-only"
                     />
-                    <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                         classificationMethod === 'manual'
-                          ? 'border-primary-500 bg-primary-500'
+                          ? 'border-white bg-white'
                           : 'border-dark-300 dark:border-dark-600'
                       }`}>
                         {classificationMethod === 'manual' && (
-                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                          <div className="w-2.5 h-2.5 bg-primary-500 rounded-full"></div>
                         )}
                       </div>
-                      <span className="text-sm font-medium">Manual Selection</span>
+                      <span className="text-sm font-semibold">Manual Selection</span>
                     </div>
                   </label>
                 </div>
@@ -494,30 +514,55 @@ const SavePage: React.FC = () => {
 
               {/* Manual Category Selection */}
               {classificationMethod === 'manual' && (
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-dark-900 dark:text-white mb-2">
-                    Select Category
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={selectedCategoryId}
-                      onChange={(e) => setSelectedCategoryId(e.target.value)}
-                      disabled={showProgress}
-                      className="w-full px-4 py-3 border border-dark-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 disabled:opacity-50 disabled:cursor-not-allowed appearance-none pr-10"
-                    >
-                      <option value="">Choose a category...</option>
+                <div className="w-full space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-dark-900 dark:text-white mb-3">
+                      Select Category
+                    </label>
+                    <div className="relative group">
+                      <select
+                        value={selectedCategoryId}
+                        onChange={(e) => {
+                          setSelectedCategoryId(e.target.value);
+                          if (e.target.value !== 'new') {
+                            setNewCategoryName('');
+                          }
+                        }}
+                        disabled={showProgress}
+                        className="w-full px-4 py-3.5 border border-dark-200 dark:border-dark-700 rounded-2xl bg-white dark:bg-dark-800 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 disabled:opacity-50 disabled:cursor-not-allowed appearance-none pr-12 transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-600 group-hover:shadow-md"
+                      >
+                                              <option value="">Choose a category...</option>
+                      <option value="new">➕ Create New Category</option>
                       {categories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
                         </option>
                       ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <svg className="w-4 h-4 text-dark-400 dark:text-dark-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                        <svg className="w-5 h-5 text-dark-400 dark:text-dark-500 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
+
+                  {/* New Category Input */}
+                  {selectedCategoryId === 'new' && (
+                    <div className="animate-fade-in">
+                      <label className="block text-sm font-medium text-dark-900 dark:text-white mb-2">
+                        New Category Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Enter category name..."
+                        disabled={showProgress}
+                        className="w-full px-4 py-3.5 border border-dark-200 dark:border-dark-700 rounded-2xl bg-white dark:bg-dark-800 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-600"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               <Button type="submit" className="w-full py-3 text-lg rounded-full font-semibold flex items-center justify-center gap-2" disabled={showProgress}>

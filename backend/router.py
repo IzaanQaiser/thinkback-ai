@@ -315,6 +315,10 @@ def create_entry(
     print(f"   ✅ Found {len(categories)} categories")
 
     # Check if this is a manual classification (entry already has category_ids)
+    print(f"🔍 Checking for manual classification...")
+    print(f"   📝 Entry category_ids: {entry_dict.get('category_ids', [])}")
+    print(f"   📝 Entry category_ids length: {len(entry_dict.get('category_ids', []))}")
+    
     if entry_dict.get("category_ids") and len(entry_dict["category_ids"]) > 0:
         print(f"🤖 Manual classification detected - skipping AI enrichment")
         print(f"   📝 Using manually selected category: {entry_dict['category_ids']}")
