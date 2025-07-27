@@ -186,3 +186,82 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
+
+/* Custom dropdown option styling - more aggressive override */
+select option {
+  background-color: #1e293b !important; /* dark-800 */
+  color: #e2e8f0 !important; /* dark-200 */
+  padding: 8px 12px !important;
+}
+
+select option:hover,
+select option:focus,
+select option:active,
+select option:checked {
+  background-color: #334155 !important; /* dark-700 */
+  color: #f1f5f9 !important; /* dark-100 */
+}
+
+/* Light theme dropdown options */
+html:not(.dark) select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important; /* dark-900 */
+}
+
+html:not(.dark) select option:hover,
+html:not(.dark) select option:focus,
+html:not(.dark) select option:active,
+html:not(.dark) select option:checked {
+  background-color: #e2e8f0 !important; /* dark-200 */
+  color: #0f172a !important; /* dark-900 */
+}
+
+/* Additional override for webkit browsers */
+select option::-webkit-option {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+select option::-webkit-option:hover,
+select option::-webkit-option:focus,
+select option::-webkit-option:active,
+select option::-webkit-option:checked {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+html:not(.dark) select option::-webkit-option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) select option::-webkit-option:hover,
+html:not(.dark) select option::-webkit-option:focus,
+html:not(.dark) select option::-webkit-option:active,
+html:not(.dark) select option::-webkit-option:checked {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Additional select styling to prevent white highlighting */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+select:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Target the dropdown list specifically */
+select:focus option {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+html:not(.dark) select:focus option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}

@@ -153,6 +153,15 @@ const SavePage: React.FC = () => {
     fetchCategoriesData();
   }, [currentUser]);
 
+  // Update step statuses when classification method changes
+  useEffect(() => {
+    if (!showProgress) {
+      const steps = classificationMethod === 'manual' ? MANUAL_SAVE_STEPS : SAVE_STEPS;
+      setStepStatuses(Array(steps.length).fill('pending'));
+      setCurrentStep(0);
+    }
+  }, [classificationMethod, showProgress]);
+
   // Helper to advance steps
   const markStep = (idx: number, status: SaveStepStatus) => {
     setStepStatuses((prev) => {
@@ -513,7 +522,13 @@ const SavePage: React.FC = () => {
               </div>
 
               {/* Manual Category Selection */}
-              {classificationMethod === 'manual' && (
+              <div 
+                className={`w-full overflow-hidden transition-all duration-500 ease-in-out ${
+                  classificationMethod === 'manual' 
+                    ? 'max-h-96 opacity-100 mt-6' 
+                    : 'max-h-0 opacity-0 mt-0'
+                }`}
+              >
                 <div className="w-full space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-dark-900 dark:text-white mb-3">
@@ -529,15 +544,15 @@ const SavePage: React.FC = () => {
                           }
                         }}
                         disabled={showProgress}
-                        className="w-full px-4 py-3.5 border border-dark-200 dark:border-dark-700 rounded-2xl bg-white dark:bg-dark-800 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 disabled:opacity-50 disabled:cursor-not-allowed appearance-none pr-12 transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-600 group-hover:shadow-md"
+                        className="w-full px-4 py-3.5 border border-dark-200 dark:border-dark-700 rounded-2xl bg-white dark:bg-dark-800 text-dark-900 dark:text-white focus:outline-none focus:border-primary-400/30 dark:focus:border-primary-400/30 disabled:opacity-50 disabled:cursor-not-allowed appearance-none pr-12 transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-600 group-hover:shadow-md"
                       >
-                                              <option value="">Choose a category...</option>
-                      <option value="new">➕ Create New Category</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
+                        <option value="">Choose a category...</option>
+                        <option value="new">➕ Create New Category</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
                       </select>
                       <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                         <svg className="w-5 h-5 text-dark-400 dark:text-dark-500 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -548,8 +563,14 @@ const SavePage: React.FC = () => {
                   </div>
 
                   {/* New Category Input */}
-                  {selectedCategoryId === 'new' && (
-                    <div className="animate-fade-in">
+                  <div 
+                    className={`w-full overflow-hidden transition-all duration-500 ease-in-out ${
+                      selectedCategoryId === 'new' 
+                        ? 'max-h-32 opacity-100 mt-4' 
+                        : 'max-h-0 opacity-0 mt-0'
+                    }`}
+                  >
+                    <div>
                       <label className="block text-sm font-medium text-dark-900 dark:text-white mb-2">
                         New Category Name
                       </label>
@@ -559,12 +580,12 @@ const SavePage: React.FC = () => {
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         placeholder="Enter category name..."
                         disabled={showProgress}
-                        className="w-full px-4 py-3.5 border border-dark-200 dark:border-dark-700 rounded-2xl bg-white dark:bg-dark-800 text-dark-900 dark:text-white focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-600"
+                        className="w-full px-4 py-3.5 border border-dark-200 dark:border-dark-700 rounded-2xl bg-white dark:bg-dark-800 text-dark-900 dark:text-white focus:outline-none focus:border-primary-400/30 dark:focus:border-primary-400/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-600"
                       />
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
+              </div>
               <Button type="submit" className="w-full py-3 text-lg rounded-full font-semibold flex items-center justify-center gap-2" disabled={showProgress}>
                 <Save size={20} />
                 Save to Vault
