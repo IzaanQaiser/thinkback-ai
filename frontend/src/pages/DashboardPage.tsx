@@ -82,6 +82,10 @@ const DashboardPage: React.FC = () => {
   const [renameError, setRenameError] = useState<string | null>(null);
   const [categoriesToDelete, setCategoriesToDelete] = useState<Category[] | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showDeleteEntryModal, setShowDeleteEntryModal] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
+  const [deleteEntryLoading, setDeleteEntryLoading] = useState(false);
+  const [deleteEntryError, setDeleteEntryError] = useState<string | null>(null);
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -353,6 +357,34 @@ const DashboardPage: React.FC = () => {
     };
   }, []);
 
+  // Handle delete entry
+  const handleDeleteEntry = (entryId: string) => {
+    const entry = entries.find(e => e.id === entryId);
+    if (entry) {
+      setEntryToDelete(entry);
+      setShowDeleteEntryModal(true);
+      setDeleteEntryError(null);
+    }
+  };
+
+  const confirmDeleteEntry = async () => {
+    if (!currentUser || !entryToDelete) return;
+    setDeleteEntryLoading(true);
+    setDeleteEntryError(null);
+    try {
+      const idToken = await currentUser.getIdToken();
+      await deleteEntry(idToken, entryToDelete.id);
+      // Remove from local state
+      setEntries((prev: Entry[]) => prev.filter(entry => entry.id !== entryToDelete.id));
+      setShowDeleteEntryModal(false);
+      setEntryToDelete(null);
+    } catch (err: any) {
+      setDeleteEntryError(err.message || 'Failed to delete entry.');
+    } finally {
+      setDeleteEntryLoading(false);
+    }
+  };
+
   // Save new category helper
   const saveNewCategory = async () => {
     if (!currentUser || !newCategoryName.trim()) return;
@@ -606,10 +638,10 @@ const DashboardPage: React.FC = () => {
         )}
         
         {/* Sidebar: Quick Access & Categories */}
-        <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white dark:bg-dark-900 border-r border-dark-200/50 dark:border-dark-800/50 transform transition-transform duration-300 ease-in-out ${
+        <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white/10 dark:bg-dark-900/10 backdrop-blur-sm border-r border-dark-200/50 dark:border-dark-800/50 transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}>
-          <div className="flex flex-col gap-6 px-4 lg:px-0">
+          <div className="flex flex-col gap-6 px-6 lg:px-4">
             {/* Mobile close button */}
             <div className="flex justify-end lg:hidden mb-4">
               <button
@@ -989,7 +1021,7 @@ const DashboardPage: React.FC = () => {
             ) : selectedCategory === 'Recent' ? (
               <div className="flex flex-col items-center justify-center py-20 text-dark-500 dark:text-dark-400 px-4">
                 <Folder size={72} className="mb-6 text-dark-300 dark:text-dark-700" />
-                <div className="text-xl sm:text-2xl font-semibold mb-2">No entries added in the last 8 hours.</div>
+                <div className="text-xl sm:text-2xl font-semibold mb-2 text-center">No entries added in the last 8 hours.</div>
                 <div className="text-sm sm:text-base text-dark-400 dark:text-dark-500 text-center">
                   Press <span className="inline-flex items-center font-semibold text-dark-600 dark:text-dark-200 border border-dark-200 dark:border-dark-700 bg-dark-100/60 dark:bg-dark-800/60 px-3 py-1 rounded-lg mr-1">+ Save</span> in the top bar or <span className="font-mono bg-dark-100 dark:bg-dark-800 px-2 py-1 rounded">{isMac ? '⌘' : 'Ctrl'}+I</span> to add your first entry!
                 </div>
@@ -1059,6 +1091,7 @@ const DashboardPage: React.FC = () => {
                           e.id === entryId ? { ...e, favorite: newFavoriteState } : e
                         ));
                       }}
+                      onDelete={handleDeleteEntry}
                       thumbnail={entry.thumbnail}
                       platform={entry.platform}
                       isCarousel={entry.is_carousel}
@@ -1331,6 +1364,38 @@ const DashboardPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Entry Confirmation Modal */}
+      {showDeleteEntryModal && entryToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-fade-in-fast" onClick={() => setShowDeleteEntryModal(false)}>
+          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md m-4 sm:m-8 p-4 sm:p-6 transform animate-slide-up-fast" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+                <Trash2 size={20} className="sm:w-6 sm:h-6 text-red-500" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-dark-900 dark:text-white">Delete Entry?</h2>
+            </div>
+            <p className="text-sm text-dark-600 dark:text-dark-300 mb-4">Are you sure you want to permanently delete "{entryToDelete.title}"? This action cannot be undone.</p>
+            {deleteEntryError && <div className="bg-red-500/10 text-red-500 dark:text-red-400 p-3 rounded-lg text-sm mb-3">{deleteEntryError}</div>}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                className="px-3 sm:px-4 py-2 rounded-full border border-dark-200 dark:border-dark-700 text-dark-700 dark:text-dark-300 hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors text-sm"
+                onClick={() => setShowDeleteEntryModal(false)}
+                disabled={deleteEntryLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 sm:px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-60 text-sm"
+                onClick={confirmDeleteEntry}
+                disabled={deleteEntryLoading}
+              >
+                {deleteEntryLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}
