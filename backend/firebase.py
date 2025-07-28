@@ -464,3 +464,105 @@ def analyze_feedback_patterns():
         }
     except Exception as e:
         return {"success": False, "error": f"Failed to analyze feedback patterns: {str(e)}"}
+
+
+def store_user_feedback(uid: str, feedback_data: dict):
+    """
+    Store user feedback (bug reports or feature suggestions) in Firestore
+    """
+    try:
+        db = get_firestore_client()
+        if not db:
+            return {"success": False, "error": "Failed to get Firestore client"}
+
+        # Add metadata to feedback
+        feedback_doc = {
+            "uid": uid,
+            "type": feedback_data.get("type"),  # 'bug' or 'feature'
+            "title": feedback_data.get("title"),
+            "description": feedback_data.get("description"),
+            "priority": feedback_data.get("priority", "medium"),
+            "userAgent": feedback_data.get("userAgent"),
+            "url": feedback_data.get("url"),
+            "status": "new",  # 'new', 'in_progress', 'resolved', 'closed'
+            "created_at": firestore.SERVER_TIMESTAMP,
+            "updated_at": firestore.SERVER_TIMESTAMP
+        }
+
+        # Add to user_feedback collection
+        feedback_ref = db.collection("user_feedback")
+        doc_ref = feedback_ref.add(feedback_doc)[1]
+
+        print(f"📝 User feedback stored:")
+        print(f"   User: {uid}")
+        print(f"   Type: {feedback_data.get('type')}")
+        print(f"   Title: {feedback_data.get('title')}")
+        print(f"   Priority: {feedback_data.get('priority')}")
+        print(f"   Feedback ID: {doc_ref.id}")
+
+        return {"success": True, "feedback_id": doc_ref.id}
+
+    except Exception as e:
+        print(f"❌ Failed to store user feedback: {e}")
+        return {"success": False, "error": f"Failed to store feedback: {str(e)}"}
+
+
+def get_user_feedback(uid: str = None, limit: int = 100):
+    """
+    Get user feedback from Firestore
+    If uid is provided, get feedback for that user only
+    If uid is None, get all feedback (admin function)
+    """
+    try:
+        db = get_firestore_client()
+        if not db:
+            return {"success": False, "error": "Failed to get Firestore client"}
+
+        feedback_ref = db.collection("user_feedback")
+        
+        if uid:
+            # Get feedback for specific user
+            query = feedback_ref.where("uid", "==", uid).order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+        else:
+            # Get all feedback (admin)
+            query = feedback_ref.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
+
+        feedback_docs = query.stream()
+        feedback_list = []
+
+        for doc in feedback_docs:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            feedback_list.append(data)
+
+        return {"success": True, "feedback": feedback_list}
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get user feedback: {str(e)}"}
+
+
+def update_feedback_status(feedback_id: str, status: str, admin_notes: str = None):
+    """
+    Update feedback status (admin function)
+    """
+    try:
+        db = get_firestore_client()
+        if not db:
+            return {"success": False, "error": "Failed to get Firestore client"}
+
+        feedback_ref = db.collection("user_feedback").document(feedback_id)
+        
+        update_data = {
+            "status": status,
+            "updated_at": firestore.SERVER_TIMESTAMP
+        }
+        
+        if admin_notes:
+            update_data["admin_notes"] = admin_notes
+
+        feedback_ref.update(update_data)
+
+        return {"success": True, "message": "Feedback status updated successfully"}
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to update feedback status: {str(e)}"}

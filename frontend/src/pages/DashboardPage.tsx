@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
+import FloatingFeedbackButton from '../components/FloatingFeedbackButton';
 import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory, deleteEntry, cleanupEmptyCategories } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
@@ -1441,6 +1442,9 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Floating Feedback Button */}
+      <FloatingFeedbackButton />
     </div>
   );
 };

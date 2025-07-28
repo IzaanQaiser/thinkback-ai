@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
 import Button from '../components/Button';
-import { User, LogOut, GitBranch, ArrowLeft, KeyRound, ShieldCheck, Trash2 } from 'lucide-react';
+import { User, LogOut, GitBranch, ArrowLeft, KeyRound, ShieldCheck, Trash2, MessageSquare } from 'lucide-react';
 import Input from '../components/Input';
 import { changePassword } from '../services/api';
 import Kbd from '../components/Kbd';
@@ -269,6 +269,26 @@ const AccountPage: React.FC = () => {
                       <p className="text-dark-500 dark:text-dark-400 text-sm">Permanently delete your account and all associated data. This action cannot be undone.</p>
                     </div>
                   </div>
+
+                {/* Feedback Section */}
+                <div>
+                  <h2 className="text-xl font-semibold flex items-center space-x-3 mb-4 text-dark-900 dark:text-white">
+                    <MessageSquare size={22} className="text-blue-400" />
+                    <span>Help & Feedback</span>
+                  </h2>
+                  <div className="pl-0 sm:pl-9 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Button
+                        onClick={() => navigate('/feedback')}
+                        variant="secondary"
+                        className="!text-blue-500 dark:!text-blue-400 bg-blue-500/5 hover:!bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/30 dark:bg-dark-800/50 dark:!border-blue-500/30 dark:hover:!bg-blue-500/10 dark:hover:!border-blue-500/50"
+                      >
+                        <span className="font-medium text-sm">Report Bug / Suggest Feature</span>
+                      </Button>
+                    </div>
+                    <p className="text-dark-500 dark:text-dark-400 text-sm">Help us improve thinkback by reporting issues or suggesting new features.</p>
+                  </div>
+                </div>
 
                 {/* About Section */}
                 <div>

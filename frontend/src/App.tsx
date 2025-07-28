@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import AccountPage from './pages/AccountPage';
+import FeedbackPage from './pages/FeedbackPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 
 const AppContent: React.FC = () => {
@@ -58,6 +59,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/save" element={<SavePage />} />
             <Route path="/account" element={<AccountPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
           </Route>
         </Routes>
       </div>

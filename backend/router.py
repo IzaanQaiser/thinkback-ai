@@ -1401,3 +1401,38 @@ def submit_ai_feedback(
     except Exception as e:
         print(f"❌ AI feedback error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# Feedback Models
+class FeedbackData(BaseModel):
+    type: str  # 'bug' or 'feature'
+    title: str
+    description: str
+    priority: str = 'medium'  # 'low', 'medium', 'high'
+    userAgent: Optional[str] = None
+    url: Optional[str] = None
+
+
+@router.post("/api/feedback")
+def submit_feedback(
+    feedback: FeedbackData,
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Submit user feedback (bug reports or feature suggestions)
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    
+    try:
+        id_token = authorization.split(" ")[1]
+        decoded_token = auth.verify_id_token(id_token)
+        uid = decoded_token["uid"]
+        
+        # Store feedback in Firebase
+        from firebase import store_user_feedback
+        result = store_user_feedback(uid, feedback.dict())
+        return {"message": "Feedback submitted successfully", "feedback_id": result}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to submit feedback: {str(e)}")
