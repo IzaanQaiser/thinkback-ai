@@ -29,7 +29,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         </div>
         <div className="text-dark-600 dark:text-dark-300 space-y-4">
           <p>
-            Welcome to thinkback.ai! This is your personal knowledge vault. Here's a quick guide to get you started:
+            Welcome to thinkback! This is your personal knowledge vault. Here's a quick guide to get you started:
           </p>
           <ul className="list-disc list-inside space-y-2">
             <li><strong>Adding Content:</strong> Click the '+' button to save new links, notes, or ideas.</li>

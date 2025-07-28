@@ -1,7 +1,7 @@
-# PWA Setup Guide for Thinkback.ai
+# PWA Setup Guide for Thinkback
 
 ## Overview
-This guide explains how to set up and test the Progressive Web App (PWA) functionality that allows users to share content directly from other apps (Instagram, YouTube, etc.) to Thinkback.ai through the iOS share sheet.
+This guide explains how to set up and test the Progressive Web App (PWA) functionality that allows users to share content directly from other apps (Instagram, YouTube, etc.) to Thinkback through the iOS share sheet.
 
 ## What We've Implemented
 
@@ -140,4 +140,4 @@ After making these changes:
 3. Test on iOS devices
 4. Monitor for any issues
 
-The PWA functionality should now be available to your users, allowing them to easily share content from other apps directly to Thinkback.ai! 
+The PWA functionality should now be available to your users, allowing them to easily share content from other apps directly to Thinkback! 

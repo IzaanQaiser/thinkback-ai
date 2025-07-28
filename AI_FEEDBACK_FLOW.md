@@ -2,7 +2,7 @@
 
 ## Overview
 
-When you submit AI feedback in Thinkback.ai, it triggers a comprehensive data collection and analysis pipeline designed to improve the AI's classification performance over time.
+When you submit AI feedback in Thinkback, it triggers a comprehensive data collection and analysis pipeline designed to improve the AI's classification performance over time.
 
 ## Complete Feedback Flow
 

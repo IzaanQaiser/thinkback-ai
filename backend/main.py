@@ -60,14 +60,14 @@ async def lifespan(app: FastAPI):
     install_playwright_browsers()
     
     if firebase_initialized:
-        print("🚀 Thinkback.ai API started successfully with Firebase integration")
+        print("🚀 Thinkback API started successfully with Firebase integration")
     else:
-        print("⚠️  Thinkback.ai API started but Firebase initialization failed")
+        print("⚠️  Thinkback API started but Firebase initialization failed")
     yield
 
 
 app = FastAPI(
-    title="Thinkback.ai API",
+            title="Thinkback API",
     description="AI-powered personal memory system",
     version="0.1.0",
     lifespan=lifespan,

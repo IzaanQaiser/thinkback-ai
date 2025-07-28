@@ -1,7 +1,7 @@
 # Instagram Posts Implementation
 
 ## Overview
-Successfully implemented the complete Instagram posts saving pipeline for Thinkback.ai, following the same pattern as YouTube videos and shorts.
+Successfully implemented the complete Instagram posts saving pipeline for Thinkback, following the same pattern as YouTube videos and shorts.
 
 ## Components Implemented
 

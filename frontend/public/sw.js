@@ -1,4 +1,4 @@
-// Service Worker for Thinkback.ai
+// Service Worker for Thinkback
 const CACHE_NAME = 'thinkback-v1';
 const urlsToCache = [
   '/',

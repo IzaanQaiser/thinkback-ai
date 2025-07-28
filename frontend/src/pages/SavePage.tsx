@@ -117,7 +117,7 @@ const SavePage: React.FC = () => {
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    document.title = 'thinkback.ai - Save';
+    document.title = 'thinkback - Save';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         navigate('/dashboard');

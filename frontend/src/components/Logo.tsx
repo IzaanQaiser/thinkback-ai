@@ -34,7 +34,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', className = '' }) => {
         <Brain className="text-primary-500 dark:text-dark-300" size={iconSizes[size]} />
       </div>
       <span className={`font-bold text-dark-900 dark:text-gray-100 ${sizeClasses[size]} hidden sm:inline`}>
-        thinkback.ai
+        thinkback
       </span>
     </div>
   );

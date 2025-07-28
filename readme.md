@@ -1,4 +1,4 @@
- # thinkback.ai
+ # thinkback
 
 This repo follows my **Ideas-to-Apps** system to turn ideas into full MVPs using ChatGPT as co-founder and CTO.
 
@@ -14,4 +14,4 @@ This repo follows my **Ideas-to-Apps** system to turn ideas into full MVPs using
 2. more to follow
 
 ## License
-This project is proprietary. This repository is provided solely for evaluation as part of the Google ADK Hackathon. It is not open source. See LICENSE for details. All rights reserved by thinkback.ai.
+This project is proprietary. This repository is provided solely for evaluation as part of the Google ADK Hackathon. It is not open source. See LICENSE for details. All rights reserved by thinkback.

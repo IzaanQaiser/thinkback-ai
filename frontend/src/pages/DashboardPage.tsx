@@ -88,7 +88,7 @@ const DashboardPage: React.FC = () => {
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
   useEffect(() => {
-    document.title = 'thinkback.ai - Dashboard';
+    document.title = 'thinkback - Dashboard';
     sessionStorage.setItem('lastSelectedCategory', selectedCategory);
   }, [selectedCategory]);
 

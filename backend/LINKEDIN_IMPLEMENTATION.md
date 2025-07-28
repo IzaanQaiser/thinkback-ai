@@ -1,7 +1,7 @@
 # LinkedIn Posts Implementation
 
 ## Overview
-Successfully implemented the complete LinkedIn posts saving pipeline for Thinkback.ai, following the same pattern as YouTube videos, Instagram posts, TikTok videos, and Reddit posts.
+Successfully implemented the complete LinkedIn posts saving pipeline for Thinkback, following the same pattern as YouTube videos, Instagram posts, TikTok videos, and Reddit posts.
 
 ## Components Implemented
 

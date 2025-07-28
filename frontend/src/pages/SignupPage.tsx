@@ -26,7 +26,7 @@ const SignupPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    document.title = 'thinkback.ai - Signup';
+    document.title = 'thinkback - Signup';
     const randomQuote =
       signupQuotes[Math.floor(Math.random() * signupQuotes.length)];
     setQuote(randomQuote);

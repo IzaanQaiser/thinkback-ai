@@ -1,7 +1,7 @@
 # Reddit Posts Implementation
 
 ## Overview
-Successfully implemented the complete Reddit posts saving pipeline for Thinkback.ai, following the same pattern as YouTube videos, Instagram posts, and TikTok videos.
+Successfully implemented the complete Reddit posts saving pipeline for Thinkback, following the same pattern as YouTube videos, Instagram posts, and TikTok videos.
 
 ## Components Implemented
 

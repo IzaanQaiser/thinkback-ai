@@ -24,7 +24,7 @@ const AuthPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    document.title = 'thinkback.ai - Login';
+    document.title = 'thinkback - Login';
     const randomQuote =
       loginQuotes[Math.floor(Math.random() * loginQuotes.length)];
     setQuote(randomQuote);

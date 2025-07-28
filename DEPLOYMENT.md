@@ -1,4 +1,4 @@
-# Deployment Guide for Thinkback.ai Backend
+# Deployment Guide for Thinkback Backend
 
 ## Overview
 This guide explains how to deploy the Python FastAPI backend to Firebase App Hosting (Cloud Run) using the `apphosting.yaml` configuration.

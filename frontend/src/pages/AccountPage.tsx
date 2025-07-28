@@ -30,7 +30,7 @@ const AccountPage: React.FC = () => {
   const providerId = currentUser?.providerData[0]?.providerId || 'password';
 
   useEffect(() => {
-    document.title = 'thinkback.ai - Account';
+    document.title = 'thinkback - Account';
     setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
   }, []);
 

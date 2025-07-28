@@ -1,8 +1,8 @@
-# AI Training Guide for Thinkback.ai
+# AI Training Guide for Thinkback
 
 ## Overview
 
-This guide outlines the different ways you can train and improve the AI classification system in Thinkback.ai. The system currently uses OpenAI's GPT-4 model with sophisticated prompt engineering, but there are several ways to enhance its performance.
+This guide outlines the different ways you can train and improve the AI classification system in Thinkback. The system currently uses OpenAI's GPT-4 model with sophisticated prompt engineering, but there are several ways to enhance its performance.
 
 ## Current AI Training Methods
 
@@ -246,6 +246,6 @@ def prepare_fine_tuning_data():
 
 ## Conclusion
 
-The Thinkback.ai system is well-positioned for AI training with its current prompt engineering approach. The newly added feedback system provides a foundation for continuous improvement. For the best results, start with the feedback collection and gradually implement more advanced training methods as you gather data and understand your users' needs.
+The Thinkback system is well-positioned for AI training with its current prompt engineering approach. The newly added feedback system provides a foundation for continuous improvement. For the best results, start with the feedback collection and gradually implement more advanced training methods as you gather data and understand your users' needs.
 
 The combination of prompt engineering, user feedback, and potentially RAG or fine-tuning will create a highly effective and personalized AI classification system. 
