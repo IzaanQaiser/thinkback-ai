@@ -4,9 +4,11 @@ import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X,
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSaveNotification } from '../contexts/SaveNotificationContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
 import FloatingFeedbackButton from '../components/FloatingFeedbackButton';
+import SaveNotificationToast from '../components/SaveNotificationToast';
 import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory, deleteEntry, cleanupEmptyCategories } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
@@ -37,6 +39,7 @@ interface Category {
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { theme } = useTheme();
+  const { notifications, removeNotification, shouldRefreshDashboard, markDashboardRefreshed } = useSaveNotification();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
@@ -115,6 +118,30 @@ const DashboardPage: React.FC = () => {
     };
     loadEntries();
   }, [currentUser]);
+
+  // Refresh dashboard data when a save notification is triggered
+  useEffect(() => {
+    if (shouldRefreshDashboard && currentUser) {
+      const refreshData = async () => {
+        try {
+          const idToken = await currentUser.getIdToken();
+          const data = await fetchEntries(idToken);
+          setEntries(data);
+          await cleanupEmptyCategories(idToken);
+          const cats = await fetchCategories(idToken);
+          setCategories(cats);
+          const map: { [id: string]: string } = {};
+          cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
+          setCategoryMap(map);
+          markDashboardRefreshed();
+        } catch (error) {
+          console.error('Failed to refresh dashboard data:', error);
+          markDashboardRefreshed();
+        }
+      };
+      refreshData();
+    }
+  }, [shouldRefreshDashboard, currentUser, markDashboardRefreshed]);
 
   // Refresh entries when returning to dashboard
   useEffect(() => {
@@ -1445,6 +1472,20 @@ const DashboardPage: React.FC = () => {
 
       {/* Floating Feedback Button */}
       <FloatingFeedbackButton />
+      
+      {/* Save Notifications */}
+      {notifications.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 space-y-3">
+          {notifications.map((notification) => (
+            <SaveNotificationToast
+              key={notification.id}
+              notification={notification}
+              onClose={() => removeNotification(notification.id)}
+              isExiting={notification.isExiting}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

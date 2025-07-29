@@ -6,6 +6,7 @@ import SavePage from './pages/SavePage';
 import DashboardPage from './pages/DashboardPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
+import { SaveNotificationProvider } from './contexts/SaveNotificationContext';
 import AccountPage from './pages/AccountPage';
 import FeedbackPage from './pages/FeedbackPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
@@ -49,20 +50,22 @@ function App() {
   return (
     <Router>
       <AppContent />
-      <div className="min-h-screen bg-dark-950">
-        <Routes>
-          <Route path="/auth" element={currentUser ? <Navigate to="/dashboard" /> : <AuthPage />} />
-          <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" /> : <SignupPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/" element={<Navigate to={currentUser ? "/dashboard" : "/auth"} replace />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/save" element={<SavePage />} />
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/feedback" element={<FeedbackPage />} />
-          </Route>
-        </Routes>
-      </div>
+      <SaveNotificationProvider>
+        <div className="min-h-screen bg-dark-950">
+          <Routes>
+            <Route path="/auth" element={currentUser ? <Navigate to="/dashboard" /> : <AuthPage />} />
+            <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" /> : <SignupPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/" element={<Navigate to={currentUser ? "/dashboard" : "/auth"} replace />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/save" element={<SavePage />} />
+              <Route path="/account" element={<AccountPage />} />
+              <Route path="/feedback" element={<FeedbackPage />} />
+            </Route>
+          </Routes>
+        </div>
+      </SaveNotificationProvider>
     </Router>
   );
 }

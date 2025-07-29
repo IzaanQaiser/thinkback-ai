@@ -8,6 +8,7 @@ import Textarea from '../components/Textarea';
 import Button from '../components/Button';
 import Kbd from '../components/Kbd';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSaveNotification } from '../contexts/SaveNotificationContext';
 import { createEntry, fetchEntry, fetchCategories, submitAIFeedback } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -94,6 +95,7 @@ const SavePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { theme } = useTheme();
   const { currentUser } = useAuth();
+  const { addNotification } = useSaveNotification();
   const [stepStatuses, setStepStatuses] = useState<SaveStepStatus[]>(Array(SAVE_STEPS.length).fill('pending'));
   const [currentStep, setCurrentStep] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
@@ -322,6 +324,17 @@ const SavePage: React.FC = () => {
           tags: entryForSummary.tags,
           classificationMethod: 'ai',
         });
+        
+        // Add success notification
+        addNotification({
+          type: 'success',
+          title: 'Entry Saved Successfully!',
+          message: 'Your content has been saved to your vault.',
+          entryTitle: entryForSummary.title,
+          category: summaryCategory,
+          platform: entryForSummary.platform,
+        });
+        
         setUrl('');
         setClassificationMethod('ai');
         setSelectedCategoryId('');
@@ -414,6 +427,17 @@ const SavePage: React.FC = () => {
           tags: entryForSummary.tags,
           classificationMethod: 'manual',
         });
+        
+        // Add success notification
+        addNotification({
+          type: 'success',
+          title: 'Entry Saved Successfully!',
+          message: 'Your content has been saved to your vault.',
+          entryTitle: entryForSummary.title,
+          category: summaryCategory,
+          platform: entryForSummary.platform,
+        });
+        
         setUrl('');
         setClassificationMethod('ai');
         setSelectedCategoryId('');
@@ -423,6 +447,14 @@ const SavePage: React.FC = () => {
       }
     } catch (error) {
       console.error('[Save] Error:', error);
+      
+      // Add error notification
+      addNotification({
+        type: 'error',
+        title: 'Save Failed',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred while saving your content.',
+      });
+      
       // Reset progress state on error to allow retry
       setShowProgress(false);
     }
@@ -688,6 +720,30 @@ const SavePage: React.FC = () => {
           {/* Save Progress Display - no box styling */}
           <div className="w-full max-w-md flex flex-col items-start">
             <SaveProgressDisplay stepStatuses={stepStatuses} currentStep={currentStep} />
+            
+            {/* Exit Notification - Show when save is in progress */}
+            {showProgress && !saved && (
+              <div className="w-full mb-6 animate-slide-in-right">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        Save in Progress
+                      </h4>
+                      <p className="text-sm text-blue-700 dark:text-blue-200">
+                        You can safely exit this page - your content will continue saving in the background.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {saved && (
               <div className="w-full mt-6">
                 <div className="flex items-center gap-2 text-green-500 text-base font-semibold animate-fade-in-out mb-2">
