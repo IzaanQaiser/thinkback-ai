@@ -641,6 +641,7 @@ const DashboardPage: React.FC = () => {
               <Link to="/save" className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white">
                 <Plus size={16} className="text-gray-600 dark:text-white" />
               </Link>
+              <FloatingFeedbackButton />
               <Link to="/account" className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200">
                 <UserIcon size={20} className="text-dark-900 dark:text-white" />
               </Link>
@@ -1494,9 +1495,6 @@ const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Feedback Button */}
-      <FloatingFeedbackButton />
-      
       {/* Save Notifications */}
       {notifications.length > 0 && (
         <div className="fixed top-4 right-4 z-50 space-y-3">

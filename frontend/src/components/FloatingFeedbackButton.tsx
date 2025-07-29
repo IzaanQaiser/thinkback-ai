@@ -1,37 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 
 const FloatingFeedbackButton: React.FC = () => {
   const navigate = useNavigate();
-  const [isVisible, setIsVisible] = useState(true);
 
   const handleClick = () => {
     navigate('/feedback');
   };
 
-  if (!isVisible) return null;
-
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      {/* Feedback Button */}
-      <button
-        onClick={handleClick}
-        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-        title="Report a bug or suggest a feature"
-      >
-        <MessageSquare className="w-5 h-5" />
-      </button>
-
-      {/* Close Button */}
-      <button
-        onClick={() => setIsVisible(false)}
-        className="absolute -top-2 -right-2 bg-gray-600 hover:bg-gray-700 text-white rounded-full p-1 shadow-lg transition-all duration-200"
-        title="Hide feedback button"
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </div>
+    <button
+      onClick={handleClick}
+      className="flex items-center justify-center w-10 h-10 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white"
+      title="Report a bug or suggest a feature"
+    >
+      <MessageSquare size={16} className="text-gray-600 dark:text-white" />
+    </button>
   );
 };
 

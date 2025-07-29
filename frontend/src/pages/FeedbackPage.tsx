@@ -38,7 +38,7 @@ const FeedbackPage: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        navigate('/account');
+        navigate('/dashboard');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -83,7 +83,7 @@ const FeedbackPage: React.FC = () => {
       // Reset success message after 3 seconds
       setTimeout(() => {
         setSuccess(false);
-        navigate('/account');
+        navigate('/dashboard');
       }, 3000);
 
     } catch (err) {
@@ -102,16 +102,16 @@ const FeedbackPage: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 flex items-center justify-center hide-scrollbar">
         <div className="max-w-md w-full mx-4 text-center">
-          <div className="bg-dark-900 rounded-lg p-8 border border-dark-700">
+          <div className="bg-white dark:bg-dark-900 rounded-lg p-8 border border-dark-200 dark:border-dark-700 shadow-lg">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-100 mb-2">Thank You!</h2>
-            <p className="text-gray-400 mb-4">
+            <h2 className="text-2xl font-bold text-dark-900 dark:text-gray-100 mb-2">Thank You!</h2>
+            <p className="text-dark-600 dark:text-gray-400 mb-4">
               Your {feedbackType === 'bug' ? 'bug report' : 'feature suggestion'} has been submitted successfully.
             </p>
-            <p className="text-sm text-gray-500">
-              Redirecting back to account page...
+            <p className="text-sm text-dark-500 dark:text-gray-500">
+              Redirecting back to dashboard...
             </p>
           </div>
         </div>
@@ -120,48 +120,43 @@ const FeedbackPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-dark-950">
+    <div className="min-h-screen bg-white dark:bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950 hide-scrollbar">
       {/* Header */}
-      <div className="border-b border-dark-800 bg-dark-900">
+      <div className="border-b border-dark-200 dark:border-dark-800 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/account')}
-              className="text-gray-400 hover:text-gray-100"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Account
-            </Button>
-            <div className="h-6 w-px bg-dark-700" />
+          <div className="flex items-center">
             <Logo size="sm" />
           </div>
-          <div className="text-sm text-gray-500">
-            Press <Kbd>Esc</Kbd> to go back
-          </div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center justify-center px-3 py-2 rounded-full bg-dark-100/50 dark:bg-dark-800/50 hover:bg-dark-200/60 dark:hover:bg-dark-700/70 transition-colors duration-200 text-dark-800 dark:text-white"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft size={16} className="text-gray-600 dark:text-white mr-2" />
+            <span className="text-sm font-medium">Back to Dashboard</span>
+          </button>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">Help Us Improve</h1>
-          <p className="text-gray-400">
+          <h1 className="text-3xl font-bold text-dark-900 dark:text-gray-100 mb-2">Help Us Improve</h1>
+          <p className="text-dark-600 dark:text-gray-400">
             Report bugs or suggest new features to make thinkback better for everyone.
           </p>
         </div>
 
         {/* Feedback Type Selection */}
-        <div className="bg-dark-900 rounded-lg p-6 mb-6 border border-dark-700">
-          <h2 className="text-lg font-semibold text-gray-100 mb-4">What would you like to share?</h2>
+        <div className="bg-white dark:bg-dark-900 rounded-lg p-6 mb-6 border border-dark-200 dark:border-dark-700 shadow-lg">
+          <h2 className="text-lg font-semibold text-dark-900 dark:text-gray-100 mb-4">What would you like to share?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               onClick={() => setFeedbackType('bug')}
               className={`p-4 rounded-lg border-2 transition-all ${
                 feedbackType === 'bug'
-                  ? 'border-red-500 bg-red-500/10 text-red-400'
-                  : 'border-dark-700 bg-dark-800 text-gray-400 hover:border-dark-600 hover:text-gray-300'
+                  ? 'border-red-500 bg-red-500/10 text-red-600 dark:text-red-400'
+                  : 'border-dark-300 dark:border-dark-700 bg-dark-50 dark:bg-dark-800 text-dark-700 dark:text-gray-400 hover:border-dark-400 dark:hover:border-dark-600 hover:text-dark-900 dark:hover:text-gray-300'
               }`}
             >
               <Bug className="w-8 h-8 mx-auto mb-2" />
@@ -172,8 +167,8 @@ const FeedbackPage: React.FC = () => {
               onClick={() => setFeedbackType('feature')}
               className={`p-4 rounded-lg border-2 transition-all ${
                 feedbackType === 'feature'
-                  ? 'border-blue-500 bg-blue-500/10 text-blue-400'
-                  : 'border-dark-700 bg-dark-800 text-gray-400 hover:border-dark-600 hover:text-gray-300'
+                  ? 'border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                  : 'border-dark-300 dark:border-dark-700 bg-dark-50 dark:bg-dark-800 text-dark-700 dark:text-gray-400 hover:border-dark-400 dark:hover:border-dark-600 hover:text-dark-900 dark:hover:text-gray-300'
               }`}
             >
               <Lightbulb className="w-8 h-8 mx-auto mb-2" />
@@ -184,11 +179,11 @@ const FeedbackPage: React.FC = () => {
         </div>
 
         {/* Feedback Form */}
-        <form onSubmit={handleSubmit} className="bg-dark-900 rounded-lg p-6 border border-dark-700">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-dark-900 rounded-lg p-6 border border-dark-200 dark:border-dark-700 shadow-lg">
           <div className="space-y-6">
             {/* Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-dark-700 dark:text-gray-300 mb-2">
                 {feedbackType === 'bug' ? 'Bug Title' : 'Feature Title'} *
               </label>
               <Input
@@ -205,7 +200,7 @@ const FeedbackPage: React.FC = () => {
             {/* Priority (only for bugs) */}
             {feedbackType === 'bug' && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-dark-700 dark:text-gray-300 mb-2">
                   Priority Level
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -217,7 +212,7 @@ const FeedbackPage: React.FC = () => {
                       className={`p-3 rounded-lg border-2 transition-all ${
                         priority === option.value
                           ? 'border-current bg-current/10'
-                          : 'border-dark-700 bg-dark-800 text-gray-400 hover:border-dark-600 hover:text-gray-300'
+                          : 'border-dark-300 dark:border-dark-700 bg-dark-50 dark:bg-dark-800 text-dark-700 dark:text-gray-400 hover:border-dark-400 dark:hover:border-dark-600 hover:text-dark-900 dark:hover:text-gray-300'
                       } ${option.color}`}
                     >
                       {option.label}
@@ -229,7 +224,7 @@ const FeedbackPage: React.FC = () => {
 
             {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-dark-700 dark:text-gray-300 mb-2">
                 Detailed Description *
               </label>
               <Textarea
@@ -245,7 +240,7 @@ const FeedbackPage: React.FC = () => {
                 rows={6}
                 maxLength={1000}
               />
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-dark-500 dark:text-gray-500 mt-1">
                 {description.length}/1000 characters
               </div>
             </div>
@@ -253,7 +248,7 @@ const FeedbackPage: React.FC = () => {
             {/* Error Message */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                <p className="text-red-400 text-sm">{error}</p>
+                <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
               </div>
             )}
 
@@ -280,7 +275,7 @@ const FeedbackPage: React.FC = () => {
 
         {/* Additional Info */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-dark-500 dark:text-gray-500">
             Your feedback helps us improve thinkback for everyone. We'll review your submission and get back to you if needed.
           </p>
         </div>
