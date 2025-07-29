@@ -8,9 +8,12 @@
 
 /*.js
   Content-Type: application/javascript
+  Cache-Control: no-cache
 
 /*.css
   Content-Type: text/css
+  Cache-Control: no-cache
 
 /*.html
-  Content-Type: text/html 
+  Content-Type: text/html
+  Cache-Control: no-cache 
