@@ -1,0 +1,10 @@
+{
+  "name": "thinkback-ai",
+  "version": "1.0.0",
+  "description": "AI-powered personal memory system",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "dev": "cd frontend && npm run dev"
+  },
+  "private": true
+} 
