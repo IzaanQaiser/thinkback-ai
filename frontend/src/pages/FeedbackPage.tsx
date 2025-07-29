@@ -7,6 +7,7 @@ import Input from '../components/Input';
 import Textarea from '../components/Textarea';
 import { ArrowLeft, Bug, Lightbulb, Send, CheckCircle } from 'lucide-react';
 import Kbd from '../components/Kbd';
+import { submitUserFeedback } from '../services/api';
 
 interface FeedbackData {
   type: 'bug' | 'feature';
@@ -72,18 +73,7 @@ const FeedbackPage: React.FC = () => {
         url: window.location.href
       };
 
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify(feedbackData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to submit feedback');
-      }
+      await submitUserFeedback(idToken, feedbackData);
 
       setSuccess(true);
       setTitle('');

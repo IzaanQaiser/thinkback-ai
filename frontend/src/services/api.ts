@@ -222,3 +222,36 @@ export const submitAIFeedback = async (
 
   return response.json();
 };
+
+export const submitUserFeedback = async (
+  idToken: string,
+  feedback: {
+    type: 'bug' | 'feature';
+    title: string;
+    description: string;
+    priority: 'low' | 'medium' | 'high';
+    userAgent?: string;
+    url?: string;
+  }
+): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/api/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify(feedback),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to submit feedback');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('API call to submit user feedback failed:', error);
+    throw error;
+  }
+};
