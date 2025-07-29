@@ -1,17 +1,71 @@
-run:
-  dockerfile: Dockerfile
-  env:
-    REDDIT_USER_AGENT: "thinkback-ai/3.0 by Spirited_Ad7127"
-  secrets:
-    - env: OPENAI_API_KEY
-      secret: projects/1039353985456/secrets/OPENAI_API_KEY/versions/latest
-    - env: REDDIT_CLIENT_ID
-      secret: projects/1039353985456/secrets/REDDIT_CLIENT_ID/versions/latest
-    - env: REDDIT_CLIENT_SECRET
-      secret: projects/1039353985456/secrets/REDDIT_CLIENT_SECRET/versions/latest
-    - env: REDDIT_USERNAME
-      secret: projects/1039353985456/secrets/REDDIT_USERNAME/versions/latest
-    - env: REDDIT_PASSWORD
-      secret: projects/1039353985456/secrets/REDDIT_PASSWORD/versions/latest
-    - env: TWITTER_BEARER_TOKEN
-      secret: projects/1039353985456/secrets/TWITTER_BEARER_TOKEN/versions/latest
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: thinkback-backend-staging
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+    run.googleapis.com/cpu-throttling: "false"
+    run.googleapis.com/startup-cpu-boost: "true"
+    run.googleapis.com/min-instances: "1"
+    run.googleapis.com/max-instances: "10"
+    run.googleapis.com/cpu: "2"
+    run.googleapis.com/memory: "4Gi"
+    run.googleapis.com/timeout: "300s"
+    run.googleapis.com/concurrency: "80"
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/min-instances: "1"
+        run.googleapis.com/max-instances: "10"
+        run.googleapis.com/cpu: "2"
+        run.googleapis.com/memory: "4Gi"
+        run.googleapis.com/timeout: "300s"
+        run.googleapis.com/concurrency: "80"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/ninth-arena-461723-g1/thinkback-backend-staging
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        - name: PYTHONPATH
+          value: "/workspace/backend"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 3
+          timeoutSeconds: 5
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3

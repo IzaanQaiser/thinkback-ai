@@ -1247,6 +1247,7 @@ def cleanup_empty_categories_endpoint(authorization: Optional[str] = Header(None
     """
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
+
     try:
         scheme, token = authorization.split()
         if scheme.lower() != "bearer":
@@ -1255,6 +1256,7 @@ def cleanup_empty_categories_endpoint(authorization: Optional[str] = Header(None
         raise HTTPException(
             status_code=401, detail="Invalid authorization header format"
         )
+
     try:
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token["uid"]
@@ -1308,6 +1310,71 @@ def cleanup_empty_categories_endpoint(authorization: Optional[str] = Header(None
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
+
+
+@router.get("/api/check-cleanup-needed")
+def check_cleanup_needed(authorization: Optional[str] = Header(None)):
+    """
+    Check if cleanup of empty AI-generated categories is needed.
+    This is a lightweight check that doesn't perform the actual cleanup.
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+
+    try:
+        # Get all categories
+        cat_result = get_categories_firebase(uid)
+        if not cat_result["success"]:
+            raise HTTPException(status_code=400, detail=cat_result["error"])
+
+        # Get all entries to check which categories are still in use
+        entries_result = get_entries_firebase(uid)
+        if not entries_result["success"]:
+            raise HTTPException(status_code=400, detail=entries_result["error"])
+
+        categories = cat_result["categories"]
+        entries = entries_result["entries"]
+
+        # Create a set of all category IDs that are still in use
+        categories_in_use = set()
+        for entry in entries:
+            if "category_ids" in entry and entry["category_ids"]:
+                categories_in_use.update(entry["category_ids"])
+
+        # Count empty AI-generated categories
+        empty_ai_categories = []
+        for category in categories:
+            if (
+                category.get("ai_generated", False)
+                and category["id"] not in categories_in_use
+            ):
+                empty_ai_categories.append(category["name"])
+
+        return {
+            "cleanup_needed": len(empty_ai_categories) > 0,
+            "empty_categories_count": len(empty_ai_categories),
+            "empty_categories": empty_ai_categories,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Check failed: {str(e)}")
 
 
 @router.post("/api/mentions")

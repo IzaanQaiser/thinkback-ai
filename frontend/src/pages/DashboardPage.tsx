@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Plus, Search, User as UserIcon, Check, Pencil, ExternalLink, Trash2, X, Folder, ChevronLeft } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { useSaveNotification } from '../contexts/SaveNotificationContext';
 import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
 import FloatingFeedbackButton from '../components/FloatingFeedbackButton';
 import SaveNotificationToast from '../components/SaveNotificationToast';
-import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory, deleteEntry, cleanupEmptyCategories } from '../services/api';
+import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory, deleteEntry, cleanupEmptyCategories, checkCleanupNeeded } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
 
@@ -18,6 +17,7 @@ interface Entry {
   url: string;
   title: string;
   notes?: string;
+  summary?: string;
   tags?: string[];
   favorite?: boolean;
   created_at?: string;
@@ -38,7 +38,6 @@ interface Category {
 
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { theme } = useTheme();
   const { notifications, removeNotification, shouldRefreshDashboard, markDashboardRefreshed } = useSaveNotification();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -55,8 +54,6 @@ const DashboardPage: React.FC = () => {
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
-  const [editingCategoryName, setEditingCategoryName] = useState('');
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [addCategoryLoading, setAddCategoryLoading] = useState(false);
@@ -88,6 +85,10 @@ const DashboardPage: React.FC = () => {
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null);
   const [deleteEntryLoading, setDeleteEntryLoading] = useState(false);
   const [deleteEntryError, setDeleteEntryError] = useState<string | null>(null);
+  
+  // Add loading states for better UX
+  const [lastLoadTime, setLastLoadTime] = useState<number>(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -96,27 +97,64 @@ const DashboardPage: React.FC = () => {
     sessionStorage.setItem('lastSelectedCategory', selectedCategory);
   }, [selectedCategory]);
 
-  useEffect(() => {
-    const loadEntries = async () => {
-      if (!currentUser) return;
+  // Optimized data loading function
+  const loadDashboardData = useCallback(async (forceRefresh: boolean = false) => {
+    if (!currentUser) return;
+    
+    const now = Date.now();
+    const timeSinceLastLoad = now - lastLoadTime;
+    const shouldUseCache = !forceRefresh && timeSinceLastLoad < 30000; // 30 seconds
+    
+    try {
       setLoading(true);
-      try {
-        const idToken = await currentUser.getIdToken();
-        const data = await fetchEntries(idToken);
-        setEntries(data);
-        await cleanupEmptyCategories(idToken);
-        const cats = await fetchCategories(idToken);
-        setCategories(cats);
-        const map: { [id: string]: string } = {};
-        cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
-        setCategoryMap(map);
-      } catch (error) {
-        alert('Failed to load entries: ' + (error as Error).message);
-      } finally {
-        setLoading(false);
+      
+      const idToken = await currentUser.getIdToken();
+      
+      // Load entries and categories in parallel
+      const [entriesData, categoriesData] = await Promise.all([
+        fetchEntries(idToken, shouldUseCache),
+        fetchCategories(idToken, shouldUseCache)
+      ]);
+      
+      setEntries(entriesData);
+      setCategories(categoriesData);
+      
+      // Build category map
+      const map: { [id: string]: string } = {};
+      categoriesData.forEach((cat: Category) => { map[cat.id] = cat.name; });
+      setCategoryMap(map);
+      
+      setLastLoadTime(now);
+      setIsInitialLoad(false);
+      
+      // Only run cleanup on initial load or force refresh, and only if needed
+      if (isInitialLoad || forceRefresh) {
+        try {
+          const cleanupCheck = await checkCleanupNeeded(idToken);
+          if (cleanupCheck.cleanup_needed) {
+            console.log(`🧹 Cleanup needed: ${cleanupCheck.empty_categories_count} empty categories found`);
+            await cleanupEmptyCategories(idToken);
+          } else {
+            console.log('✅ No cleanup needed');
+          }
+        } catch (error) {
+          console.warn('Cleanup check failed, but continuing:', error);
+        }
       }
-    };
-    loadEntries();
+      
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+      if (isInitialLoad) {
+        alert('Failed to load entries: ' + (error as Error).message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, lastLoadTime, isInitialLoad]);
+
+  // Initial load
+  useEffect(() => {
+    loadDashboardData();
   }, [currentUser]);
 
   // Refresh dashboard data when a save notification is triggered
@@ -124,18 +162,10 @@ const DashboardPage: React.FC = () => {
     if (shouldRefreshDashboard && currentUser) {
       const refreshData = async () => {
         try {
-          const idToken = await currentUser.getIdToken();
-          const data = await fetchEntries(idToken);
-          setEntries(data);
-          await cleanupEmptyCategories(idToken);
-          const cats = await fetchCategories(idToken);
-          setCategories(cats);
-          const map: { [id: string]: string } = {};
-          cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
-          setCategoryMap(map);
+          await loadDashboardData(true); // Force refresh
           
           // If the currently selected category was deleted, switch to 'Recent'
-          if (selectedCategory !== 'Recent' && selectedCategory !== 'All' && selectedCategory !== 'Favorites' && !cats.find(cat => cat.id === selectedCategory)) {
+          if (selectedCategory !== 'Recent' && selectedCategory !== 'All' && selectedCategory !== 'Favorites' && !categories.find(cat => cat.id === selectedCategory)) {
             setSelectedCategory('Recent');
             sessionStorage.setItem('lastSelectedCategory', 'Recent');
           }
@@ -148,28 +178,19 @@ const DashboardPage: React.FC = () => {
       };
       refreshData();
     }
-  }, [shouldRefreshDashboard, currentUser, markDashboardRefreshed, selectedCategory]);
+  }, [shouldRefreshDashboard, currentUser, markDashboardRefreshed, selectedCategory, categories]);
 
-  // Refresh entries when returning to dashboard
+  // Optimized focus handler - only refresh if data is stale
   useEffect(() => {
     const handleFocus = () => {
-      if (currentUser) {
-        const loadEntries = async () => {
-          try {
-            const idToken = await currentUser.getIdToken();
-            const data = await fetchEntries(idToken);
-            setEntries(data);
-            await cleanupEmptyCategories(idToken);
-            const cats = await fetchCategories(idToken);
-            setCategories(cats);
-            const map: { [id: string]: string } = {};
-            cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
-            setCategoryMap(map);
-          } catch (error) {
-            console.error('Failed to refresh entries:', error);
-          }
-        };
-        loadEntries();
+      if (currentUser && !isInitialLoad) {
+        const now = Date.now();
+        const timeSinceLastLoad = now - lastLoadTime;
+        
+        // Only refresh if it's been more than 2 minutes since last load
+        if (timeSinceLastLoad > 120000) {
+          loadDashboardData();
+        }
       }
     };
 
@@ -177,25 +198,9 @@ const DashboardPage: React.FC = () => {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, [currentUser]);
+  }, [currentUser, lastLoadTime, isInitialLoad, loadDashboardData]);
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      if (!currentUser) return;
-      try {
-        const idToken = await currentUser.getIdToken();
-        const cats = await fetchCategories(idToken);
-        setCategories(cats);
-        const map: { [id: string]: string } = {};
-        cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
-        setCategoryMap(map);
-      } catch (error) {
-        // fallback to protectedCategories if error
-        setCategories(protectedCategories.map((name) => ({ id: name, name })));
-      }
-    };
-    loadCategories();
-  }, [currentUser]);
+  // Remove the separate categories loading effect since it's now handled in loadDashboardData
 
   // Main dashboard results use searchQuery for real-time filtering
   const filteredData = entries.filter(item => {
