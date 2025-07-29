@@ -133,6 +133,13 @@ const DashboardPage: React.FC = () => {
           const map: { [id: string]: string } = {};
           cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
           setCategoryMap(map);
+          
+          // If the currently selected category was deleted, switch to 'Recent'
+          if (selectedCategory !== 'Recent' && selectedCategory !== 'All' && selectedCategory !== 'Favorites' && !cats.find(cat => cat.id === selectedCategory)) {
+            setSelectedCategory('Recent');
+            sessionStorage.setItem('lastSelectedCategory', 'Recent');
+          }
+          
           markDashboardRefreshed();
         } catch (error) {
           console.error('Failed to refresh dashboard data:', error);
@@ -141,7 +148,7 @@ const DashboardPage: React.FC = () => {
       };
       refreshData();
     }
-  }, [shouldRefreshDashboard, currentUser, markDashboardRefreshed]);
+  }, [shouldRefreshDashboard, currentUser, markDashboardRefreshed, selectedCategory]);
 
   // Refresh entries when returning to dashboard
   useEffect(() => {
@@ -442,6 +449,21 @@ const DashboardPage: React.FC = () => {
       await deleteEntry(idToken, entryToDelete.id);
       // Remove from local state
       setEntries((prev: Entry[]) => prev.filter(entry => entry.id !== entryToDelete.id));
+      
+      // Clean up empty categories and refresh category list
+      await cleanupEmptyCategories(idToken);
+      const cats = await fetchCategories(idToken);
+      setCategories(cats);
+      const map: { [id: string]: string } = {};
+      cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
+      setCategoryMap(map);
+      
+      // If the currently selected category was deleted, switch to 'Recent'
+      if (selectedCategory !== 'Recent' && selectedCategory !== 'All' && selectedCategory !== 'Favorites' && !cats.find(cat => cat.id === selectedCategory)) {
+        setSelectedCategory('Recent');
+        sessionStorage.setItem('lastSelectedCategory', 'Recent');
+      }
+      
       setShowDeleteEntryModal(false);
       setEntryToDelete(null);
     } catch (err: any) {
@@ -1145,6 +1167,8 @@ const DashboardPage: React.FC = () => {
                         // Navigate to the new category
                         setSelectedCategory(newCategoryId);
                         sessionStorage.setItem('lastSelectedCategory', newCategoryId);
+                        
+                        // Clean up empty categories and refresh category list
                         await cleanupEmptyCategories(idToken);
                         const updatedCats = await fetchCategories(idToken);
                         setCategories(updatedCats);
