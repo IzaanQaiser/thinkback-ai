@@ -625,6 +625,24 @@ class LinkedInScraper(BaseScraper):
             time.sleep(random.uniform(1, 3))
             
             response = session.get(url, timeout=15)
+            
+            # Handle 404 and other errors gracefully
+            if response.status_code == 404:
+                logger.warning("⚠️ Post not found (404) - likely private or deleted")
+                return {
+                    "url": url,
+                    "title": "LinkedIn Post (Not Found)",
+                    "channel": "LinkedIn",
+                    "description": "This LinkedIn post is not available. It may be private, deleted, or require authentication.",
+                    "thumbnail": None,
+                    "type": "post",
+                    "metadata": {
+                        "post_id": post_id,
+                        "platform": "LinkedIn",
+                        "error": "404 Not Found"
+                    }
+                }
+            
             response.raise_for_status()
             
             logger.info(f"✅ Response status: {response.status_code}")
@@ -690,5 +708,18 @@ class LinkedInScraper(BaseScraper):
                 return selenium_result
             else:
                 logger.error(f"❌ Both approaches failed")
-                return {"error": f"All scraping methods failed: {str(e)}"}
+                # Return a meaningful fallback result instead of error
+                return {
+                    "url": url,
+                    "title": "LinkedIn Post (Unavailable)",
+                    "channel": "LinkedIn",
+                    "description": "This LinkedIn post could not be accessed. LinkedIn may be blocking automated access or the post requires authentication.",
+                    "thumbnail": None,
+                    "type": "post",
+                    "metadata": {
+                        "post_id": post_id,
+                        "platform": "LinkedIn",
+                        "error": "Access blocked or requires authentication"
+                    }
+                }
 

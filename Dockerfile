@@ -44,7 +44,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers - FIXED VERSION WITH EXPLICIT INSTALLATION
+# Install Playwright browsers and dependencies as root
 RUN playwright install chromium \
     && playwright install-deps chromium
 
@@ -52,21 +52,30 @@ RUN playwright install chromium \
 RUN playwright install --dry-run chromium \
     && ls -la /root/.cache/ms-playwright/
 
+# Create a non-root user for better security
+RUN useradd --create-home --shell /bin/bash app
+
 # Copy the entire project (including backend folder)
-COPY . .
+COPY --chown=app:app . .
 
 # Create directory for credentials (if not already present)
-RUN mkdir -p /workspace/infrastructure/credentials
-
-# Pre-compile Python bytecode for faster startup
-RUN python -m compileall /workspace/backend
-
-# Create a non-root user for better security
-RUN useradd --create-home --shell /bin/bash app \
+RUN mkdir -p /workspace/infrastructure/credentials \
     && chown -R app:app /workspace
+
+# Copy Playwright browsers to app user's home directory with proper permissions
+RUN mkdir -p /home/app/.cache \
+    && cp -r /root/.cache/ms-playwright /home/app/.cache/ \
+    && chown -R app:app /home/app/.cache/ms-playwright \
+    && chmod -R 755 /home/app/.cache/ms-playwright
+
+# Set environment variable to ensure Playwright uses the correct path
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/app/.cache/ms-playwright
 
 # Switch to non-root user
 USER app
+
+# Pre-compile Python bytecode for faster startup
+RUN python -m compileall /workspace/backend
 
 # Expose the port
 EXPOSE 8080

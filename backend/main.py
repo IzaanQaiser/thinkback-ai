@@ -7,6 +7,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 import threading
 import time
+import subprocess
 
 # Global flag to track initialization status
 initialization_complete = False
@@ -29,7 +30,7 @@ async def lifespan(app: FastAPI):
                 raise Exception("Failed to initialize Firebase")
             print("✅ Firebase Admin SDK initialized successfully")
             
-            # Check Playwright browsers (non-blocking)
+            # Check and install Playwright browsers if needed
             try:
                 from playwright.sync_api import sync_playwright
                 with sync_playwright() as p:
@@ -38,6 +39,21 @@ async def lifespan(app: FastAPI):
                 print("✅ Playwright browsers are ready")
             except Exception as e:
                 print(f"⚠️ Playwright browser check failed: {e}")
+                print("🔧 Attempting to install Playwright browsers...")
+                try:
+                    # Install browsers as the app user
+                    result = subprocess.run(
+                        ["playwright", "install", "chromium"],
+                        capture_output=True,
+                        text=True,
+                        cwd="/workspace"
+                    )
+                    if result.returncode == 0:
+                        print("✅ Playwright browsers installed successfully")
+                    else:
+                        print(f"❌ Failed to install browsers: {result.stderr}")
+                except Exception as install_error:
+                    print(f"❌ Browser installation failed: {install_error}")
             
             initialization_complete = True
             print("✅ Backend initialization complete")
