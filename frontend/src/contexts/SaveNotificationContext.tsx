@@ -12,13 +12,28 @@ export interface SaveNotification {
   isExiting?: boolean;
 }
 
+export interface SaveProgress {
+  id: string;
+  url: string;
+  stepStatuses: ('pending' | 'in_progress' | 'done')[];
+  currentStep: number;
+  totalSteps: number;
+  startTime: Date;
+  isExiting?: boolean;
+}
+
 interface SaveNotificationContextType {
   notifications: SaveNotification[];
+  activeSaves: SaveProgress[];
   addNotification: (notification: Omit<SaveNotification, 'id' | 'timestamp'>) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
   shouldRefreshDashboard: boolean;
   markDashboardRefreshed: () => void;
+  addSaveProgress: (progress: Omit<SaveProgress, 'id' | 'startTime'>) => string;
+  updateSaveProgress: (id: string, updates: Partial<SaveProgress>) => void;
+  removeSaveProgress: (id: string) => void;
+  clearSaveProgress: () => void;
 }
 
 const SaveNotificationContext = createContext<SaveNotificationContextType | undefined>(undefined);
@@ -37,6 +52,7 @@ interface SaveNotificationProviderProps {
 
 export const SaveNotificationProvider: React.FC<SaveNotificationProviderProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<SaveNotification[]>([]);
+  const [activeSaves, setActiveSaves] = useState<SaveProgress[]>([]);
   const [shouldRefreshDashboard, setShouldRefreshDashboard] = useState(false);
 
   const addNotification = (notification: Omit<SaveNotification, 'id' | 'timestamp'>) => {
@@ -65,6 +81,46 @@ export const SaveNotificationProvider: React.FC<SaveNotificationProviderProps> =
     }
   };
 
+  const addSaveProgress = (progress: Omit<SaveProgress, 'id' | 'startTime'>) => {
+    const newProgress: SaveProgress = {
+      ...progress,
+      id: Math.random().toString(36).substr(2, 9),
+      startTime: new Date(),
+      isExiting: false,
+    };
+    console.log('Context: Adding new save progress:', newProgress);
+    setActiveSaves(prev => {
+      const updated = [newProgress, ...prev];
+      console.log('Context: Active saves after adding:', updated);
+      return updated;
+    });
+    return newProgress.id;
+  };
+
+  const updateSaveProgress = (id: string, updates: Partial<SaveProgress>) => {
+    console.log('Context: Updating save progress:', { id, updates });
+    setActiveSaves(prev => {
+      const updated = prev.map(progress => 
+        progress.id === id ? { ...progress, ...updates } : progress
+      );
+      console.log('Context: Updated active saves:', updated);
+      return updated;
+    });
+  };
+
+  const removeSaveProgress = (id: string) => {
+    setActiveSaves(prev => prev.map(progress => 
+      progress.id === id ? { ...progress, isExiting: true } : progress
+    ));
+    setTimeout(() => {
+      setActiveSaves(prev => prev.filter(progress => progress.id !== id));
+    }, 400);
+  };
+
+  const clearSaveProgress = () => {
+    setActiveSaves([]);
+  };
+
   const removeNotification = (id: string) => {
     // First mark the notification as exiting to trigger the slide-out animation
     setNotifications(prev => prev.map(notification => 
@@ -88,11 +144,16 @@ export const SaveNotificationProvider: React.FC<SaveNotificationProviderProps> =
   return (
     <SaveNotificationContext.Provider value={{
       notifications,
+      activeSaves,
       addNotification,
       removeNotification,
       clearNotifications,
       shouldRefreshDashboard,
       markDashboardRefreshed,
+      addSaveProgress,
+      updateSaveProgress,
+      removeSaveProgress,
+      clearSaveProgress,
     }}>
       {children}
     </SaveNotificationContext.Provider>

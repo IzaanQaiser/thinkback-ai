@@ -76,16 +76,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
   // Instagram post aspect ratio (used for cropping TikTok thumbnails to match Instagram post size)
   const instagramPostAspect = '1/1'; // square aspect ratio for Instagram posts
   
-  // Debug logging
-  console.log('ContentCard Debug:', {
-    platform,
-    isPortrait,
-    isYouTubeShorts,
-    shouldUseShortsFormat,
-    portraitAspect,
-    landscapeAspect,
-    instagramPostAspect
-  });
+  // Debug logging removed for cleaner console
 
   function getPlatformIconOverlay(platform?: string, theme?: string) {
     if (!platform) return null;
@@ -269,7 +260,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, notes, favorite, c
                   : isPortrait
                   ? portraitAspect
                   : landscapeAspect;
-                console.log('Aspect Ratio Debug:', { platform, ratio, shouldUseShortsFormat });
+                // Debug logging removed for cleaner console
                 return ratio;
               })(),
               maxHeight: '250px',

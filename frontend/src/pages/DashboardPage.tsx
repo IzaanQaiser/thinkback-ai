@@ -8,6 +8,8 @@ import ContentCard from '../components/ContentCard';
 import Kbd from '../components/Kbd';
 import FloatingFeedbackButton from '../components/FloatingFeedbackButton';
 import SaveNotificationToast from '../components/SaveNotificationToast';
+import SaveProgressIndicator from '../components/SaveProgressIndicator';
+import useGlobalProgress from '../hooks/useGlobalProgress';
 import { fetchEntries, fetchCategories, updateCategory, deleteCategory, updateEntry, createCategory, deleteEntry, cleanupEmptyCategories, checkCleanupNeeded } from '../services/api';
 
 const protectedCategories = ['Recent', 'All', 'Favorites'];
@@ -39,6 +41,7 @@ interface Category {
 const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { notifications, removeNotification, shouldRefreshDashboard, markDashboardRefreshed } = useSaveNotification();
+  const { activeSaves, globalProgressTracker } = useGlobalProgress();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
@@ -132,10 +135,10 @@ const DashboardPage: React.FC = () => {
         try {
           const cleanupCheck = await checkCleanupNeeded(idToken);
           if (cleanupCheck.cleanup_needed) {
-            console.log(`🧹 Cleanup needed: ${cleanupCheck.empty_categories_count} empty categories found`);
+            // console.log(`🧹 Cleanup needed: ${cleanupCheck.empty_categories_count} empty categories found`);
             await cleanupEmptyCategories(idToken);
           } else {
-            console.log('✅ No cleanup needed');
+                          // console.log('✅ No cleanup needed');
           }
         } catch (error) {
           console.warn('Cleanup check failed, but continuing:', error);
@@ -346,7 +349,7 @@ const DashboardPage: React.FC = () => {
       // Scroll to the entry after a short delay to ensure the category has loaded
       setTimeout(() => {
         const entryElement = document.getElementById(`entry-${entry.id}`);
-        console.log('Looking for entry element:', `entry-${entry.id}`, entryElement);
+                    // console.log('Looking for entry element:', `entry-${entry.id}`, entryElement);
         if (entryElement) {
           entryElement.scrollIntoView({ 
             behavior: 'smooth', 
@@ -1099,6 +1102,21 @@ const DashboardPage: React.FC = () => {
             >
               {mainHeading}
             </h2>
+          )}
+          
+          {/* Save Progress Indicators */}
+          {activeSaves.length > 0 && (
+            <div className="px-4 sm:px-0 mb-6">
+              <div className="space-y-3">
+                {activeSaves.map((progress) => (
+                  <SaveProgressIndicator
+                    key={progress.id}
+                    progress={progress}
+                    onClose={() => globalProgressTracker.removeSave(progress.id)}
+                  />
+                ))}
+              </div>
+            </div>
           )}
           {loading ? (
             <div className="text-center py-20 text-dark-500 dark:text-dark-400">Loading entries...</div>

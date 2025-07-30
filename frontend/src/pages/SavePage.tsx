@@ -11,6 +11,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useSaveNotification } from '../contexts/SaveNotificationContext';
 import { createEntry, fetchEntry, fetchCategories, submitAIFeedback } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import globalProgressTracker from '../utils/globalProgressTracker';
 
 type SaveStepStatus = 'pending' | 'in_progress' | 'done';
 
@@ -98,6 +99,7 @@ const SavePage: React.FC = () => {
   const { addNotification } = useSaveNotification();
   const [stepStatuses, setStepStatuses] = useState<SaveStepStatus[]>(Array(SAVE_STEPS.length).fill('pending'));
   const [currentStep, setCurrentStep] = useState(0);
+  const [saveProgressId, setSaveProgressId] = useState<string | null>(null);
   const [showProgress, setShowProgress] = useState(false);
   const urlInputRef = useRef<HTMLInputElement>(null);
   const [lastSavedEntry, setLastSavedEntry] = useState<{ title?: string; category?: string; platform?: string; tags?: string[]; classificationMethod?: 'ai' | 'manual' } | null>(null);
@@ -205,13 +207,22 @@ const SavePage: React.FC = () => {
   }, [classificationMethod, showProgress]);
 
   // Helper to advance steps
-  const markStep = (idx: number, status: SaveStepStatus) => {
+  const markStep = (idx: number, status: SaveStepStatus, progressId?: string) => {
     setStepStatuses((prev) => {
       const next = [...prev];
       next[idx] = status;
       return next;
     });
     setCurrentStep(idx);
+    
+    // Use provided progressId or fall back to state
+    const currentProgressId = progressId || saveProgressId;
+    if (currentProgressId) {
+      console.log('🚀 SAVE: Updating global progress:', { idx, status, currentProgressId });
+      globalProgressTracker.updateStep(currentProgressId, idx, status);
+    } else {
+      console.log('🚀 SAVE: No saveProgressId available for step update:', { idx, status });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -222,15 +233,27 @@ const SavePage: React.FC = () => {
     const steps = classificationMethod === 'manual' ? MANUAL_SAVE_STEPS : SAVE_STEPS;
     setStepStatuses(Array(steps.length).fill('pending'));
     setCurrentStep(0);
+    
+    // Initialize global progress tracking
+    const progressId = globalProgressTracker.startSave(url, steps.length, classificationMethod);
+    console.log('Created global progress tracking with ID:', progressId);
+    setSaveProgressId(progressId);
+    
+    // Immediately update the progress to show authentication starting
+    globalProgressTracker.updateStep(progressId, 0, 'in_progress');
+    console.log('Initial progress update sent');
+    
     // 1. Authentication
-    markStep(0, 'in_progress');
+    markStep(0, 'in_progress', progressId);
     if (!currentUser) return;
     setSaved(false);
     setLastSavedEntry(null);
     try {
+      // Add a small delay to make the progress visible
+      await new Promise(resolve => setTimeout(resolve, 500));
       const idToken = await currentUser.getIdToken();
-      markStep(0, 'done');
-      markStep(1, 'in_progress');
+      markStep(0, 'done', progressId);
+      markStep(1, 'in_progress', progressId);
       // 2. Platform Detection
       let enrichResult = null;
       let title = '';
@@ -247,19 +270,25 @@ const SavePage: React.FC = () => {
           },
           body: JSON.stringify({ url }),
         });
-        markStep(1, 'done');
-        markStep(2, 'in_progress');
+        // Add delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 300));
+        markStep(1, 'done', progressId);
+        markStep(2, 'in_progress', progressId);
         const enrichResponse = await enrichPromise;
-        markStep(2, 'done');
-        markStep(3, 'in_progress');
+        // Add delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 300));
+        markStep(2, 'done', progressId);
+        markStep(3, 'in_progress', progressId);
         // 3. AI Pipeline (enrichment)
         if (!enrichResponse.ok) throw new Error('Failed to enrich entry');
         enrichResult = await enrichResponse.json();
         title = enrichResult.ai.title || '';
         tags = enrichResult.ai.tags || [];
         thumbnail = enrichResult.thumbnail || '';
-        markStep(3, 'done');
-        markStep(4, 'in_progress');
+        // Add delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 300));
+        markStep(3, 'done', progressId);
+        markStep(4, 'in_progress', progressId);
         // 4. AI Classification
         let categoryId = null;
         let categoryName = '';
@@ -312,9 +341,11 @@ const SavePage: React.FC = () => {
           const catId = entryForSummary.category_ids[0];
           summaryCategory = map[catId] || 'Uncategorized';
         }
-        markStep(4, 'done');
-        markStep(5, 'done');
-        markStep(6, 'in_progress');
+        // Add delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 300));
+        markStep(4, 'done', progressId);
+        markStep(5, 'done', progressId);
+        markStep(6, 'in_progress', progressId);
         // 6. Save Process
         setSaved(true);
         setLastSavedEntry({
@@ -339,14 +370,27 @@ const SavePage: React.FC = () => {
         setClassificationMethod('ai');
         setSelectedCategoryId('');
         setNewCategoryName('');
-        markStep(6, 'done');
+        // Add delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 300));
+        markStep(6, 'done', progressId);
         // Reset progress state to allow new saves
         setShowProgress(false);
         
+        // Clean up global progress tracking
+        if (saveProgressId) {
+          globalProgressTracker.completeSave(saveProgressId);
+          setTimeout(() => {
+            globalProgressTracker.removeSave(saveProgressId);
+          }, 2000); // Keep completed save visible for 2 seconds
+          setSaveProgressId(null);
+        }
+        
       } else {
         // Manual classification - simple flow
-        markStep(1, 'done');
-        markStep(2, 'in_progress');
+        // Add delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 300));
+        markStep(1, 'done', progressId);
+        markStep(2, 'in_progress', progressId);
         // 2. Platform Scraping
         const scrapeResponse = await fetch(`${API_URL}/api/scrape`, {
           method: 'POST',
@@ -356,8 +400,10 @@ const SavePage: React.FC = () => {
           },
           body: JSON.stringify({ url }),
         });
-        markStep(2, 'done');
-        markStep(3, 'in_progress');
+        // Add delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 300));
+        markStep(2, 'done', progressId);
+        markStep(3, 'in_progress', progressId);
         // 3. Save to Database
         let categoryId = null;
         if (selectedCategoryId === 'new' && newCategoryName.trim()) {
@@ -417,7 +463,9 @@ const SavePage: React.FC = () => {
           const catId = entryForSummary.category_ids[0];
           summaryCategory = map[catId] || 'Uncategorized';
         }
-        markStep(3, 'done');
+        // Add delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 300));
+        markStep(3, 'done', progressId);
         // Save Process
         setSaved(true);
         setLastSavedEntry({
@@ -444,6 +492,15 @@ const SavePage: React.FC = () => {
         setNewCategoryName('');
         // Reset progress state to allow new saves
         setShowProgress(false);
+        
+        // Clean up global progress tracking
+        if (saveProgressId) {
+          globalProgressTracker.completeSave(saveProgressId);
+          setTimeout(() => {
+            globalProgressTracker.removeSave(saveProgressId);
+          }, 2000); // Keep completed save visible for 2 seconds
+          setSaveProgressId(null);
+        }
       }
     } catch (error) {
       console.error('[Save] Error:', error);
@@ -457,6 +514,15 @@ const SavePage: React.FC = () => {
       
       // Reset progress state on error to allow retry
       setShowProgress(false);
+      
+      // Clean up global progress tracking on error
+      if (saveProgressId) {
+        globalProgressTracker.failSave(saveProgressId, error instanceof Error ? error.message : 'Unknown error');
+        setTimeout(() => {
+          globalProgressTracker.removeSave(saveProgressId);
+        }, 3000); // Keep failed save visible for 3 seconds
+        setSaveProgressId(null);
+      }
     }
   };
 
