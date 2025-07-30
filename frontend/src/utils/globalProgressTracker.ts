@@ -94,7 +94,7 @@ export const globalProgressTracker = {
   },
 
   // Complete a save
-  completeSave: (saveId: string) => {
+  completeSave: (saveId: string, savedEntry?: { title: string; category: string; platform: string; tags: string[] }) => {
     const saveIndex = activeSaves.findIndex(save => save.id === saveId);
     if (saveIndex === -1) {
       console.warn('Global: Save not found for completion:', saveId);
@@ -106,15 +106,22 @@ export const globalProgressTracker = {
       ...save,
       stepStatuses: save.stepStatuses.map(s => 'done'),
       currentStep: save.stepStatuses.length - 1,
+      savedEntry,
     };
     
     activeSaves[saveIndex] = updatedSave;
+    
+    console.log('🔍 GLOBAL PROGRESS: Completed save with saved entry:', { 
+      saveId, 
+      savedEntry,
+      updatedSave: updatedSave
+    });
     
     // Trigger events
     globalProgressTracker.triggerEvent(PROGRESS_EVENTS.SAVE_COMPLETED, updatedSave);
     globalProgressTracker.notifyGlobalListeners();
     
-    console.log('Global: Completed save:', saveId);
+    console.log('Global: Completed save:', saveId, savedEntry);
   },
 
   // Fail a save

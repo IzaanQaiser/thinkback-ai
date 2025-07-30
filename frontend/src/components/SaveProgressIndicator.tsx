@@ -10,9 +10,19 @@ interface SaveProgressIndicatorProps {
 const SaveProgressIndicator: React.FC<SaveProgressIndicatorProps> = React.memo(({ progress, onClose }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [dots, setDots] = useState('');
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   // Memoize expensive calculations
-  const isComplete = useMemo(() => progress.stepStatuses.every(status => status === 'done'), [progress.stepStatuses]);
+  const isComplete = useMemo(() => {
+    const complete = progress.stepStatuses.every(status => status === 'done');
+    console.log('🔍 SAVE PROGRESS DEBUG:', { 
+      progressId: progress.id, 
+      isComplete: complete,
+      savedEntry: progress.savedEntry,
+      stepStatuses: progress.stepStatuses
+    });
+    return complete;
+  }, [progress.stepStatuses, progress.id, progress.savedEntry]);
   
   const completedSteps = useMemo(() => progress.stepStatuses.filter(status => status === 'done').length, [progress.stepStatuses]);
   const inProgressSteps = useMemo(() => progress.stepStatuses.filter(status => status === 'in_progress').length, [progress.stepStatuses]);
@@ -33,7 +43,11 @@ const SaveProgressIndicator: React.FC<SaveProgressIndicatorProps> = React.memo((
   useEffect(() => {
     if (isComplete) {
       setTimeout(() => {
-        handleClose();
+        setIsFadingOut(true);
+        // Wait for fade out animation to complete before calling onClose
+        setTimeout(() => {
+          handleClose();
+        }, 500); // Match the fade out animation duration
       }, 7000);
     }
   }, [isComplete, handleClose]);
@@ -89,7 +103,9 @@ const SaveProgressIndicator: React.FC<SaveProgressIndicatorProps> = React.memo((
   }, []);
 
   return (
-    <div className={`backdrop-blur-xl rounded-2xl p-4 shadow-lg transition-all duration-300 animate-slide-in-top ${
+    <div className={`backdrop-blur-xl rounded-2xl p-4 shadow-lg transition-all duration-300 ${
+      isFadingOut ? 'animate-fade-out' : 'animate-slide-in-top'
+    } ${
       isComplete
         ? 'bg-green-50/90 dark:bg-green-900/20 border border-green-200 dark:border-green-700/60' // Green styling when complete
         : 'bg-white/90 dark:bg-dark-800/90 border border-dark-200/60 dark:border-dark-700/60'
@@ -118,6 +134,17 @@ const SaveProgressIndicator: React.FC<SaveProgressIndicatorProps> = React.memo((
               {formatTime(elapsedTime)}
               {isComplete && ' (final)'}
             </p>
+            {isComplete && progress.savedEntry && (
+              <div className="mt-2 space-y-1">
+                {console.log('🔍 RENDERING SAVED ENTRY INFO:', progress.savedEntry)}
+                <div className="text-xs text-green-700 dark:text-green-300">
+                  <span className="font-medium">Title:</span> {progress.savedEntry.title}
+                </div>
+                <div className="text-xs text-green-700 dark:text-green-300">
+                  <span className="font-medium">Category:</span> {progress.savedEntry.category}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <button

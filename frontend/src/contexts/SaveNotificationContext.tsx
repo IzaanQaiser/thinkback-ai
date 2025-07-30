@@ -20,6 +20,13 @@ export interface SaveProgress {
   totalSteps: number;
   startTime: Date;
   isExiting?: boolean;
+  // Saved entry information
+  savedEntry?: {
+    title: string;
+    category: string;
+    platform: string;
+    tags: string[];
+  };
 }
 
 interface SaveNotificationContextType {

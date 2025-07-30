@@ -356,16 +356,6 @@ const SavePage: React.FC = () => {
           classificationMethod: 'ai',
         });
         
-        // Add success notification
-        addNotification({
-          type: 'success',
-          title: 'Entry Saved Successfully!',
-          message: 'Your content has been saved to your vault.',
-          entryTitle: entryForSummary.title,
-          category: summaryCategory,
-          platform: entryForSummary.platform,
-        });
-        
         setUrl('');
         setClassificationMethod('ai');
         setSelectedCategoryId('');
@@ -377,12 +367,20 @@ const SavePage: React.FC = () => {
         setShowProgress(false);
         
         // Clean up global progress tracking
-        if (saveProgressId) {
-          globalProgressTracker.completeSave(saveProgressId);
-          setTimeout(() => {
-            globalProgressTracker.removeSave(saveProgressId);
-          }, 2000); // Keep completed save visible for 2 seconds
+        console.log('🔍 SAVE PAGE: About to complete save, progressId:', progressId);
+        if (progressId) {
+          const savedEntryData = {
+            title: entryForSummary.title,
+            category: summaryCategory,
+            platform: entryForSummary.platform,
+            tags: entryForSummary.tags,
+          };
+          console.log('🔍 SAVE PAGE: Passing saved entry data:', savedEntryData);
+          globalProgressTracker.completeSave(progressId, savedEntryData);
+          // Don't call removeSave here - let SaveProgressIndicator handle its own dismissal
           setSaveProgressId(null);
+        } else {
+          console.log('🔍 SAVE PAGE: No progressId available for completion');
         }
         
       } else {
@@ -476,16 +474,6 @@ const SavePage: React.FC = () => {
           classificationMethod: 'manual',
         });
         
-        // Add success notification
-        addNotification({
-          type: 'success',
-          title: 'Entry Saved Successfully!',
-          message: 'Your content has been saved to your vault.',
-          entryTitle: entryForSummary.title,
-          category: summaryCategory,
-          platform: entryForSummary.platform,
-        });
-        
         setUrl('');
         setClassificationMethod('ai');
         setSelectedCategoryId('');
@@ -494,12 +482,20 @@ const SavePage: React.FC = () => {
         setShowProgress(false);
         
         // Clean up global progress tracking
-        if (saveProgressId) {
-          globalProgressTracker.completeSave(saveProgressId);
-          setTimeout(() => {
-            globalProgressTracker.removeSave(saveProgressId);
-          }, 2000); // Keep completed save visible for 2 seconds
+        console.log('🔍 SAVE PAGE (MANUAL): About to complete save, progressId:', progressId);
+        if (progressId) {
+          const savedEntryData = {
+            title: entryForSummary.title,
+            category: summaryCategory,
+            platform: entryForSummary.platform,
+            tags: entryForSummary.tags,
+          };
+          console.log('🔍 SAVE PAGE (MANUAL): Passing saved entry data:', savedEntryData);
+          globalProgressTracker.completeSave(progressId, savedEntryData);
+          // Don't call removeSave here - let SaveProgressIndicator handle its own dismissal
           setSaveProgressId(null);
+        } else {
+          console.log('🔍 SAVE PAGE (MANUAL): No progressId available for completion');
         }
       }
     } catch (error) {
@@ -516,11 +512,9 @@ const SavePage: React.FC = () => {
       setShowProgress(false);
       
       // Clean up global progress tracking on error
-      if (saveProgressId) {
-        globalProgressTracker.failSave(saveProgressId, error instanceof Error ? error.message : 'Unknown error');
-        setTimeout(() => {
-          globalProgressTracker.removeSave(saveProgressId);
-        }, 3000); // Keep failed save visible for 3 seconds
+      if (progressId) {
+        globalProgressTracker.failSave(progressId, error instanceof Error ? error.message : 'Unknown error');
+        // Don't call removeSave here - let SaveProgressIndicator handle its own dismissal
         setSaveProgressId(null);
       }
     }

@@ -92,6 +92,7 @@ const DashboardPage: React.FC = () => {
   // Add loading states for better UX
   const [lastLoadTime, setLastLoadTime] = useState<number>(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [shouldSlideUpCards, setShouldSlideUpCards] = useState(false);
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -99,6 +100,23 @@ const DashboardPage: React.FC = () => {
     document.title = 'thinkback - Dashboard';
     sessionStorage.setItem('lastSelectedCategory', selectedCategory);
   }, [selectedCategory]);
+
+  // Trigger slide up animation when save progress indicators disappear
+  useEffect(() => {
+    if (activeSaves.length === 0 && shouldSlideUpCards) {
+      // Reset the slide up state after animation
+      setTimeout(() => {
+        setShouldSlideUpCards(false);
+      }, 600); // Match the slide up animation duration
+    }
+  }, [activeSaves.length, shouldSlideUpCards]);
+
+  // Set slide up trigger when active saves become empty
+  useEffect(() => {
+    if (activeSaves.length === 0) {
+      setShouldSlideUpCards(true);
+    }
+  }, [activeSaves.length]);
 
   // Optimized data loading function
   const loadDashboardData = useCallback(async (forceRefresh: boolean = false) => {
@@ -1151,7 +1169,9 @@ const DashboardPage: React.FC = () => {
               </div>
             )
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-0">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-0 ${
+              shouldSlideUpCards ? 'animate-slide-up' : ''
+            }`}>
               {entriesToShow.map((entry) => {
                 // Map the first category ID to its name
                 let categoryName = 'Unknown';
