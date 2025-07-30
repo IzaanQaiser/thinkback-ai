@@ -636,10 +636,10 @@ const SavePage: React.FC = () => {
                 <label className="block text-sm font-medium text-dark-900 dark:text-white mb-3">
                   Classification Method
                 </label>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <label className={`relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex-1 min-h-[60px] ${
+                <div className="flex gap-2">
+                  <label className={`relative flex items-center px-4 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 flex-1 ${
                     classificationMethod === 'ai'
-                      ? 'border-primary-500 bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
+                      ? 'border-primary-500 bg-primary-500 text-white shadow-sm'
                       : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-700 dark:text-dark-300 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10'
                   } ${showProgress ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <input
@@ -651,23 +651,23 @@ const SavePage: React.FC = () => {
                       disabled={showProgress}
                       className="sr-only"
                     />
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                         classificationMethod === 'ai'
                           ? 'border-white bg-white'
                           : 'border-dark-300 dark:border-dark-600'
                       }`}>
                         {classificationMethod === 'ai' && (
-                          <div className="w-2.5 h-2.5 bg-primary-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
                         )}
                       </div>
-                      <span className="text-sm font-semibold text-center">AI Classification</span>
+                      <span className="text-sm font-medium">AI Classification</span>
                     </div>
                   </label>
                   
-                  <label className={`relative flex items-center justify-center p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex-1 min-h-[60px] ${
+                  <label className={`relative flex items-center px-4 py-2.5 rounded-lg border cursor-pointer transition-all duration-200 flex-1 ${
                     classificationMethod === 'manual'
-                      ? 'border-primary-500 bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25'
+                      ? 'border-primary-500 bg-primary-500 text-white shadow-sm'
                       : 'border-dark-200 dark:border-dark-700 bg-white dark:bg-dark-800 text-dark-700 dark:text-dark-300 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10'
                   } ${showProgress ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <input
@@ -679,17 +679,17 @@ const SavePage: React.FC = () => {
                       disabled={showProgress}
                       className="sr-only"
                     />
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                         classificationMethod === 'manual'
                           ? 'border-white bg-white'
                           : 'border-dark-300 dark:border-dark-600'
                       }`}>
                         {classificationMethod === 'manual' && (
-                          <div className="w-2.5 h-2.5 bg-primary-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
                         )}
                       </div>
-                      <span className="text-sm font-semibold text-center">Manual Selection</span>
+                      <span className="text-sm font-medium">Manual Selection</span>
                     </div>
                   </label>
                 </div>
@@ -722,11 +722,13 @@ const SavePage: React.FC = () => {
                       >
                         <option value="">Choose a category...</option>
                         <option value="new">➕ Create New Category</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
+                        {categories
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
                       </select>
                       <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                         <svg className="w-5 h-5 text-dark-400 dark:text-dark-500 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
