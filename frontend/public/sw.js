@@ -1,5 +1,5 @@
 // Service Worker for Thinkback
-const CACHE_NAME = 'thinkback-v1';
+const CACHE_NAME = 'thinkback-v1-' + Date.now(); // Add timestamp for cache busting
 const urlsToCache = [
   '/',
   '/save',
@@ -13,10 +13,41 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(urlsToCache))
   );
+  // Force activation of new service worker
+  self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  // Take control of all clients immediately
+  event.waitUntil(self.clients.claim());
 });
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
+  // Don't cache HTML files to ensure fresh content
+  if (event.request.url.includes('.html') || event.request.url.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

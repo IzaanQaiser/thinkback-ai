@@ -16,4 +16,14 @@
 
 /*.html
   Content-Type: text/html
-  Cache-Control: no-cache 
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+  CF-Cache-Status: BYPASS
+
+/index.html
+  Content-Type: text/html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+  CF-Cache-Status: BYPASS 
