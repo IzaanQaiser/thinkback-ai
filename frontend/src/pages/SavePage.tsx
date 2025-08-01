@@ -383,6 +383,16 @@ const SavePage: React.FC = () => {
           console.log('🔍 SAVE PAGE: No progressId available for completion');
         }
         
+        // Add success notification
+        addNotification({
+          type: 'success',
+          title: 'Save Complete!',
+          message: `"${entryForSummary.title}" has been saved to your vault.`,
+          entryTitle: entryForSummary.title,
+          category: summaryCategory,
+          platform: entryForSummary.platform,
+        });
+        
       } else {
         // Manual classification - simple flow
         // Add delay to make progress visible
@@ -497,6 +507,16 @@ const SavePage: React.FC = () => {
         } else {
           console.log('🔍 SAVE PAGE (MANUAL): No progressId available for completion');
         }
+        
+        // Add success notification
+        addNotification({
+          type: 'success',
+          title: 'Save Complete!',
+          message: `"${entryForSummary.title}" has been saved to your vault.`,
+          entryTitle: entryForSummary.title,
+          category: summaryCategory,
+          platform: entryForSummary.platform,
+        });
       }
     } catch (error) {
       console.error('[Save] Error:', error);

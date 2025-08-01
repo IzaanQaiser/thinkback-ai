@@ -93,6 +93,11 @@ const DashboardPage: React.FC = () => {
   const [lastLoadTime, setLastLoadTime] = useState<number>(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [shouldSlideUpCards, setShouldSlideUpCards] = useState(false);
+  
+  // Add state for highlighting newly saved entries
+  const [newlySavedEntryIds, setNewlySavedEntryIds] = useState<Set<string>>(new Set());
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => { setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); }, []);
   useEffect(() => { if (location.search.includes('focus=search')) searchInputRef.current?.focus(); }, [location]);
@@ -128,6 +133,9 @@ const DashboardPage: React.FC = () => {
     
     try {
       setLoading(true);
+      if (forceRefresh) {
+        setIsRefreshing(true);
+      }
       
       const idToken = await currentUser.getIdToken();
       
@@ -136,6 +144,26 @@ const DashboardPage: React.FC = () => {
         fetchEntries(idToken, shouldUseCache),
         fetchCategories(idToken, shouldUseCache)
       ]);
+      
+      // Track newly saved entries for highlighting
+      if (forceRefresh && entries.length > 0) {
+        const newEntryIds = new Set<string>();
+        entriesData.forEach((newEntry: Entry) => {
+          const existingEntry = entries.find((oldEntry: Entry) => oldEntry.id === newEntry.id);
+          if (!existingEntry) {
+            // This is a newly saved entry
+            newEntryIds.add(newEntry.id);
+          }
+        });
+        
+        if (newEntryIds.size > 0) {
+          setNewlySavedEntryIds(newEntryIds);
+          // Clear the highlight after 5 seconds
+          setTimeout(() => {
+            setNewlySavedEntryIds(new Set());
+          }, 5000);
+        }
+      }
       
       setEntries(entriesData);
       setCategories(categoriesData);
@@ -146,6 +174,7 @@ const DashboardPage: React.FC = () => {
       setCategoryMap(map);
       
       setLastLoadTime(now);
+      setLastRefreshTime(now);
       setIsInitialLoad(false);
       
       // Only run cleanup on initial load or force refresh, and only if needed
@@ -170,8 +199,9 @@ const DashboardPage: React.FC = () => {
       }
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  }, [currentUser, lastLoadTime, isInitialLoad]);
+  }, [currentUser, lastLoadTime, isInitialLoad, entries]);
 
   // Initial load
   useEffect(() => {
@@ -200,6 +230,42 @@ const DashboardPage: React.FC = () => {
       refreshData();
     }
   }, [shouldRefreshDashboard, currentUser, markDashboardRefreshed, selectedCategory, categories]);
+
+  // Listen for save completions and show immediate feedback
+  useEffect(() => {
+    const handleSaveCompleted = (completedSave: any) => {
+      try {
+        if (completedSave?.savedEntry) {
+          // Immediately refresh the dashboard to show the new entry
+          if (currentUser) {
+            loadDashboardData(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error handling save completion:', error);
+      }
+    };
+
+    // Subscribe to save completion events
+    let unsubscribe: (() => void) | undefined;
+    try {
+      unsubscribe = globalProgressTracker.on('SAVE_COMPLETED', handleSaveCompleted);
+      console.log('Dashboard: Successfully subscribed to SAVE_COMPLETED events');
+    } catch (error) {
+      console.error('Error subscribing to save completion events:', error);
+    }
+    
+    return () => {
+      // Only call unsubscribe if it's a function
+      if (typeof unsubscribe === 'function') {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error('Error unsubscribing from save completion events:', error);
+        }
+      }
+    };
+  }, [currentUser, loadDashboardData]);
 
   // Optimized focus handler - only refresh if data is stale
   useEffect(() => {
@@ -1119,6 +1185,14 @@ const DashboardPage: React.FC = () => {
               style={{ textShadow: '0 0 35px rgba(14, 165, 233, 0.6)' }}
             >
               {mainHeading}
+              {isRefreshing && (
+                <span className="inline-flex items-center gap-2 ml-3 text-sm font-normal text-green-600 dark:text-green-400">
+                  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  <span>Updating...</span>
+                </span>
+              )}
             </h2>
           )}
           
@@ -1126,13 +1200,12 @@ const DashboardPage: React.FC = () => {
           {activeSaves.length > 0 && (
             <div className="px-4 sm:px-0 mb-6">
               <div className="space-y-3">
-                {activeSaves.map((progress) => (
-                  <SaveProgressIndicator
-                    key={progress.id}
-                    progress={progress}
-                    onClose={() => globalProgressTracker.removeSave(progress.id)}
-                  />
-                ))}
+                {/* Only show the most recent save progress indicator */}
+                <SaveProgressIndicator
+                  key={activeSaves[0].id}
+                  progress={activeSaves[0]}
+                  onClose={() => globalProgressTracker.removeSave(activeSaves[0].id)}
+                />
               </div>
             </div>
           )}
@@ -1181,6 +1254,10 @@ const DashboardPage: React.FC = () => {
                   categoryName = categoryMap[catId] || 'Unknown';
                   categoryId = catId;
                 }
+                
+                // Check if this is a newly saved entry
+                const isNewlySaved = newlySavedEntryIds.has(entry.id);
+                
                 return (
                   <div
                     key={entry.id}
@@ -1538,8 +1615,8 @@ const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* Save Notifications */}
-      {notifications.length > 0 && (
+      {/* Save Notifications - Hidden */}
+      {/* {notifications.length > 0 && (
         <div className="fixed top-4 right-4 z-50 space-y-3">
           {notifications.map((notification) => (
             <SaveNotificationToast
@@ -1550,7 +1627,7 @@ const DashboardPage: React.FC = () => {
             />
           ))}
         </div>
-      )}
+      )} */}
     </div>
   );
 };

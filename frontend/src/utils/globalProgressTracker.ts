@@ -29,6 +29,9 @@ Object.values(PROGRESS_EVENTS).forEach(eventType => {
   eventListeners.set(eventType, new Set());
 });
 
+// Verify all event types are properly initialized
+console.log('Global: Initialized event listeners for:', Object.values(PROGRESS_EVENTS));
+
 // Global progress tracking functions
 export const globalProgressTracker = {
   // Start a new save
@@ -193,9 +196,17 @@ export const globalProgressTracker = {
       
       // Return unsubscribe function
       return () => {
-        listeners.delete(callback);
+        try {
+          listeners.delete(callback);
+        } catch (error) {
+          console.warn('Global: Error during unsubscribe:', error);
+        }
       };
     }
+    
+    // Return a no-op function if event type doesn't exist
+    console.warn(`Global: Event type '${eventType}' not found, returning no-op unsubscribe`);
+    return () => {};
   },
 
   // Internal event trigger

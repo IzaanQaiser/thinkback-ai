@@ -74,10 +74,8 @@ export const SaveNotificationProvider: React.FC<SaveNotificationProviderProps> =
     
     // Trigger dashboard refresh for success notifications
     if (notification.type === 'success') {
-      // Small delay to ensure the save operation is complete
-      setTimeout(() => {
-        setShouldRefreshDashboard(true);
-      }, 100);
+      // Immediate refresh for success notifications
+      setShouldRefreshDashboard(true);
     }
     
     // Auto-remove success notifications after 8 seconds
