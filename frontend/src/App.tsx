@@ -4,6 +4,7 @@ import AuthPage from './pages/AuthPage';
 import SignupPage from './pages/SignupPage';
 import SavePage from './pages/SavePage';
 import DashboardPage from './pages/DashboardPage';
+import HomePage from './pages/HomePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 import { SaveNotificationProvider } from './contexts/SaveNotificationContext';
@@ -62,7 +63,7 @@ function App() {
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/terms" element={<TermsPage />} />
-              <Route path="/" element={<Navigate to={currentUser ? "/dashboard" : "/auth"} replace />} />
+              <Route path="/" element={currentUser ? <Navigate to="/dashboard" replace /> : <HomePage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/save" element={<SavePage />} />
@@ -71,7 +72,8 @@ function App() {
               </Route>
             </Routes>
           </div>
-          <Footer />
+          {/* Only show Footer for authenticated routes and other pages */}
+          {currentUser && <Footer />}
         </div>
       </SaveNotificationProvider>
     </Router>
