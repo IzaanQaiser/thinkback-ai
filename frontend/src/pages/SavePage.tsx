@@ -7,11 +7,13 @@ import Input from '../components/Input';
 import Textarea from '../components/Textarea';
 import Button from '../components/Button';
 import Kbd from '../components/Kbd';
+import ErrorFallback from '../components/ErrorFallback';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSaveNotification } from '../contexts/SaveNotificationContext';
 import { createEntry, fetchEntry, fetchCategories, submitAIFeedback } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import globalProgressTracker from '../utils/globalProgressTracker';
+import { validateURL, URLValidationResult } from '../utils/urlValidation';
 
 type SaveStepStatus = 'pending' | 'in_progress' | 'done';
 
@@ -92,6 +94,8 @@ const SaveProgressDisplay: React.FC<SaveProgressDisplayProps> = ({ stepStatuses,
 const SavePage: React.FC = () => {
   const [url, setUrl] = useState('');
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showErrorFallback, setShowErrorFallback] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { theme } = useTheme();
@@ -227,6 +231,19 @@ const SavePage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear any previous errors
+    setError(null);
+    setShowErrorFallback(false);
+    
+    // Validate URL first
+    const urlValidation = validateURL(url);
+    if (!urlValidation.isValid) {
+      setError(urlValidation.error || 'Invalid URL');
+      setShowErrorFallback(true);
+      return;
+    }
+    
     setShowProgress(true);
     
     // Initialize steps based on classification method
@@ -245,7 +262,13 @@ const SavePage: React.FC = () => {
     
     // 1. Authentication
     markStep(0, 'in_progress', progressId);
-    if (!currentUser) return;
+    if (!currentUser) {
+      const authError = 'Authentication required. Please sign in to continue.';
+      setError(authError);
+      setShowErrorFallback(true);
+      setShowProgress(false);
+      return;
+    }
     setSaved(false);
     setLastSavedEntry(null);
     try {
@@ -280,7 +303,10 @@ const SavePage: React.FC = () => {
         markStep(2, 'done', progressId);
         markStep(3, 'in_progress', progressId);
         // 3. AI Pipeline (enrichment)
-        if (!enrichResponse.ok) throw new Error('Failed to enrich entry');
+        if (!enrichResponse.ok) {
+          const errorData = await enrichResponse.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Enrichment failed with status ${enrichResponse.status}`);
+        }
         enrichResult = await enrichResponse.json();
         title = enrichResult.ai.title || '';
         tags = enrichResult.ai.tags || [];
@@ -412,6 +438,18 @@ const SavePage: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 300));
         markStep(2, 'done', progressId);
         markStep(3, 'in_progress', progressId);
+        
+        // Check if scraping failed
+        if (!scrapeResponse.ok) {
+          const errorData = await scrapeResponse.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Scraping failed with status ${scrapeResponse.status}`);
+        }
+        
+        const scrapedData = await scrapeResponse.json();
+        if (!scrapedData.success) {
+          throw new Error(scrapedData.error || 'Failed to scrape content');
+        }
+        
         // 3. Save to Database
         let categoryId = null;
         if (selectedCategoryId === 'new' && newCategoryName.trim()) {
@@ -436,14 +474,8 @@ const SavePage: React.FC = () => {
         }
         
         // Get basic scraped data
-        let scrapedData = {};
-        let title = '';
-        let thumbnail = '';
-        if (scrapeResponse.ok) {
-          scrapedData = await scrapeResponse.json();
-          title = scrapedData.title || '';
-          thumbnail = scrapedData.thumbnail || '';
-        }
+        let title = scrapedData.title || '';
+        let thumbnail = scrapedData.thumbnail || '';
         
         const entryData = {
           url,
@@ -521,21 +553,45 @@ const SavePage: React.FC = () => {
     } catch (error) {
       console.error('[Save] Error:', error);
       
-      // Add error notification
-      addNotification({
-        type: 'error',
-        title: 'Save Failed',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred while saving your content.',
-      });
+      // Determine if this is a critical error that should show the fallback
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while saving your content.';
       
-      // Reset progress state on error to allow retry
-      setShowProgress(false);
+      // Check if it's a critical error (network, server, or scraping issues)
+      const isCriticalError = errorMessage.includes('Failed to fetch') || 
+                             errorMessage.includes('Network') ||
+                             errorMessage.includes('scrape') ||
+                             errorMessage.includes('enrich') ||
+                             errorMessage.includes('500') ||
+                             errorMessage.includes('502') ||
+                             errorMessage.includes('503') ||
+                             errorMessage.includes('504');
       
-      // Clean up global progress tracking on error
-      if (progressId) {
-        globalProgressTracker.failSave(progressId, error instanceof Error ? error.message : 'Unknown error');
-        // Don't call removeSave here - let SaveProgressIndicator handle its own dismissal
-        setSaveProgressId(null);
+      if (isCriticalError) {
+        setError(errorMessage);
+        setShowErrorFallback(true);
+        setShowProgress(false);
+        
+        // Clean up global progress tracking on error
+        if (progressId) {
+          globalProgressTracker.failSave(progressId, errorMessage);
+          setSaveProgressId(null);
+        }
+      } else {
+        // For non-critical errors, still show notification but don't show fallback
+        addNotification({
+          type: 'error',
+          title: 'Save Failed',
+          message: errorMessage,
+        });
+        
+        // Reset progress state on error to allow retry
+        setShowProgress(false);
+        
+        // Clean up global progress tracking on error
+        if (progressId) {
+          globalProgressTracker.failSave(progressId, errorMessage);
+          setSaveProgressId(null);
+        }
       }
     }
   };
@@ -578,6 +634,18 @@ const SavePage: React.FC = () => {
         console.error('Fallback clipboard method also failed:', fallbackError);
       }
     }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    setShowErrorFallback(false);
+    setShowProgress(false);
+    // The form will be ready for a new submission
+  };
+
+  const handleDismissError = () => {
+    setError(null);
+    setShowErrorFallback(false);
   };
 
   const handleFeedbackSubmit = async () => {
@@ -802,6 +870,16 @@ const SavePage: React.FC = () => {
           {/* Save Progress Display - no box styling */}
           <div className="w-full max-w-md flex flex-col items-start">
             <SaveProgressDisplay stepStatuses={stepStatuses} currentStep={currentStep} />
+            
+            {/* Error Fallback - Show when there's a critical error */}
+            {showErrorFallback && error && (
+              <ErrorFallback
+                error={error}
+                onRetry={handleRetry}
+                onDismiss={handleDismissError}
+                showBugReport={true}
+              />
+            )}
             
             {/* Exit Notification - Show when save is in progress */}
             {showProgress && !saved && (

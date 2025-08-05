@@ -7,10 +7,13 @@ import { verifyUserToken } from '../services/api';
 import { mapFirebaseAuthError } from '../utils/errors';
 import { signupQuotes } from '../data/quotes';
 import GoogleIcon from '../components/GoogleIcon';
+import { Check, ExternalLink } from 'lucide-react';
 
 const SignupPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const { signInWithGoogle, getIdToken } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -25,6 +28,13 @@ const SignupPage: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     setError('');
+    
+    // Check if both privacy policy and terms are accepted
+    if (!privacyAccepted || !termsAccepted) {
+      setError('Please accept both the Privacy Policy and Terms of Service to continue.');
+      return;
+    }
+    
     setLoading(true);
     try {
       await signInWithGoogle();
@@ -99,11 +109,62 @@ const SignupPage: React.FC = () => {
 
           {error && <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:bg-red-900/30 dark:border-red-700/50 dark:text-red-300 p-3 rounded-lg mb-6 text-center text-sm flex items-center justify-center space-x-2">{error}</div>}
 
+          {/* Privacy Policy and Terms Checkboxes */}
+          <div className="mb-6 space-y-3">
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => setPrivacyAccepted(!privacyAccepted)}
+                className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                  privacyAccepted
+                    ? 'bg-primary-500 border-primary-500'
+                    : 'border-dark-300 dark:border-dark-600 hover:border-primary-400'
+                }`}
+              >
+                {privacyAccepted && <Check size={12} className="text-white" />}
+              </button>
+              <div className="flex-1 text-sm text-dark-600 dark:text-dark-400">
+                <span>I have read and agree to the </span>
+                <Link
+                  to="/privacy"
+                  state={{ from: '/signup' }}
+                  className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium inline-flex items-center gap-1"
+                >
+                  Privacy Policy
+                  <ExternalLink size={12} />
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => setTermsAccepted(!termsAccepted)}
+                className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                  termsAccepted
+                    ? 'bg-primary-500 border-primary-500'
+                    : 'border-dark-300 dark:border-dark-600 hover:border-primary-400'
+                }`}
+              >
+                {termsAccepted && <Check size={12} className="text-white" />}
+              </button>
+              <div className="flex-1 text-sm text-dark-600 dark:text-dark-400">
+                <span>I have read and agree to the </span>
+                <Link
+                  to="/terms"
+                  state={{ from: '/signup' }}
+                  className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium inline-flex items-center gap-1"
+                >
+                  Terms of Service
+                  <ExternalLink size={12} />
+                </Link>
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-y-3">
             <button
               onClick={handleGoogleSignIn}
-              className="w-full flex justify-center items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white font-bold py-3 px-4 rounded-full focus:outline-none focus:shadow-outline transition-colors duration-200"
-              disabled={loading}
+              className="w-full flex justify-center items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white font-bold py-3 px-4 rounded-full focus:outline-none focus:shadow-outline transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || !privacyAccepted || !termsAccepted}
             >
               <GoogleIcon />
               {loading ? 'Creating Account...' : 'Sign up with Google'}

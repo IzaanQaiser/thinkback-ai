@@ -525,6 +525,11 @@ def create_entry(
     return update_result["entry"]
 
 
+@router.options("/api/entries")
+async def options_entries():
+    """Handle OPTIONS requests for entries endpoint"""
+    return {}
+
 @router.get("/api/entries", response_model=List[Entry])
 def get_user_entries(authorization: Optional[str] = Header(None)):
     """
@@ -896,6 +901,12 @@ def create_category(
     return result["category"]
 
 
+@router.options("/api/categories")
+async def options_categories():
+    """Handle OPTIONS requests for categories endpoint"""
+    return {}
+
+
 @router.get("/api/categories", response_model=List[Category])
 def get_user_categories(authorization: Optional[str] = Header(None)):
     if not authorization:
@@ -1083,9 +1094,19 @@ def enrich_entry(data: dict = Body(...), authorization: str = Header(None)):
     scraper = get_scraper(platform)
     print(f"   🔧 Using scraper: {scraper.__class__.__name__ if scraper else 'None'}")
 
-    scraped_data = scraper.scrape(url) if scraper else {}
-    if scraped_data and "error" in scraped_data:
-        raise HTTPException(status_code=400, detail=f"YouTube scrape error: {scraped_data['error']}")
+    if not scraper:
+        raise HTTPException(status_code=400, detail=f"No scraper available for platform: {platform}")
+
+    try:
+        scraped_data = scraper.scrape(url)
+        if scraped_data and "error" in scraped_data:
+            raise HTTPException(status_code=400, detail=f"Scraping failed: {scraped_data['error']}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"   ❌ Scraping error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to scrape content: {str(e)}")
+    
     print(
         f"   📊 Scraped data keys: {list(scraped_data.keys()) if scraped_data else 'None'}"
     )
@@ -1235,8 +1256,26 @@ def scrape_url(
             "success": False,
             "error": f"No scraper available for platform: {platform}",
         }
-    scraped_data = scraper.scrape(url)
-    return {"success": True, "platform": platform, **scraped_data}
+    
+    try:
+        scraped_data = scraper.scrape(url)
+        
+        # Check if scraping failed
+        if scraped_data and "error" in scraped_data:
+            return {
+                "success": False,
+                "error": scraped_data["error"],
+                "platform": platform
+            }
+        
+        return {"success": True, "platform": platform, **scraped_data}
+    except Exception as e:
+        print(f"❌ Scraping error for {platform}: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Failed to scrape content from {platform}: {str(e)}",
+            "platform": platform
+        }
 
 
 @router.post("/api/cleanup-empty-categories")

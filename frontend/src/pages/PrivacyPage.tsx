@@ -1,9 +1,25 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 const PrivacyPage: React.FC = () => {
+  const location = useLocation();
+  const from = location.state?.from || '/auth';
+
   return (
     <div className="min-h-screen bg-dark-950 text-white">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Back Button */}
+        <div className="mb-6">
+          <Link
+            to={from}
+            className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </Link>
+        </div>
+        
         <h1 className="text-3xl font-bold mb-8 text-center">Privacy Policy</h1>
         
         <div className="space-y-6">

@@ -33,6 +33,24 @@ const FeedbackPage: React.FC = () => {
   useEffect(() => {
     document.title = 'thinkback - Feedback';
     setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+    
+    // Check for pending bug report from error fallback
+    const pendingBugReport = localStorage.getItem('pendingBugReport');
+    if (pendingBugReport) {
+      try {
+        const bugReport = JSON.parse(pendingBugReport);
+        setFeedbackType('bug');
+        setTitle(bugReport.title || 'Save Process Error');
+        setDescription(bugReport.description || '');
+        setPriority(bugReport.priority || 'high');
+        
+        // Clear the pending bug report
+        localStorage.removeItem('pendingBugReport');
+      } catch (error) {
+        console.error('Failed to parse pending bug report:', error);
+        localStorage.removeItem('pendingBugReport');
+      }
+    }
   }, []);
 
   useEffect(() => {
