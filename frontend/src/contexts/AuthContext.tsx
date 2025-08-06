@@ -131,14 +131,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const handleRedirectResult = async () => {
       try {
-        console.log('Checking for redirect result...');
+        console.log('🔍 Checking for redirect result...');
         const result = await getRedirectResult(auth);
         if (result) {
           console.log('✅ Redirect result received:', result.user.email);
           console.log('User signed in successfully:', result.user);
           // The user is now signed in, onAuthStateChanged will handle the state update
         } else {
-          console.log('No redirect result found');
+          console.log('ℹ️ No redirect result found - user may not have completed OAuth flow');
         }
       } catch (error) {
         console.error('❌ Error handling redirect result:', error);
@@ -146,8 +146,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Add a small delay to ensure Firebase is fully initialized
-    const timer = setTimeout(handleRedirectResult, 100);
+    // Try immediately, then retry after a short delay to handle timing issues
+    handleRedirectResult();
+    const timer = setTimeout(handleRedirectResult, 500);
     return () => clearTimeout(timer);
   }, []);
 
