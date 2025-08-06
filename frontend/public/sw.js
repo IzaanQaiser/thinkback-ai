@@ -35,39 +35,18 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Fetch event
+// Single consolidated fetch event handler
 self.addEventListener('fetch', (event) => {
-  // Don't cache HTML files to ensure fresh content
-  if (event.request.url.includes('.html') || event.request.url.endsWith('/')) {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          return caches.match(event.request);
-        })
-    );
+  const url = new URL(event.request.url);
+  
+  // CRITICAL: Completely bypass service worker for Firebase auth routes
+  if (url.pathname.includes('/__/auth/')) {
+    // Let Firebase handle these requests completely without any service worker interference
     return;
   }
 
-  // Don't cache Firebase auth handler routes to prevent authentication issues
-  if (event.request.url.includes('/__/auth/handler') || 
-      event.request.url.includes('/__/auth/callback') ||
-      event.request.url.includes('/__/auth/redirect')) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
-  );
-});
-
-// Handle share target
-self.addEventListener('fetch', (event) => {
-  if (event.request.method === 'POST' && event.request.url.includes('/save')) {
+  // Handle share target POST requests
+  if (event.request.method === 'POST' && url.pathname.includes('/save')) {
     event.respondWith(
       (async () => {
         try {
@@ -100,7 +79,28 @@ self.addEventListener('fetch', (event) => {
         }
       })()
     );
+    return;
   }
+
+  // Don't cache HTML files to ensure fresh content
+  if (url.pathname.includes('.html') || url.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // Default caching behavior for other requests
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // Return cached version or fetch from network
+        return response || fetch(event.request);
+      })
+  );
 });
 
 // Handle app install

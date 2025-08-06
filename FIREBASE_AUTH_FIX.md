@@ -1,65 +1,84 @@
 # Firebase Authentication Fix for Custom Domains
 
 ## Problem
-Firebase Authentication with `signInWithPopup` was failing on custom domains (https://thinkback.ca) while working on localhost and firebaseapp.com. The popup would open, redirect to `/__/auth/handler`, and then go blank without completing the authentication.
+Firebase Authentication with `signInWithRedirect` was failing on custom domains (https://thinkback.ca) with a blank screen at `/__/auth/handler` and console error:
+```
+Refused to display 'https://thinkback.ca/' in a frame because it set 'X-Frame-Options' to 'deny'.
+```
 
 ## Root Cause
-1. **Popup Authentication Issues**: `signInWithPopup` has known compatibility issues with custom domains, especially when service workers are involved
-2. **Service Worker Interference**: The service worker was potentially caching or interfering with Firebase auth handler routes
-3. **Redirect Flow**: Custom domains work better with redirect-based authentication
+1. **X-Frame-Options Header**: Global `X-Frame-Options: DENY` header was blocking Firebase's auth handler iframe
+2. **Service Worker Interference**: Multiple fetch event listeners were still interfering with auth routes
+3. **Redirect Flow**: Firebase needs to load its auth handler in an iframe, which was being blocked
 
 ## Solution Implemented
 
-### 1. Switch from Popup to Redirect Authentication
-- **File**: `frontend/src/contexts/AuthContext.tsx`
-- **Changes**:
-  - Replaced `signInWithPopup` with `signInWithRedirect`
-  - Added `getRedirectResult` import and handling
-  - Added redirect result handling in `useEffect`
-
-### 2. Update Service Worker
+### 1. Fixed Service Worker Interference
 - **File**: `frontend/public/sw.js`
 - **Changes**:
-  - Added exclusion for Firebase auth handler routes (`/__/auth/handler`, `/__/auth/callback`, `/__/auth/redirect`)
-  - Prevents service worker from interfering with authentication flow
+  - Consolidated multiple fetch event listeners into a single handler
+  - Added early return for `/__/auth/` routes to completely bypass service worker
+  - Used `url.pathname.includes('/__/auth/')` for more precise matching
 
-### 3. Update Authentication Pages
-- **Files**: `frontend/src/pages/AuthPage.tsx`, `frontend/src/pages/SignupPage.tsx`
+### 2. Fixed X-Frame-Options Header
+- **File**: `frontend/public/_headers`
 - **Changes**:
-  - Removed immediate navigation after sign-in
-  - Let redirect flow handle the authentication process
-  - Updated error handling for redirect-based flow
+  - Added specific rule for `/__/auth/*` routes to use `X-Frame-Options: SAMEORIGIN`
+  - This allows Firebase's auth handler iframe to load properly
+  - Maintains security for other routes with `X-Frame-Options: DENY`
 
-### 4. Enhanced App Component
+### 3. Enhanced Redirect Result Handling
+- **File**: `frontend/src/contexts/AuthContext.tsx`
+- **Changes**:
+  - Added better debugging with console logs
+  - Added timeout to ensure Firebase is fully initialized
+  - Improved error handling for redirect results
+
+### 4. Enhanced App Navigation
 - **File**: `frontend/src/App.tsx`
 - **Changes**:
-  - Added redirect result handling
-  - Automatic navigation to dashboard after successful authentication
-  - Token verification after redirect
-
-### 5. Improved Error Handling
-- **File**: `frontend/src/utils/errors.ts`
-- **Changes**:
-  - Added error mappings for redirect-based authentication errors
-  - Better user feedback for various authentication scenarios
+  - Added comprehensive debugging for authentication flow
+  - Enhanced navigation logic to handle redirect completion
+  - Better error handling and user feedback
 
 ## How It Works Now
 
 1. **User clicks "Sign in with Google"**
 2. **Redirect to Google OAuth**: User is redirected to Google's OAuth page
 3. **Google redirects back**: After authentication, Google redirects to your domain
-4. **Firebase handles the redirect**: Firebase processes the authentication result
-5. **App detects the result**: `getRedirectResult()` in AuthContext processes the result
-6. **User state updates**: `onAuthStateChanged` triggers and updates the user state
-7. **Navigation occurs**: App component detects the authenticated user and navigates to dashboard
+4. **Firebase loads auth handler**: Firebase loads `/__/auth/handler` in an iframe (now allowed)
+5. **Service worker bypasses**: Service worker completely ignores auth routes
+6. **App detects the result**: `getRedirectResult()` processes the authentication
+7. **User state updates**: `onAuthStateChanged` triggers and updates the user state
+8. **Navigation occurs**: App component detects the authenticated user and navigates to dashboard
+
+## Key Technical Fixes
+
+### Service Worker Fix
+```javascript
+// CRITICAL: Completely bypass service worker for Firebase auth routes
+if (url.pathname.includes('/__/auth/')) {
+  // Let Firebase handle these requests completely without any service worker interference
+  return;
+}
+```
+
+### Headers Fix
+```nginx
+# Exclude Firebase auth routes from X-Frame-Options to allow OAuth handshake
+/__/auth/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+```
 
 ## Benefits
 
+- ✅ **Fixes X-Frame-Options error**: Firebase auth handler can now load in iframe
 - ✅ **Works on all environments**: localhost, firebaseapp.com, pages.dev, thinkback.ca
+- ✅ **Service worker compatible**: Completely bypasses auth routes
+- ✅ **Better debugging**: Comprehensive console logging for troubleshooting
 - ✅ **More reliable**: Redirect-based auth is more stable than popup-based auth
-- ✅ **Better UX**: No popup blockers or window focus issues
-- ✅ **Service worker compatible**: Properly excludes auth routes from caching
-- ✅ **Error handling**: Comprehensive error messages for various scenarios
 
 ## Testing Checklist
 
@@ -74,6 +93,8 @@ Firebase Authentication with `signInWithPopup` was failing on custom domains (ht
 - [ ] Test with incognito/private browsing
 - [ ] Test with popup blockers enabled
 - [ ] Test with service worker enabled/disabled
+- [ ] Verify no X-Frame-Options errors in console
+- [ ] Verify successful navigation to dashboard after sign-in
 
 ## Environment Variables Required
 
@@ -114,19 +135,28 @@ Verify these settings in Firebase Console:
 3. **Clear browser cache** and try again
 4. **Check service worker** - disable it temporarily to test
 5. **Verify domain settings** in Firebase Console
+6. **Check network tab** for failed requests to `/__/auth/handler`
 
 ### Common Issues:
+- **"Refused to display in frame"**: X-Frame-Options header still blocking
 - **"auth/redirect-cancelled-by-user"**: User cancelled the sign-in
 - **"auth/redirect-operation-pending"**: Another sign-in is in progress
 - **"auth/network-request-failed"**: Network connectivity issues
 - **"auth/operation-not-allowed"**: Google sign-in not enabled in Firebase
 
+### Debug Steps:
+1. Open browser console and look for:
+   - `✅ Redirect result received:` - indicates successful auth
+   - `🔄 User authenticated, handling redirect...` - indicates user state update
+   - `✅ Got ID token, verifying with backend...` - indicates token retrieval
+   - `🔄 Navigating from /auth to /dashboard` - indicates successful navigation
+
 ## Rollback Plan
 
 If issues occur, you can rollback by:
-1. Reverting the AuthContext changes to use `signInWithPopup`
-2. Removing the redirect result handling
-3. Reverting the service worker changes
-4. Updating the authentication pages to handle popup flow
+1. Reverting the service worker changes in `sw.js`
+2. Reverting the headers changes in `_headers`
+3. Reverting the AuthContext changes to use `signInWithPopup`
+4. Removing the redirect result handling
 
-However, the redirect-based approach is more reliable and recommended for production use. 
+However, the redirect-based approach with proper headers is more reliable and recommended for production use. 

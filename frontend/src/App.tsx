@@ -51,18 +51,28 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const handleAuthRedirect = async () => {
       if (currentUser) {
+        console.log('🔄 User authenticated, handling redirect...');
         try {
           const idToken = await getIdToken();
           if (idToken) {
+            console.log('✅ Got ID token, verifying with backend...');
             await verifyUserToken(idToken);
-            // Navigate to dashboard if we're on auth pages
-            if (window.location.pathname === '/auth' || window.location.pathname === '/signup') {
+            console.log('✅ Token verified, checking navigation...');
+            
+            // Navigate to dashboard if we're on auth pages or if we just completed a redirect
+            const currentPath = window.location.pathname;
+            if (currentPath === '/auth' || currentPath === '/signup' || currentPath === '/') {
+              console.log(`🔄 Navigating from ${currentPath} to /dashboard`);
               navigate('/dashboard');
             }
+          } else {
+            console.log('⚠️ No ID token available');
           }
         } catch (error) {
-          console.error('Error verifying user token after redirect:', error);
+          console.error('❌ Error verifying user token after redirect:', error);
         }
+      } else {
+        console.log('👤 No current user');
       }
     };
 
