@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Headers Test</title>
+</head>
+<body>
+    <h1>Headers Test Page</h1>
+    <p>This page is used to test header configuration.</p>
+    <script>
+        // Test if we can access headers
+        fetch('/__/auth/handler')
+            .then(response => {
+                console.log('Auth handler response status:', response.status);
+                console.log('Auth handler X-Frame-Options:', response.headers.get('X-Frame-Options'));
+            })
+            .catch(error => {
+                console.log('Auth handler fetch error:', error);
+            });
+    </script>
+</body>
+</html> 
