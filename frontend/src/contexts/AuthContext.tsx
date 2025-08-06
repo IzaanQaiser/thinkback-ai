@@ -8,7 +8,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GithubAuthProvider,
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -56,12 +57,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    // Use redirect instead of popup for better compatibility with custom domains
+    await signInWithRedirect(auth, provider);
   };
 
   const signInWithGitHub = async () => {
     const provider = new GithubAuthProvider();
-    await signInWithPopup(auth, provider);
+    // Use redirect instead of popup for better compatibility with custom domains
+    await signInWithRedirect(auth, provider);
   };
 
   const deleteAccount = async (password?: string) => {
@@ -122,6 +125,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return unsubscribe;
+  }, []);
+
+  // Handle redirect result on component mount
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          console.log('Redirect result received:', result.user.email);
+          // The user is now signed in, onAuthStateChanged will handle the state update
+        }
+      } catch (error) {
+        console.error('Error handling redirect result:', error);
+      }
+    };
+
+    handleRedirectResult();
   }, []);
 
   const value = {

@@ -14,9 +14,11 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import Footer from './components/Footer';
+import { verifyUserToken } from './services/api';
 
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
+  const { currentUser, getIdToken } = useAuth();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -44,6 +46,28 @@ const AppContent: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [navigate]);
+
+  // Handle authentication redirect result
+  useEffect(() => {
+    const handleAuthRedirect = async () => {
+      if (currentUser) {
+        try {
+          const idToken = await getIdToken();
+          if (idToken) {
+            await verifyUserToken(idToken);
+            // Navigate to dashboard if we're on auth pages
+            if (window.location.pathname === '/auth' || window.location.pathname === '/signup') {
+              navigate('/dashboard');
+            }
+          }
+        } catch (error) {
+          console.error('Error verifying user token after redirect:', error);
+        }
+      }
+    };
+
+    handleAuthRedirect();
+  }, [currentUser, getIdToken, navigate]);
 
   return null;
 }

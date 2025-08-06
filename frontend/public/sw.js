@@ -48,6 +48,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Don't cache Firebase auth handler routes to prevent authentication issues
+  if (event.request.url.includes('/__/auth/handler') || 
+      event.request.url.includes('/__/auth/callback') ||
+      event.request.url.includes('/__/auth/redirect')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

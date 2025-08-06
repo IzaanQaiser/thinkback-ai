@@ -37,15 +37,12 @@ const AuthPage: React.FC = () => {
     setLoading(true);
     try {
       await signInWithGoogle();
-      const idToken = await getIdToken();
-      if (!idToken) throw new Error("Could not retrieve ID token from Google Sign-In.");
-      await verifyUserToken(idToken);
-      navigate('/dashboard');
+      // Don't navigate here - the redirect will handle the flow
+      // The AuthContext will handle the redirect result and onAuthStateChanged will trigger navigation
     } catch (err) {
       const error = err as Error;
       console.error("Google Sign-in failed:", error);
       setError(mapFirebaseAuthError(error.message));
-    } finally {
       setLoading(false);
     }
   };
