@@ -42,6 +42,7 @@ self.addEventListener('fetch', (event) => {
   // CRITICAL: Completely bypass service worker for Firebase auth routes
   if (url.pathname.includes('/__/auth/')) {
     // Let Firebase handle these requests completely without any service worker interference
+    console.log('🔧 Service worker bypassing auth route:', url.pathname);
     return;
   }
 

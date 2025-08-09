@@ -1,19 +1,16 @@
-# Firebase auth routes - must be SAMEORIGIN for OAuth redirects to work
-# Use Cloudflare-specific headers to prevent duplicates
+# Firebase auth routes - single rule to avoid duplicates
 /__/auth/*
   X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  CF-Cache-Status: BYPASS
 
-# Static assets with caching
+# All other routes (excluding auth routes)
 /assets/*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Cache-Control: public, max-age=31536000, immutable
 
-# JavaScript files
 /*.js
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
@@ -21,7 +18,6 @@
   Content-Type: application/javascript
   Cache-Control: public, max-age=31536000, immutable
 
-# CSS files
 /*.css
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
@@ -29,7 +25,6 @@
   Content-Type: text/css
   Cache-Control: public, max-age=31536000, immutable
 
-# HTML files (excluding auth routes which are handled above)
 /*.html
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
@@ -40,7 +35,6 @@
   Expires: 0
   CF-Cache-Status: BYPASS
 
-# Main index.html
 /index.html
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
@@ -51,13 +45,12 @@
   Expires: 0
   CF-Cache-Status: BYPASS
 
-# Root domain and all other routes - DENY for security
+# Explicit rules for main pages
 /
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 
-# Specific page routes
 /auth
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff

@@ -66,6 +66,103 @@ def get_best_thumbnail_url(video_id: str) -> str:
 
 
 class YouTubeScraper(BaseScraper):
+    def _fallback_scrape(self, url: str, video_id: str, result: dict) -> dict:
+        """
+        Fallback method when oEmbed fails with 401 error.
+        Uses direct YouTube page scraping with minimal data extraction.
+        """
+        print("   🔧 Starting fallback scraping method...")
+        
+        try:
+            # Try to get basic video information from YouTube page
+            youtube_url = f"https://www.youtube.com/watch?v={video_id}"
+            print(f"   📡 Requesting YouTube page: {youtube_url}")
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            
+            response = requests.get(youtube_url, headers=headers, timeout=15)
+            print(f"   📊 YouTube page status: {response.status_code}")
+            
+            if response.status_code == 200:
+                page_content = response.text
+                
+                # Try to extract title from page content
+                title_match = re.search(r'"title":"([^"]+)"', page_content)
+                if title_match:
+                    # Decode JSON-escaped characters
+                    title = title_match.group(1).replace('\\u0026', '&').replace('\\"', '"')
+                    result["title"] = title
+                    print(f"   📝 Extracted title: {title}")
+                else:
+                    # Fallback: generate a basic title from video ID
+                    result["title"] = f"YouTube Video {video_id}"
+                    print(f"   📝 Using fallback title: {result['title']}")
+                
+                # Try to extract channel name
+                channel_match = re.search(r'"author":"([^"]+)"', page_content)
+                if not channel_match:
+                    channel_match = re.search(r'"ownerChannelName":"([^"]+)"', page_content)
+                if channel_match:
+                    channel = channel_match.group(1).replace('\\u0026', '&').replace('\\"', '"')
+                    result["channel"] = channel
+                    print(f"   👤 Extracted channel: {channel}")
+                else:
+                    result["channel"] = "Unknown Channel"
+                    print(f"   👤 Using fallback channel: {result['channel']}")
+                
+                # Get thumbnail using our existing method
+                result["thumbnail"] = get_best_thumbnail_url(video_id)
+                print(f"   🖼️ Thumbnail: {result['thumbnail']}")
+                
+                # Set basic metadata for fallback
+                result["metadata"] = {
+                    "provider_name": "YouTube",
+                    "provider_url": "https://www.youtube.com/",
+                    "fallback_method": True,
+                    "extracted_from": "page_scraping"
+                }
+                
+                print(f"   ✅ Fallback scraping completed successfully")
+                print(f"   🎯 Fallback result:")
+                print(f"      Title: {result.get('title', 'N/A')}")
+                print(f"      Channel: {result.get('channel', 'N/A')}")
+                print(f"      Type: {result.get('type', 'N/A')}")
+                print(f"      Thumbnail: {'✅' if result.get('thumbnail') else '❌'}")
+                
+                return result
+            else:
+                print(f"   ❌ YouTube page request failed with status {response.status_code}")
+                # Return basic result with video ID as title
+                result["title"] = f"YouTube Video {video_id}"
+                result["channel"] = "Unknown Channel"
+                result["thumbnail"] = get_best_thumbnail_url(video_id)
+                result["metadata"] = {
+                    "provider_name": "YouTube",
+                    "provider_url": "https://www.youtube.com/",
+                    "fallback_method": True,
+                    "extracted_from": "minimal_fallback"
+                }
+                print(f"   ⚠️ Using minimal fallback data")
+                return result
+                
+        except Exception as e:
+            print(f"   ❌ Fallback method failed: {str(e)}")
+            # Return minimal result to avoid complete failure
+            result["title"] = f"YouTube Video {video_id}"
+            result["channel"] = "Unknown Channel"
+            result["thumbnail"] = get_best_thumbnail_url(video_id)
+            result["metadata"] = {
+                "provider_name": "YouTube",
+                "provider_url": "https://www.youtube.com/",
+                "fallback_method": True,
+                "extracted_from": "error_fallback",
+                "error": str(e)
+            }
+            print(f"   ⚠️ Using minimal error fallback data")
+            return result
+
     def scrape(self, url: str) -> dict:
         """
         Simple YouTube content scraping using only oEmbed API.
@@ -139,17 +236,23 @@ class YouTubeScraper(BaseScraper):
             else:
                 print(f"   ❌ oEmbed failed with status {response.status_code}")
                 print(f"   📄 Response content: {response.text[:200]}...")
-                return {"error": f"oEmbed API failed with status {response.status_code}"}
+                
+                # For 401 errors, try fallback method instead of returning error
+                if response.status_code == 401:
+                    print("   🔄 oEmbed returned 401 (Unauthorized), attempting fallback method...")
+                    return self._fallback_scrape(url, video_id, result)
+                else:
+                    return {"error": f"oEmbed API failed with status {response.status_code}"}
                 
         except requests.exceptions.Timeout:
-            print(f"   ❌ oEmbed request timed out")
-            return {"error": "oEmbed request timed out"}
+            print(f"   ❌ oEmbed request timed out, trying fallback...")
+            return self._fallback_scrape(url, video_id, result)
         except requests.exceptions.RequestException as e:
-            print(f"   ❌ oEmbed request failed: {str(e)}")
-            return {"error": f"oEmbed request failed: {str(e)}"}
+            print(f"   ❌ oEmbed request failed: {str(e)}, trying fallback...")
+            return self._fallback_scrape(url, video_id, result)
         except json.JSONDecodeError as e:
-            print(f"   ❌ Failed to parse oEmbed JSON response: {str(e)}")
-            return {"error": f"Invalid JSON response from oEmbed API"}
+            print(f"   ❌ Failed to parse oEmbed JSON response: {str(e)}, trying fallback...")
+            return self._fallback_scrape(url, video_id, result)
         except Exception as e:
-            print(f"   ❌ Unexpected error during oEmbed request: {str(e)}")
-            return {"error": f"Unexpected error: {str(e)}"}
+            print(f"   ❌ Unexpected error during oEmbed request: {str(e)}, trying fallback...")
+            return self._fallback_scrape(url, video_id, result)
