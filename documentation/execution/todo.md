@@ -1,6 +1,7 @@
 ### things i need to do (near-future + major):
 - figure out firebase auth
 - tiktok on mobile saving
+- closing app/bookmark during save
 - instagram entry opening on mobile
 - major defects in firebase report
 - make test plan
