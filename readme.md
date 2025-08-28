@@ -1,5 +1,7 @@
  # thinkback
 
+ note: this repository needs to be cleaned fully. it is a mess right now
+
 This repo follows my **Ideas-to-Apps** system to turn ideas into full MVPs using ChatGPT as co-founder and CTO.
 
 ## Key Docs
