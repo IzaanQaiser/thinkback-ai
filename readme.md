@@ -1,6 +1,6 @@
  # thinkback
 
- note: this repository needs to be cleaned fully. it is a mess right now
+ note: this repository needs to be cleaned fully. it is a mess right now. tomorrow hopefully
 
 This repo follows my **Ideas-to-Apps** system to turn ideas into full MVPs using ChatGPT as co-founder and CTO.
 
