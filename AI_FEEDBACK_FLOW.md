@@ -8,7 +8,7 @@ When you submit AI feedback in Thinkback, it triggers a comprehensive data colle
 
 ### 1. **User Submits Feedback** (Frontend)
 
-When you click "Submit Feedback" on the save page:
+When you click "Submit Feedback" on the save 
 
 ```typescript
 const feedback = {
