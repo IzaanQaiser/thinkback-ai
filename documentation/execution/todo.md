@@ -1,3 +1,11 @@
+## EFFECTIVE IMMEDIATELY
+- plan co-op prep projects
+- Parse through saved jobs and find out 3 best projects to do (not including thinkback)
+- figure out why thinkback login is not working
+- clean up thinkback documentation
+- 
+
+
 ### things i need to do (near-future + major):
 - figure out firebase auth
 - tiktok on mobile saving
