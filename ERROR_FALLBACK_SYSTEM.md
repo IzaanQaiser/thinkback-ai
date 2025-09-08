@@ -2,9 +2,7 @@
 
 ## Overview
 
-This document describes the comprehensive error fallback system implemented for the save process in Thinkback. The system provides user-friendly error handling for both invalid URLs and critical workflow errors.
-
-## Components
+delete 
 
 ### 1. URL Validation (`frontend/src/utils/urlValidation.ts`)
 
