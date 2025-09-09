@@ -1,6 +1,6 @@
  # thinkback
 
- note: this repository needs to be cleaned fully. it is a mess right now. tomorrow hopefully. SOON IN SHA ALLAH
+ note: this repository needs to be cleaned fully. it is a mess right now. tomorrow hopefully. SOON IN SHA ALLAH. thinkback, clear, wwscraper, project 4. we going crazy in sha Allah
 
 This repo follows my **Ideas-to-Apps** system to turn ideas into full MVPs using ChatGPT as co-founder and CTO.
 
