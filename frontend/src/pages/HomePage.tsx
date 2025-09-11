@@ -51,15 +51,17 @@ const HomePage: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
-  const SignInForm = ({ className = '' }: { className?: string }) => (
+  const WaitlistForm = ({ className = '' }: { className?: string }) => (
     <div className={`flex flex-col sm:flex-row gap-3 max-w-md mx-auto justify-center items-center ${className}`}>
-      <Link
-        to="/auth"
+      <a
+        href="https://tally.so/r/wzBkJk"
+        target="_blank"
+        rel="noopener noreferrer"
         className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2 min-w-[120px] text-center shadow-lg hover:shadow-xl hover:shadow-blue-500/25 hover:scale-105"
       >
-        Sign In
+        Join Waitlist
         <ArrowRight className="w-4 h-4" />
-      </Link>
+      </a>
     </div>
   );
 
@@ -119,12 +121,14 @@ const HomePage: React.FC = () => {
           <nav className="flex items-center gap-6 w-full justify-end">
             <a href="#features" className="hidden md:inline text-slate-300 hover:text-white transition-colors duration-150 ease-out text-sm">Features</a>
             <a href="#how-it-works" className="hidden md:inline text-slate-300 hover:text-white transition-colors duration-150 ease-out text-sm">How it works</a>
-            <Link
-              to="/auth"
+            <a
+              href="https://tally.so/r/wzBkJk"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold transition-colors duration-150 ease-out text-base shadow-md text-white text-center whitespace-nowrap"
             >
-              Sign In
-            </Link>
+              Join Waitlist
+            </a>
           </nav>
         </div>
       </header>
@@ -142,16 +146,16 @@ const HomePage: React.FC = () => {
             Your personal AI vault for capturing and rediscovering the content that inspires you. Save from anywhere, find it when you need it.
           </p>
           
-          <SignInForm className="mb-12" />
+          <WaitlistForm className="mb-12" />
           
           <div>
             <p className="text-sm text-slate-400">
-              Turn your
+              Join the
+              <span className="font-semibold text-blue-400 mx-1">waitlist</span>
+              and turn your
               <span className="font-semibold text-purple-400 mx-1">doomscrolling</span>
               into a
-              <span className="font-semibold text-green-400 mx-1">productive task</span>
-              with
-              <span className="font-semibold text-blue-400 mx-1">thinkback</span>.
+              <span className="font-semibold text-green-400 mx-1">productive task</span>.
             </p>
           </div>
         </div>
@@ -308,10 +312,10 @@ const HomePage: React.FC = () => {
             Ready to build your knowledge vault?
           </h2>
           <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
-            Start organizing your content today and never lose track of great ideas again.
+            Join the waitlist and be among the first to experience the future of content organization.
           </p>
           
-          <SignInForm className="mb-8" />
+          <WaitlistForm className="mb-8" />
           
           <div className="flex justify-center gap-6 text-sm">
             <Link to="/privacy" className="text-slate-400 hover:text-white transition-colors">
