@@ -1,11 +1,9 @@
 <div align="center">
   <img src="frontend/public/thinkback-logo.png" alt="thinkback logo" width="200" height="200">
   <h1>thinkback</h1>
+  <p>Make your doomscrolling productive. Introducing your new AI-Powered Personal Memory System</p>
 </div>
 
-# 🧠 thinkback
-
-> **Make your doomscrolling productive.** | *AI-Powered Personal Memory System*
 
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
