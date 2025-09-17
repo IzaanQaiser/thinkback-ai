@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/public/thinkback-logo.png" alt="thinkback logo" width="120" height="120" style="border-radius: 20px;">
+  <img src="frontend/public/thinkback-logo.png" alt="thinkback logo" width="200" height="200" style="border-radius: 20px;">
   <h1 style="margin: 20px 0 10px 0; font-size: 2.5em; font-weight: 700; color: #2d3748;">thinkback</h1>
   <p style="font-size: 1.2em; color: #4a5568; margin: 0 0 30px 0; max-width: 600px; line-height: 1.5;">Make your doomscrolling productive with AI-powered personal memory</p>
 </div>
