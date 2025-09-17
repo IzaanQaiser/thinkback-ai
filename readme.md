@@ -1,3 +1,8 @@
+<div align="center">
+  <img src="frontend/public/thinkback-logo.png" alt="thinkback logo" width="200" height="200">
+  <h1>thinkback</h1>
+</div>
+
 # 🧠 thinkback
 
 > **Make your doomscrolling productive.** | *AI-Powered Personal Memory System*
