@@ -31,7 +31,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/thinkback-backend/thinkback-backend-production:${{ github.sha }} .
+          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/thinkback-backend/thinkback-backend-production:${{ github.sha }} -f deployment/Dockerfile .
           docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/thinkback-backend/thinkback-backend-production:${{ github.sha }}
 
       - name: Deploy to Cloud Run (production)
