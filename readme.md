@@ -1,6 +1,6 @@
-# 🧠 Thinkback.ai
+# 🧠 thinkback
 
-> **AI-Powered Personal Memory System** | *Never lose meaningful content again*
+> **Make your doomscrolling productive.** | *AI-Powered Personal Memory System*
 
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -10,9 +10,9 @@
 
 ---
 
-## 🚀 **What is Thinkback?**
+## 🚀 **What is thinkback?**
 
-Thinkback.ai is an intelligent content management system that transforms how you save, organize, and retrieve meaningful content from social media. Instead of losing valuable insights in endless bookmarks, Thinkback uses AI to understand context, emotion, and relevance—surfacing the right content when you need it most.
+thinkback is an intelligent content management system that transforms how you save, organize, and retrieve meaningful content from social media. Instead of losing valuable insights in endless bookmarks, thinkback uses AI to understand context, emotion, and relevance—surfacing the right content when you need it most.
 
 ### **The Problem We Solve**
 - **Content Overload**: 90% of meaningful content gets lost in the noise
@@ -229,17 +229,18 @@ python -m uvicorn backend.main:app --reload  # Backend (port 8000)
 
 ## 📄 **License**
 
-This project is proprietary and confidential. All rights reserved by Thinkback.ai.
+All rights reserved by thinkback.
 
 ---
 
 ## 🤝 **Contact**
 
-**Built with ❤️ by [Your Name]**
+**Built with ❤️ by Izaan Qaiser**
 
-- **Email**: your.email@example.com
-- **LinkedIn**: [Your LinkedIn Profile]
-- **Portfolio**: [Your Portfolio Website]
+- [Email](mailto:iqvention@gmail.com)
+- [LinkedIn](https://www.linkedin.com/in/izaanq/)
+- [Website](https://izaanqaiser.github.io/personal-website/)
+- [GitHub](https://github.com/IzaanQaiser)
 
 ---
 
