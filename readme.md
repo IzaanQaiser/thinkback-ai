@@ -37,8 +37,17 @@ graph TD
     C --> D[GPT-4 Classification Engine]
     D --> E[Smart Categorization & Tagging]
     E --> F[Store in Personal Vault]
-    F --> G[Intelligent Search & Retrieval]
+    
+    I[Real World Events] --> G[Intelligent Search & Retrieval]
+    J[User Schedule] --> G
+    K[User Journal Entries] --> G
+    L[Content Consumption Patterns] --> G
+    M[Location & Time Context] --> G
+    N[Social Connections] --> G
+    F --> G
+    
     G --> H[Context-Aware Recommendations]
+    H --> O[Smart Notifications]
 ```
 
 ### **Core Workflow**
@@ -47,6 +56,23 @@ graph TD
 3. **Organize**: Content is intelligently organized by topic, emotion, and platform
 4. **Retrieve**: Find content through natural language search or emotional context
 5. **Reflect**: Get personalized recommendations based on your patterns
+
+### **🧠 Intelligent Notification System**
+
+thinkback's AI analyzes multiple data sources to deliver perfectly timed, contextually relevant content recommendations:
+
+#### **Primary Data Sources**
+- **🌍 Real World Events**: Politics, finance, breaking news, market trends
+- **📅 User Schedule**: Secure calendar integration for optimal timing
+- **📝 User Journal Entries**: Private reflections and mood patterns
+
+#### **Additional Context Sources**
+- **📊 Content Consumption Patterns**: Learning from your viewing habits
+- **📍 Location & Time Context**: Geographic and temporal relevance
+- **👥 Social Connections**: Content shared by your network
+- **🎯 Interest Evolution**: Tracking how your interests change over time
+- **⚡ Current Focus Areas**: Active projects and learning goals
+- **🔄 Content Freshness**: Ensuring recommendations stay current and relevant
 
 ---
 
