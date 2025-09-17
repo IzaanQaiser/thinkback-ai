@@ -9,7 +9,7 @@ echo "🚀 Starting ThinkBack AI deployment..."
 
 # Check if we're in the right directory
 if [ ! -f "Dockerfile" ]; then
-    echo "❌ Error: Dockerfile not found. Please run this script from the project root."
+    echo "❌ Error: Dockerfile not found. Please run this script from the deployment directory."
     exit 1
 fi
 
