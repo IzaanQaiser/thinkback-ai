@@ -200,7 +200,7 @@ python -m uvicorn backend.main:app --reload  # Backend (port 8000)
 - **Engagement**: 60% increase in content engagement
 
 ### **Technical Excellence**
-- **Scalability**: Handles 10,000+ concurrent users
+- **Scalability**: Capable of handling 10,000+ concurrent users
 - **Reliability**: 99.9% uptime
 - **Performance**: Sub-second response times
 - **Security**: Enterprise-grade security
