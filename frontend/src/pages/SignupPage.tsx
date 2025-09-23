@@ -37,13 +37,22 @@ const SignupPage: React.FC = () => {
     
     setLoading(true);
     try {
-      await signInWithGoogle();
-      // Don't navigate here - the redirect will handle the flow
-      // The AuthContext will handle the redirect result and onAuthStateChanged will trigger navigation
+      const result = await signInWithGoogle();
+      console.log('✅ Google Sign-in successful:', result.user.email);
+      
+      // Verify the user token with the backend
+      const idToken = await getIdToken();
+      if (idToken) {
+        console.log('✅ Got ID token, verifying with backend...');
+        await verifyUserToken(idToken);
+        console.log('✅ Token verified, navigating to dashboard...');
+        navigate('/dashboard');
+      }
     } catch (err) {
       const error = err as Error;
       console.error("Google Sign-in failed:", error);
       setError(mapFirebaseAuthError(error.message));
+    } finally {
       setLoading(false);
     }
   };

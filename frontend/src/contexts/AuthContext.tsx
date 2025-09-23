@@ -8,8 +8,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   GithubAuthProvider,
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -57,18 +56,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    // Use redirect instead of popup for better compatibility with custom domains
-    // Add custom parameters to ensure proper domain handling
+    // Use popup for better reliability and user experience
     provider.setCustomParameters({
       prompt: 'select_account'
     });
-    await signInWithRedirect(auth, provider);
+    return await signInWithPopup(auth, provider);
   };
 
   const signInWithGitHub = async () => {
     const provider = new GithubAuthProvider();
-    // Use redirect instead of popup for better compatibility with custom domains
-    await signInWithRedirect(auth, provider);
+    // Use popup for better reliability and user experience
+    return await signInWithPopup(auth, provider);
   };
 
   const deleteAccount = async (password?: string) => {
@@ -131,46 +129,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  // Handle redirect result on component mount
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        console.log('🔍 Checking for redirect result...');
-        console.log('📍 Current URL:', window.location.href);
-        console.log('🔧 Firebase config:', {
-          authDomain: auth.config.authDomain,
-          apiKey: auth.config.apiKey?.substring(0, 10) + '...'
-        });
-        
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log('✅ Redirect result received:', result.user.email);
-          console.log('User signed in successfully:', result.user);
-          // The user is now signed in, onAuthStateChanged will handle the state update
-        } else {
-          console.log('ℹ️ No redirect result found - user may not have completed OAuth flow');
-          
-          // Check if we're on the auth handler page
-          if (window.location.pathname.includes('/__/auth/')) {
-            console.log('⚠️ Currently on auth handler page but no result - this might indicate an issue');
-            console.log('🔍 URL parameters:', window.location.search);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error handling redirect result:', error);
-        console.error('🔍 Error details:', {
-          code: (error as any)?.code,
-          message: (error as any)?.message,
-          stack: (error as any)?.stack
-        });
-      }
-    };
-
-    // Try immediately, then retry after a short delay to handle timing issues
-    handleRedirectResult();
-    const timer = setTimeout(handleRedirectResult, 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const value = {
     currentUser,
