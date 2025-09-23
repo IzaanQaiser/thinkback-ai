@@ -47,13 +47,6 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  const debugFirebaseConfig = () => {
-    console.log('🔧 Firebase Configuration Debug:');
-    console.log('📍 Current domain:', window.location.origin);
-    console.log('🔑 Auth domain:', import.meta.env.VITE_FIREBASE_AUTH_DOMAIN);
-    console.log('📋 Expected redirect URI:', `https://${import.meta.env.VITE_FIREBASE_AUTH_DOMAIN}/__/auth/handler`);
-    console.log('🌐 Make sure this exact URI is added to Google Cloud Console OAuth 2.0 redirect URIs');
-  };
 
 
   return (
@@ -156,13 +149,6 @@ const AuthPage: React.FC = () => {
               {loading ? 'Signing In...' : 'Sign in with Google'}
             </button>
             
-            {/* Debug button - remove after testing */}
-            <button
-              onClick={debugFirebaseConfig}
-              className="w-full text-xs text-dark-500 dark:text-dark-400 underline mt-2"
-            >
-              Debug Firebase Config
-            </button>
           </div>
 
           <div className="mt-8 text-center">
