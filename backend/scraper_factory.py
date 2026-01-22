@@ -1,9 +1,9 @@
-from scrapers.youtube import YouTubeScraper
-from scrapers.instagram import InstagramScraper
-from scrapers.linkedin import LinkedInScraper
-from scrapers.reddit import RedditScraper
-from scrapers.tiktok import TikTokScraper
-from scrapers.twitter import TwitterScraper
+from backend.scrapers.youtube import YouTubeScraper
+from backend.scrapers.instagram import InstagramScraper
+from backend.scrapers.linkedin import LinkedInScraper
+from backend.scrapers.reddit import RedditScraper
+from backend.scrapers.tiktok import TikTokScraper
+from backend.scrapers.twitter import TwitterScraper
 
 
 def get_scraper(platform: str):

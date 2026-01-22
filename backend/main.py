@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
             print("🔧 Initializing backend components...")
             
             # Import and initialize Firebase
-            from firebase import initialize_firebase
+            from backend.firebase import initialize_firebase
             if not initialize_firebase():
                 raise Exception("Failed to initialize Firebase")
             print("✅ Firebase Admin SDK initialized successfully")
@@ -139,7 +139,7 @@ async def initialization_middleware(request: Request, call_next):
     return await call_next(request)
 
 # Import and include routers
-from router import router as api_router
+from backend.router import router as api_router
 app.include_router(api_router)
 
 if __name__ == "__main__":

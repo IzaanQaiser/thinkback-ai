@@ -4,8 +4,11 @@ import textwrap
 import re
 from langdetect import detect
 from google.cloud import translate_v2 as translate
+from pathlib import Path
 
-load_dotenv()
+# Load .env from backend directory
+backend_dir = Path(__file__).parent
+load_dotenv(backend_dir / ".env")
 import os
 import json
 from openai import OpenAI

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Header, Body, Query, Request
 from typing import Optional, List
-from firebase import (
+from backend.firebase import (
     change_password as change_password_firebase,
     add_entry as add_entry_firebase,
     get_entries as get_entries_firebase,
@@ -19,9 +19,9 @@ from firebase import (
 from pydantic import BaseModel, EmailStr, Field
 from firebase_admin import auth
 from datetime import datetime
-from ai import classify_entry, aggregate_entry_data, format_ai_prompt
-from scrapers.youtube import YouTubeScraper
-from scraper_factory import get_scraper
+from backend.ai import classify_entry, aggregate_entry_data, format_ai_prompt
+from backend.scrapers.youtube import YouTubeScraper
+from backend.scraper_factory import get_scraper
 import re
 from rapidfuzz import fuzz
 
