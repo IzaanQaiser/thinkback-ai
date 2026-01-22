@@ -11,6 +11,7 @@ import Kbd from '../components/Kbd';
 import FloatingFeedbackButton from '../components/FloatingFeedbackButton';
 import SaveNotificationToast from '../components/SaveNotificationToast';
 import SaveProgressIndicator from '../components/SaveProgressIndicator';
+import SemanticSearchChat from '../components/SemanticSearchChat';
 // Import context hooks for managing app state
 import { useAuth } from '../contexts/AuthContext';
 import { useSaveNotification } from '../contexts/SaveNotificationContext';
@@ -56,20 +57,20 @@ const DashboardPage: React.FC = () => {
   const { notifications, removeNotification, shouldRefreshDashboard, markDashboardRefreshed } = useSaveNotification();
   // Get global progress tracking for save operations
   const { activeSaves, globalProgressTracker } = useGlobalProgress();
-  
+
   // Search functionality state
   const [searchQuery, setSearchQuery] = useState('');                    // Current search text
   const [showSuggestions, setShowSuggestions] = useState(false);         // Whether to show search suggestions
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1); // Which suggestion is highlighted
   const searchInputRef = useRef<HTMLInputElement>(null);                // Reference to search input
   const suggestionsRef = useRef<HTMLDivElement>(null);                  // Reference to suggestions dropdown
-  
+
   // Navigation and UI state
   const location = useLocation();                                       // Current route location
   const [isMac, setIsMac] = useState(false);                            // Whether user is on Mac (for keyboard shortcuts)
   const [selectedCategory, setSelectedCategory] = useState(sessionStorage.getItem('lastSelectedCategory') || 'Recent'); // Currently selected category
   const [sidebarOpen, setSidebarOpen] = useState(false);                // Whether mobile sidebar is open
-  
+
   // Category management state
   const [isCategoryEditMode, setIsCategoryEditMode] = useState(false);  // Whether in category edit mode
   const [categories, setCategories] = useState<Category[]>([]);         // List of all categories
@@ -78,7 +79,7 @@ const DashboardPage: React.FC = () => {
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null); // Category being deleted
   const [categoriesToDelete, setCategoriesToDelete] = useState<Category[] | null>(null); // Multiple categories to delete
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]); // Selected categories for bulk operations
-  
+
   // Category creation and editing state
   const [showAddCategory, setShowAddCategory] = useState(false);         // Whether to show add category form
   const [newCategoryName, setNewCategoryName] = useState('');           // Name for new category
@@ -88,7 +89,7 @@ const DashboardPage: React.FC = () => {
   const [renameCategoryName, setRenameCategoryName] = useState('');     // New name for category
   const [renameLoading, setRenameLoading] = useState(false);            // Loading state for rename
   const [renameError, setRenameError] = useState<string | null>(null);  // Error message for rename
-  
+
   // Content entries state
   const [entries, setEntries] = useState<Entry[]>([]);                  // List of all saved entries
   const [loading, setLoading] = useState(true);                         // Whether data is loading
@@ -97,7 +98,7 @@ const DashboardPage: React.FC = () => {
   const [entryToDelete, setEntryToDelete] = useState<Entry | null>(null); // Entry being deleted
   const [deleteEntryLoading, setDeleteEntryLoading] = useState(false);  // Loading state for deleting entry
   const [deleteEntryError, setDeleteEntryError] = useState<string | null>(null); // Error message for delete
-  
+
   // Quick access customization state
   const [isQuickAccessEditMode, setIsQuickAccessEditMode] = useState(false); // Whether in quick access edit mode
   const [quickAccessVisibility, setQuickAccessVisibility] = useState(() => {
@@ -112,12 +113,12 @@ const DashboardPage: React.FC = () => {
     }
     return { Recent: true, All: true, Favorites: true };
   });
-  
+
   // UI and animation state
   const [expandedSummaries, setExpandedSummaries] = useState<{ [key: string]: boolean }>({}); // Which summaries are expanded
   const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({}); // References to content cards
   const [showCategoryModal, setShowCategoryModal] = useState(false);     // Whether to show category modal
-  
+
   // Performance and UX state
   const [lastLoadTime, setLastLoadTime] = useState<number>(0);           // When data was last loaded
   const [isInitialLoad, setIsInitialLoad] = useState(true);             // Whether this is the first load
@@ -127,15 +128,15 @@ const DashboardPage: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);              // Whether currently refreshing data
 
   // Detect if user is on Mac for keyboard shortcuts
-  useEffect(() => { 
-    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)); 
+  useEffect(() => {
+    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
   }, []);
-  
+
   // Focus search input when URL contains focus=search parameter
-  useEffect(() => { 
-    if (location.search.includes('focus=search')) searchInputRef.current?.focus(); 
+  useEffect(() => {
+    if (location.search.includes('focus=search')) searchInputRef.current?.focus();
   }, [location]);
-  
+
   // Update page title and save selected category to session storage
   useEffect(() => {
     document.title = 'thinkback - Dashboard';
@@ -162,27 +163,27 @@ const DashboardPage: React.FC = () => {
   // Main function to load dashboard data (entries and categories)
   const loadDashboardData = useCallback(async (forceRefresh: boolean = false) => {
     if (!currentUser) return;
-    
+
     const now = Date.now();
     const timeSinceLastLoad = now - lastLoadTime;
     // Use cached data if it's less than 30 seconds old and not forcing refresh
     const shouldUseCache = !forceRefresh && timeSinceLastLoad < 30000; // 30 seconds
-    
+
     try {
       setLoading(true);
       if (forceRefresh) {
         setIsRefreshing(true);
       }
-      
+
       // Get user's authentication token
       const idToken = await currentUser.getIdToken();
-      
+
       // Load entries and categories in parallel for better performance
       const [entriesData, categoriesData] = await Promise.all([
         fetchEntries(idToken, shouldUseCache),
         fetchCategories(idToken, shouldUseCache)
       ]);
-      
+
       // Track newly saved entries for highlighting animation
       if (forceRefresh && entries.length > 0) {
         const newEntryIds = new Set<string>();
@@ -193,7 +194,7 @@ const DashboardPage: React.FC = () => {
             newEntryIds.add(newEntry.id);
           }
         });
-        
+
         if (newEntryIds.size > 0) {
           setNewlySavedEntryIds(newEntryIds);
           // Clear the highlight after 5 seconds
@@ -202,21 +203,21 @@ const DashboardPage: React.FC = () => {
           }, 5000);
         }
       }
-      
+
       // Update state with loaded data
       setEntries(entriesData);
       setCategories(categoriesData);
-      
+
       // Build a map of category ID to name for quick lookups
       const map: { [id: string]: string } = {};
       categoriesData.forEach((cat: Category) => { map[cat.id] = cat.name; });
       setCategoryMap(map);
-      
+
       // Update timing information
       setLastLoadTime(now);
       setLastRefreshTime(now);
       setIsInitialLoad(false);
-      
+
       // Only run cleanup on initial load or force refresh, and only if needed
       if (isInitialLoad || forceRefresh) {
         try {
@@ -225,13 +226,13 @@ const DashboardPage: React.FC = () => {
             // console.log(`🧹 Cleanup needed: ${cleanupCheck.empty_categories_count} empty categories found`);
             await cleanupEmptyCategories(idToken);
           } else {
-                          // console.log('✅ No cleanup needed');
+            // console.log('✅ No cleanup needed');
           }
         } catch (error) {
           console.warn('Cleanup check failed, but continuing:', error);
         }
       }
-      
+
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
       if (isInitialLoad) {
@@ -254,13 +255,13 @@ const DashboardPage: React.FC = () => {
       const refreshData = async () => {
         try {
           await loadDashboardData(true); // Force refresh
-          
+
           // If the currently selected category was deleted, switch to 'Recent'
           if (selectedCategory !== 'Recent' && selectedCategory !== 'All' && selectedCategory !== 'Favorites' && !categories.find(cat => cat.id === selectedCategory)) {
             setSelectedCategory('Recent');
             sessionStorage.setItem('lastSelectedCategory', 'Recent');
           }
-          
+
           markDashboardRefreshed();
         } catch (error) {
           console.error('Failed to refresh dashboard data:', error);
@@ -294,7 +295,7 @@ const DashboardPage: React.FC = () => {
     } catch (error) {
       console.error('Error subscribing to save completion events:', error);
     }
-    
+
     return () => {
       // Clean up subscription when component unmounts
       if (typeof unsubscribe === 'function') {
@@ -313,7 +314,7 @@ const DashboardPage: React.FC = () => {
       if (currentUser && !isInitialLoad) {
         const now = Date.now();
         const timeSinceLastLoad = now - lastLoadTime;
-        
+
         // Only refresh if it's been more than 2 minutes since last load
         if (timeSinceLastLoad > 120000) {
           loadDashboardData();
@@ -330,7 +331,7 @@ const DashboardPage: React.FC = () => {
   // Filter entries based on search query for real-time search
   const filteredData = entries.filter(item => {
     if (!searchQuery.trim()) return true; // Show all entries when search is empty
-    
+
     const query = searchQuery.toLowerCase();
     return (
       item.title && item.title.toLowerCase().includes(query) ||
@@ -359,7 +360,7 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
-          searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
         setSelectedSuggestionIndex(-1);
       }
@@ -420,7 +421,7 @@ const DashboardPage: React.FC = () => {
     ...categories
       .filter((cat: Category) => !protectedCategories.includes(cat.name) && cat.name.trim().toLowerCase() !== 'uncategorized')
       .sort((a, b) => a.name.localeCompare(b.name))
-      .filter((cat: Category, index: number, self: Category[]) => 
+      .filter((cat: Category, index: number, self: Category[]) =>
         index === self.findIndex((c: Category) => c.name === cat.name)
       ), // Remove duplicates based on name
   ];
@@ -428,7 +429,7 @@ const DashboardPage: React.FC = () => {
   // Determine what entries to show based on selected category
   let mainHeading = '';
   let entriesToShow: Entry[] = [];
-  
+
   if (selectedCategory === 'Favorites') {
     // Show only favorited entries
     mainHeading = 'Favorites';
@@ -477,24 +478,24 @@ const DashboardPage: React.FC = () => {
     setSearchQuery('');
     setShowSuggestions(false);
     setSelectedSuggestionIndex(-1);
-    
+
     // Find the category this entry belongs to
     const entryCategoryId = entry.category_ids?.[0];
     if (entryCategoryId) {
       // Switch to the category containing this entry
       setSelectedCategory(entryCategoryId);
       sessionStorage.setItem('lastSelectedCategory', entryCategoryId);
-      
+
       // Scroll to the entry after a short delay to ensure the category has loaded
       setTimeout(() => {
         const entryElement = document.getElementById(`entry-${entry.id}`);
-                    // console.log('Looking for entry element:', `entry-${entry.id}`, entryElement);
+        // console.log('Looking for entry element:', `entry-${entry.id}`, entryElement);
         if (entryElement) {
-          entryElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
+          entryElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
           });
-          
+
           // Force the hover state by adding the actual hover styles directly
           entryElement.style.borderColor = 'rgba(59, 130, 246, 0.3)'; // primary-500/30
           entryElement.style.backgroundColor = 'rgba(229, 231, 235, 0.5)'; // dark-200/50
@@ -503,7 +504,7 @@ const DashboardPage: React.FC = () => {
             entryElement.style.backgroundColor = 'rgba(31, 41, 55, 1)'; // dark-800
           }
           entryElement.style.transition = 'all 0.2s ease-in-out';
-          
+
           setTimeout(() => {
             // Remove the forced styles after 3 seconds
             entryElement.style.borderColor = '';
@@ -598,7 +599,7 @@ const DashboardPage: React.FC = () => {
       await deleteEntry(idToken, entryToDelete.id);
       // Remove from local state
       setEntries((prev: Entry[]) => prev.filter(entry => entry.id !== entryToDelete.id));
-      
+
       // Clean up empty categories and refresh category list
       await cleanupEmptyCategories(idToken);
       const cats = await fetchCategories(idToken);
@@ -606,13 +607,13 @@ const DashboardPage: React.FC = () => {
       const map: { [id: string]: string } = {};
       cats.forEach((cat: Category) => { map[cat.id] = cat.name; });
       setCategoryMap(map);
-      
+
       // If the currently selected category was deleted, switch to 'Recent'
       if (selectedCategory !== 'Recent' && selectedCategory !== 'All' && selectedCategory !== 'Favorites' && !cats.find(cat => cat.id === selectedCategory)) {
         setSelectedCategory('Recent');
         sessionStorage.setItem('lastSelectedCategory', 'Recent');
       }
-      
+
       setShowDeleteEntryModal(false);
       setEntryToDelete(null);
     } catch (err: any) {
@@ -702,13 +703,13 @@ const DashboardPage: React.FC = () => {
 
   // Platform display configuration with icons and names
   const platformDisplay: { [key: string]: { name: string; icon: React.ReactNode } } = {
-    'YouTube': { name: 'YouTube', icon: <span style={{color:'#FF0000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.228 3.5 12 3.5 12 3.5s-7.228 0-9.391.569A2.994 2.994 0 0 0 .502 6.186C0 8.35 0 12 0 12s0 3.65.502 5.814a2.994 2.994 0 0 0 2.107 2.117C4.772 20.5 12 20.5 12 20.5s7.228 0 9.391-.569a2.994 2.994 0 0 0 2.107-2.117C24 15.65 24 12 24 12s0-3.65-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></span> },
-    'Instagram': { name: 'Instagram', icon: <span style={{color:'#E1306C'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.334 3.608 1.308.974.974 1.246 2.241 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.334 2.633-1.308 3.608-.974.974-2.241 1.246-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.334-3.608-1.308-.974-.974-1.246-2.241-1.308-3.608C2.175 15.647 2.163 15.267 2.163 12s.012-3.584.07-4.85c.062-1.366.334-2.633 1.308-3.608.974-.974 2.241-1.246 3.608-1.308C8.416 2.175 8.796 2.163 12 2.163zm0-2.163C8.741 0 8.332.013 7.052.072 5.771.131 4.659.363 3.678 1.344c-.98.98-1.213 2.092-1.272 3.373C2.013 5.668 2 6.077 2 12c0 5.923.013 6.332.072 7.613.059 1.281.292 2.393 1.272 3.373.98.98 2.092 1.213 3.373 1.272C8.332 23.987 8.741 24 12 24s3.668-.013 4.948-.072c1.281-.059 2.393-.292 3.373-1.272.98-.98 1.213-2.092 1.272-3.373.059-1.281.072-1.69.072-7.613 0-5.923-.013-6.332-.072-7.613-.059-1.281-.292-2.393-1.272-3.373-.98-.98-2.092-1.213-3.373-1.272C15.668.013 15.259 0 12 0z"/><circle cx="12" cy="12" r="3.5"/><circle cx="18.406" cy="5.594" r="1.44"/></svg></span> },
-    'Reddit': { name: 'Reddit', icon: <span style={{color:'#FF4500'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12zm-6.5 2.5c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5.672-1.5 1.5-1.5zm-11 0c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5.672-1.5 1.5-1.5zm11.072 3.219c-1.219.781-3.219 1.281-5.572 1.281s-4.353-.5-5.572-1.281c-.219-.141-.281-.438-.141-.656.141-.219.438-.281.656-.141 1.031.656 2.906 1.219 5.057 1.219s4.025-.563 5.057-1.219c.219-.141.516-.078.656.141.141.219.078.516-.141.656z"/></svg></span> },
-    'TikTok': { name: 'TikTok', icon: <span style={{color:'#000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2v2.5A5.5 5.5 0 0 0 17.5 10H20a8 8 0 1 1-8-8z"/></svg></span> },
-    'X': { name: 'X', icon: <span style={{color:'#000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 2.47a.75.75 0 0 1 1.06 1.06l-5.22 5.22 5.22 5.22a.75.75 0 0 1-1.06 1.06l-5.22-5.22-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22-5.22-5.22A.75.75 0 0 1 6.25 2.47l5.22 5.22 5.22-5.22z"/></svg></span> },
-    'Twitter/X Post': { name: 'X', icon: <span style={{color:'#000'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 2.47a.75.75 0 0 1 1.06 1.06l-5.22 5.22 5.22 5.22a.75.75 0 0 1-1.06 1.06l-5.22-5.22-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22-5.22-5.22A.75.75 0 0 1 6.25 2.47l5.22 5.22 5.22-5.22z"/></svg></span> },
-    'LinkedIn': { name: 'LinkedIn', icon: <span style={{color:'#0077B5'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452H17.21v-5.569c0-1.327-.025-3.037-1.849-3.037-1.851 0-2.132 1.445-2.132 2.939v5.667H9.073V9h3.112v1.561h.045c.434-.823 1.494-1.691 3.073-1.691 3.287 0 3.892 2.164 3.892 4.977v6.605zM5.337 7.433a1.81 1.81 0 1 1 0-3.62 1.81 1.81 0 0 1 0 3.62zM6.956 20.452H3.715V9h3.241v11.452zM22.225 0H1.771C.792 0 0 .771 0 1.723v20.549C0 23.229.792 24 1.771 24h20.451C23.2 24 24 23.229 24 22.271V1.723C24 .771 23.2 0 22.225 0z"/></svg></span> },
+    'YouTube': { name: 'YouTube', icon: <span style={{ color: '#FF0000' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a2.994 2.994 0 0 0-2.107-2.117C19.228 3.5 12 3.5 12 3.5s-7.228 0-9.391.569A2.994 2.994 0 0 0 .502 6.186C0 8.35 0 12 0 12s0 3.65.502 5.814a2.994 2.994 0 0 0 2.107 2.117C4.772 20.5 12 20.5 12 20.5s7.228 0 9.391-.569a2.994 2.994 0 0 0 2.107-2.117C24 15.65 24 12 24 12s0-3.65-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg></span> },
+    'Instagram': { name: 'Instagram', icon: <span style={{ color: '#E1306C' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.334 3.608 1.308.974.974 1.246 2.241 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.334 2.633-1.308 3.608-.974.974-2.241 1.246-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.334-3.608-1.308-.974-.974-1.246-2.241-1.308-3.608C2.175 15.647 2.163 15.267 2.163 12s.012-3.584.07-4.85c.062-1.366.334-2.633 1.308-3.608.974-.974 2.241-1.246 3.608-1.308C8.416 2.175 8.796 2.163 12 2.163zm0-2.163C8.741 0 8.332.013 7.052.072 5.771.131 4.659.363 3.678 1.344c-.98.98-1.213 2.092-1.272 3.373C2.013 5.668 2 6.077 2 12c0 5.923.013 6.332.072 7.613.059 1.281.292 2.393 1.272 3.373.98.98 2.092 1.213 3.373 1.272C8.332 23.987 8.741 24 12 24s3.668-.013 4.948-.072c1.281-.059 2.393-.292 3.373-1.272.98-.98 1.213-2.092 1.272-3.373.059-1.281.072-1.69.072-7.613 0-5.923-.013-6.332-.072-7.613-.059-1.281-.292-2.393-1.272-3.373-.98-.98-2.092-1.213-3.373-1.272C15.668.013 15.259 0 12 0z" /><circle cx="12" cy="12" r="3.5" /><circle cx="18.406" cy="5.594" r="1.44" /></svg></span> },
+    'Reddit': { name: 'Reddit', icon: <span style={{ color: '#FF4500' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12zm-6.5 2.5c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5.672-1.5 1.5-1.5zm-11 0c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5.672-1.5 1.5-1.5zm11.072 3.219c-1.219.781-3.219 1.281-5.572 1.281s-4.353-.5-5.572-1.281c-.219-.141-.281-.438-.141-.656.141-.219.438-.281.656-.141 1.031.656 2.906 1.219 5.057 1.219s4.025-.563 5.057-1.219c.219-.141.516-.078.656.141.141.219.078.516-.141.656z" /></svg></span> },
+    'TikTok': { name: 'TikTok', icon: <span style={{ color: '#000' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2v2.5A5.5 5.5 0 0 0 17.5 10H20a8 8 0 1 1-8-8z" /></svg></span> },
+    'X': { name: 'X', icon: <span style={{ color: '#000' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 2.47a.75.75 0 0 1 1.06 1.06l-5.22 5.22 5.22 5.22a.75.75 0 0 1-1.06 1.06l-5.22-5.22-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22-5.22-5.22A.75.75 0 0 1 6.25 2.47l5.22 5.22 5.22-5.22z" /></svg></span> },
+    'Twitter/X Post': { name: 'X', icon: <span style={{ color: '#000' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 2.47a.75.75 0 0 1 1.06 1.06l-5.22 5.22 5.22 5.22a.75.75 0 0 1-1.06 1.06l-5.22-5.22-5.22 5.22a.75.75 0 0 1-1.06-1.06l5.22-5.22-5.22-5.22A.75.75 0 0 1 6.25 2.47l5.22 5.22 5.22-5.22z" /></svg></span> },
+    'LinkedIn': { name: 'LinkedIn', icon: <span style={{ color: '#0077B5' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452H17.21v-5.569c0-1.327-.025-3.037-1.849-3.037-1.851 0-2.132 1.445-2.132 2.939v5.667H9.073V9h3.112v1.561h.045c.434-.823 1.494-1.691 3.073-1.691 3.287 0 3.892 2.164 3.892 4.977v6.605zM5.337 7.433a1.81 1.81 0 1 1 0-3.62 1.81 1.81 0 0 1 0 3.62zM6.956 20.452H3.715V9h3.241v11.452zM22.225 0H1.771C.792 0 0 .771 0 1.723v20.549C0 23.229.792 24 1.771 24h20.451C23.2 24 24 23.229 24 22.271V1.723C24 .771 23.2 0 22.225 0z" /></svg></span> },
   };
 
   // Normalize platform names for consistent grouping (e.g., Twitter/X, YouTube Shorts, etc.)
@@ -810,83 +811,55 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search bar with autocomplete suggestions */}
+      {/* AI-Powered Semantic Search Chat */}
       <div className="sticky top-[64px] z-20 bg-white/80 dark:bg-dark-900/30 backdrop-blur-xl border-b border-dark-200/30 dark:border-dark-800/30">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4">
-          <div className="relative">
-            {/* Search input container */}
-            <div className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4">
-              {/* Search icon */}
-              <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
-              <div className="relative w-full">
-                {/* Search input field */}
-                <input 
-                  ref={searchInputRef} 
-                  type="text" 
-                  placeholder="Search your vault..." 
-                  className="w-full bg-transparent py-3 pl-12 sm:pl-14 pr-16 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none relative z-10" 
-                  value={searchQuery} 
-                  onChange={handleSearchChange} 
-                  autoComplete="off" 
-                />
-              </div>
-              {/* Keyboard shortcut indicator */}
-              <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
-            </div>
-            {/* Search suggestions dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div
-                ref={suggestionsRef}
-                className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-800 border border-dark-200/80 dark:border-dark-700/60 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto"
-              >
-                {suggestions.map((entry, index) => {
-                  // Get category name for this entry
-                  let categoryName = 'Unknown';
-                  if (entry.category_ids && entry.category_ids.length > 0 && categoryMap) {
-                    const catId = entry.category_ids[0];
-                    categoryName = categoryMap[catId] || 'Unknown';
-                  }
+          <SemanticSearchChat
+            onEntryClick={(entry) => {
+              // Find the category this entry belongs to and navigate to it
+              const entryCategoryId = entry.category_ids?.[0];
+              if (entryCategoryId) {
+                setSelectedCategory(entryCategoryId);
+                sessionStorage.setItem('lastSelectedCategory', entryCategoryId);
 
-                  return (
-                    <button
-                      key={entry.id}
-                      onClick={() => handleSuggestionClick(entry)}
-                      className={`w-full p-4 text-left hover:bg-dark-50 dark:hover:bg-dark-700/50 transition-colors border-b border-dark-100/50 dark:border-dark-700/30 last:border-b-0 ${selectedSuggestionIndex === index ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : ''}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          {/* Entry title */}
-                          <h4 className="font-medium text-dark-900 dark:text-white truncate mb-1">
-                            {entry.title || 'Untitled'}
-                          </h4>
-                          {/* Entry summary */}
-                          {entry.summary && (
-                            <p className="text-sm text-dark-600 dark:text-dark-300 line-clamp-2 mb-2">
-                              {entry.summary}
-                            </p>
-                          )}
-                          {/* Category and tags */}
-                          <div className="flex items-center gap-3 text-xs text-dark-500 dark:text-dark-400">
-                            <span className="bg-dark-100 dark:bg-dark-700 px-2 py-1 rounded-full">
-                              {categoryName}
-                            </span>
-                            {entry.tags && entry.tags.length > 0 && (
-                              <span className="truncate">
-                                {entry.tags.slice(0, 2).join(', ')}
-                                {entry.tags.length > 2 && '...'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {/* External link icon */}
-                        <ExternalLink size={16} className="text-dark-400 dark:text-dark-500 ml-2 flex-shrink-0" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                // Scroll to the entry after a short delay
+                setTimeout(() => {
+                  const entryElement = document.getElementById(`entry-${entry.id}`);
+                  if (entryElement) {
+                    entryElement.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'center'
+                    });
+
+                    // Highlight the entry temporarily
+                    entryElement.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                    entryElement.style.backgroundColor = document.documentElement.classList.contains('dark')
+                      ? 'rgba(31, 41, 55, 1)'
+                      : 'rgba(229, 231, 235, 0.5)';
+                    entryElement.style.borderRadius = '0.75rem';
+                    entryElement.style.transition = 'all 0.2s ease-in-out';
+
+                    setTimeout(() => {
+                      entryElement.style.borderColor = '';
+                      entryElement.style.backgroundColor = '';
+                      entryElement.style.borderRadius = '';
+                      entryElement.style.transition = '';
+                    }, 3000);
+                  }
+                }, 100);
+              } else {
+                setSelectedCategory('Recent');
+                sessionStorage.setItem('lastSelectedCategory', 'Recent');
+              }
+            }}
+            getIdToken={async () => {
+              if (currentUser) {
+                return await currentUser.getIdToken();
+              }
+              return null;
+            }}
+            isMac={isMac}
+          />
         </div>
       </div>
 
@@ -894,16 +867,15 @@ const DashboardPage: React.FC = () => {
       <div className="flex flex-1 min-h-0 max-w-screen-2xl mx-auto w-full px-4 sm:px-6 py-0 gap-4 lg:gap-8">
         {/* Mobile sidebar overlay (dark background when sidebar is open) */}
         {sidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
-        
+
         {/* Left sidebar with categories and quick access */}
-        <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white/5 dark:bg-dark-900/5 backdrop-blur-md border-r border-dark-200/30 dark:border-dark-800/30 transform transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } lg:bg-white/10 lg:dark:bg-dark-900/10 lg:backdrop-blur-sm lg:border-dark-200/50 lg:dark:border-dark-800/50`}>
+        <aside className={`fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto w-80 lg:w-1/4 xl:w-1/5 h-full overflow-y-auto hide-scrollbar overflow-x-hidden pt-8 pb-8 bg-white/5 dark:bg-dark-900/5 backdrop-blur-md border-r border-dark-200/30 dark:border-dark-800/30 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          } lg:bg-white/10 lg:dark:bg-dark-900/10 lg:backdrop-blur-sm lg:border-dark-200/50 lg:dark:border-dark-800/50`}>
           {/* Mobile close button - outside sidebar */}
           <button
             onClick={() => setSidebarOpen(false)}
@@ -912,8 +884,8 @@ const DashboardPage: React.FC = () => {
             <ChevronLeft size={20} className="text-dark-600 dark:text-dark-300" />
           </button>
 
-                                  <div className="flex flex-col gap-6 px-6 lg:px-4 pt-0">
-            
+          <div className="flex flex-col gap-6 px-6 lg:px-4 pt-0">
+
             {/* Quick Access Box - only heading */}
             <div className="flex flex-col space-y-1">
               <div className="flex items-center justify-between w-full pl-5 pr-3 py-2 mb-3 rounded-full border border-dark-200/80 dark:border-dark-700/60 bg-dark-100/50 dark:bg-dark-800/50 mt-0">
@@ -1016,7 +988,7 @@ const DashboardPage: React.FC = () => {
                           ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                           ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                           ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
-                        >
+                      >
                         <div className="flex items-center space-x-3 text-left w-full">
                           <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
                         </div>
@@ -1047,7 +1019,7 @@ const DashboardPage: React.FC = () => {
                           ${selectedCategory === `platform:${platform}` ? 'bg-primary-500/10 text-primary-500 dark:text-primary-400' : 'text-dark-600 dark:text-dark-200'}
                           ${isCategoryEditMode || isQuickAccessEditMode ? '!cursor-default !pointer-events-none' : 'hover:bg-dark-100/60 dark:hover:bg-dark-800/60 hover:text-dark-900 dark:hover:text-white'}
                           ${!isVisible ? 'text-dark-400 dark:text-dark-500' : ''}`}
-                        >
+                      >
                         <div className="flex items-center space-x-3 text-left w-full">
                           <span className="font-medium text-sm flex-grow truncate">{display.name}</span>
                         </div>
@@ -1261,7 +1233,7 @@ const DashboardPage: React.FC = () => {
 
           </div>
         </aside>
-        
+
         {/* Main content area showing entries */}
         <main className="flex-1 h-full overflow-y-auto hide-scrollbar pt-8 pb-8">
           {/* Page heading with refresh indicator */}
@@ -1282,7 +1254,7 @@ const DashboardPage: React.FC = () => {
               )}
             </h2>
           )}
-          
+
           {/* Save progress indicators for ongoing save operations */}
           {activeSaves.length > 0 && (
             <div className="px-4 sm:px-0 mb-6">
@@ -1336,9 +1308,8 @@ const DashboardPage: React.FC = () => {
             )
           ) : (
             // Grid of content cards
-            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-0 ${
-              shouldSlideUpCards ? 'animate-slide-up' : ''
-            }`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-0 ${shouldSlideUpCards ? 'animate-slide-up' : ''
+              }`}>
               {entriesToShow.map((entry) => {
                 // Map the first category ID to its name
                 let categoryName = 'Unknown';
@@ -1348,10 +1319,10 @@ const DashboardPage: React.FC = () => {
                   categoryName = categoryMap[catId] || 'Unknown';
                   categoryId = catId;
                 }
-                
+
                 // Check if this is a newly saved entry
                 const isNewlySaved = newlySavedEntryIds.has(entry.id);
-                
+
                 return (
                   <div
                     key={entry.id}
@@ -1382,7 +1353,7 @@ const DashboardPage: React.FC = () => {
                         // Navigate to the new category
                         setSelectedCategory(newCategoryId);
                         sessionStorage.setItem('lastSelectedCategory', newCategoryId);
-                        
+
                         // Clean up empty categories and refresh category list
                         await cleanupEmptyCategories(idToken);
                         const updatedCats = await fetchCategories(idToken);

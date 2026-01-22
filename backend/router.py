@@ -1542,3 +1542,80 @@ def submit_feedback(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to submit feedback: {str(e)}")
+
+
+# --- CHAT ENDPOINT ---
+
+class ChatMessage(BaseModel):
+    role: str  # 'user' or 'assistant'
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    history: List[ChatMessage] = []
+
+class ChatResponse(BaseModel):
+    response: str
+    entries: List[dict] = []
+    tool_used: Optional[str] = None
+
+
+@router.post("/api/chat", response_model=ChatResponse)
+async def chat_with_ai(
+    request: ChatRequest,
+    authorization: Optional[str] = Header(None),
+):
+    """
+    AI-powered semantic search chat endpoint.
+    Uses OpenAI tool calling to search through user's saved entries.
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    
+    # Fetch user's entries and categories
+    entries_result = get_entries_firebase(uid)
+    if not entries_result["success"]:
+        raise HTTPException(status_code=400, detail=entries_result["error"])
+    entries = entries_result["entries"]
+    
+    categories_result = get_categories_firebase(uid)
+    if not categories_result["success"]:
+        raise HTTPException(status_code=400, detail=categories_result["error"])
+    categories = categories_result["categories"]
+    
+    # Process the chat message
+    from backend.chat import process_chat_message
+    
+    # Convert history to list of dicts
+    history = [{"role": msg.role, "content": msg.content} for msg in request.history]
+    
+    result = await process_chat_message(
+        user_message=request.message,
+        conversation_history=history,
+        entries=entries,
+        categories=categories
+    )
+    
+    return ChatResponse(
+        response=result["response"],
+        entries=result["entries"],
+        tool_used=result.get("tool_used")
+    )
+
