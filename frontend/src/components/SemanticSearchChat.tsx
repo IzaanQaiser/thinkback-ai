@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, X, Send, Sparkles, ExternalLink, Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, X, Send, Sparkles, ExternalLink } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import Kbd from './Kbd';
 
 // Types
@@ -30,15 +32,15 @@ interface SemanticSearchChatProps {
     isMac: boolean;
 }
 
-// API function for chat
-async function sendChatMessage(
+// API function for streaming chat
+async function* streamChatMessage(
     idToken: string,
     message: string,
     history: { role: string; content: string }[]
-): Promise<{ response: string; entries: Entry[]; tool_used: string | null }> {
+): AsyncGenerator<{ type: 'token' | 'entries' | 'done' | 'error'; content?: string; entries?: Entry[]; tool_used?: string | null; message?: string }> {
     const API_URL = import.meta.env.VITE_API_URL;
 
-    const response = await fetch(`${API_URL}/api/chat`, {
+    const response = await fetch(`${API_URL}/api/chat/stream`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -52,7 +54,31 @@ async function sendChatMessage(
         throw new Error(errorData.detail || 'Failed to send message');
     }
 
-    return response.json();
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                try {
+                    const data = JSON.parse(line.slice(6));
+                    yield data;
+                } catch {
+                    // Ignore malformed JSON
+                }
+            }
+        }
+    }
 }
 
 const SemanticSearchChat: React.FC<SemanticSearchChatProps> = ({
@@ -62,43 +88,42 @@ const SemanticSearchChat: React.FC<SemanticSearchChatProps> = ({
 }) => {
     // State
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [streamingContent, setStreamingContent] = useState('');
 
     // Refs
     const inputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
 
     // Scroll to bottom when new messages arrive
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages]);
+    }, [messages, streamingContent]);
 
     // Focus input when expanded
     useEffect(() => {
         if (isExpanded && inputRef.current) {
-            inputRef.current.focus();
+            setTimeout(() => inputRef.current?.focus(), 100);
         }
     }, [isExpanded]);
 
-    // Handle click outside to collapse
+    // Prevent body scroll when expanded
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                if (isExpanded && messages.length === 0) {
-                    setIsExpanded(false);
-                }
-            }
+        if (isExpanded) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
         };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isExpanded, messages.length]);
+    }, [isExpanded]);
 
     // Handle keyboard shortcut (Cmd/Ctrl + K)
     useEffect(() => {
@@ -106,27 +131,41 @@ const SemanticSearchChat: React.FC<SemanticSearchChatProps> = ({
             const isModifier = isMac ? e.metaKey : e.ctrlKey;
             if (isModifier && e.key === 'k') {
                 e.preventDefault();
-                setIsExpanded(true);
-                setTimeout(() => inputRef.current?.focus(), 100);
+                if (!isExpanded) {
+                    setIsExpanded(true);
+                }
             }
-            if (e.key === 'Escape' && isExpanded) {
+            if (e.key === 'Escape' && isExpanded && !isClosing) {
                 handleClose();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isMac, isExpanded]);
+    }, [isMac, isExpanded, isClosing]);
 
     const handleExpand = () => {
         setIsExpanded(true);
     };
 
     const handleClose = () => {
-        setIsExpanded(false);
-        setMessages([]);
-        setInputValue('');
-        setError(null);
+        setIsClosing(true);
+        // Wait for animation to complete before fully closing
+        setTimeout(() => {
+            setIsExpanded(false);
+            setIsClosing(false);
+            setMessages([]);
+            setInputValue('');
+            setError(null);
+            setStreamingContent('');
+        }, 300);
+    };
+
+    const handleBackdropClick = (e: React.MouseEvent) => {
+        // Only close if clicking the backdrop itself, not the chat container
+        if (e.target === e.currentTarget) {
+            handleClose();
+        }
     };
 
     const handleSubmit = async (e?: React.FormEvent) => {
@@ -137,6 +176,7 @@ const SemanticSearchChat: React.FC<SemanticSearchChatProps> = ({
         const userMessage = inputValue.trim();
         setInputValue('');
         setError(null);
+        setStreamingContent('');
 
         // Add user message
         const newUserMessage: ChatMessage = { role: 'user', content: userMessage };
@@ -153,19 +193,34 @@ const SemanticSearchChat: React.FC<SemanticSearchChatProps> = ({
             // Build history from previous messages
             const history = messages.map(m => ({ role: m.role, content: m.content }));
 
-            const result = await sendChatMessage(idToken, userMessage, history);
+            let accumulatedContent = '';
+            let receivedEntries: Entry[] = [];
 
-            // Add assistant response
-            const assistantMessage: ChatMessage = {
-                role: 'assistant',
-                content: result.response,
-                entries: result.entries,
-            };
-            setMessages(prev => [...prev, assistantMessage]);
+            // Stream the response
+            for await (const event of streamChatMessage(idToken, userMessage, history)) {
+                if (event.type === 'token' && event.content) {
+                    accumulatedContent += event.content;
+                    setStreamingContent(accumulatedContent);
+                } else if (event.type === 'entries' && event.entries) {
+                    receivedEntries = event.entries;
+                } else if (event.type === 'done') {
+                    // Finalize the message
+                    const assistantMessage: ChatMessage = {
+                        role: 'assistant',
+                        content: accumulatedContent,
+                        entries: receivedEntries,
+                    };
+                    setMessages(prev => [...prev, assistantMessage]);
+                    setStreamingContent('');
+                } else if (event.type === 'error' && event.message) {
+                    throw new Error(event.message);
+                }
+            }
 
         } catch (err) {
             console.error('Chat error:', err);
             setError((err as Error).message || 'Failed to get response');
+            setStreamingContent('');
         } finally {
             setIsLoading(false);
         }
@@ -196,166 +251,206 @@ const SemanticSearchChat: React.FC<SemanticSearchChatProps> = ({
         return platform;
     };
 
-    return (
+    // Full-screen overlay content - rendered via Portal
+    const overlayContent = (
         <div
-            ref={containerRef}
-            className={`relative transition-all duration-300 ease-out ${isExpanded
-                    ? 'bg-white dark:bg-dark-900 rounded-2xl shadow-2xl border border-dark-200/80 dark:border-dark-700/60'
-                    : ''
-                }`}
+            className={`fixed inset-0 flex items-center justify-center p-4 sm:p-8
+                ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+            onClick={handleBackdropClick}
             style={{
-                height: isExpanded ? '450px' : 'auto',
+                zIndex: 99999,
+                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
             }}
         >
-            {/* Collapsed State - Search Bar */}
-            {!isExpanded && (
-                <div
-                    onClick={handleExpand}
-                    className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4 cursor-pointer hover:bg-dark-200/50 dark:hover:bg-dark-700/50 transition-colors"
-                >
-                    <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
-                    <div className="w-full py-3 pl-12 sm:pl-14 pr-16 text-dark-500 dark:text-dark-400">
-                        Ask AI to find anything...
-                    </div>
-                    <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
-                </div>
-            )}
-
-            {/* Expanded State - Chat Interface */}
-            {isExpanded && (
-                <div className="flex flex-col h-full">
-                    {/* Header */}
-                    <div className="flex items-center justify-between p-4 border-b border-dark-200/50 dark:border-dark-700/50">
-                        <div className="flex items-center gap-2">
-                            <Sparkles size={20} className="text-primary-500" />
-                            <span className="font-medium text-dark-900 dark:text-white">AI Search</span>
+            <div
+                className={`w-full max-w-3xl h-[85vh] bg-white dark:bg-dark-900 rounded-3xl shadow-2xl border border-dark-200/50 dark:border-dark-700/50 flex flex-col overflow-hidden
+                    ${isClosing ? 'animate-slide-down' : 'animate-slide-up'}`}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-dark-200/50 dark:border-dark-700/50">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-primary-500/10">
+                            <Sparkles size={22} className="text-primary-500" />
                         </div>
-                        <button
-                            onClick={handleClose}
-                            className="p-1.5 rounded-full hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
+                        <div>
+                            <span className="font-semibold text-lg text-dark-900 dark:text-white">AI Search</span>
+                            <p className="text-xs text-dark-500 dark:text-dark-400">Search your saved content with natural language</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleClose}
+                        className="p-2 rounded-full hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
+                    >
+                        <X size={20} className="text-dark-500 dark:text-dark-400" />
+                    </button>
+                </div>
+
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                    {messages.length === 0 && !isLoading && (
+                        <div className="text-center py-12">
+                            <div className="w-16 h-16 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-4">
+                                <Sparkles size={32} className="text-primary-500" />
+                            </div>
+                            <p className="text-dark-700 dark:text-dark-200 font-medium mb-2">
+                                Ask me to find anything in your vault
+                            </p>
+                            <p className="text-sm text-dark-500 dark:text-dark-400 max-w-md mx-auto">
+                                Try: "Find that cooking video" or "What did I save from TikTok last week?"
+                            </p>
+                        </div>
+                    )}
+
+                    {messages.map((message, index) => (
+                        <div
+                            key={index}
+                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
-                            <X size={18} className="text-dark-500 dark:text-dark-400" />
+                            <div
+                                className={`max-w-[85%] rounded-2xl px-4 py-3 ${message.role === 'user'
+                                    ? 'bg-primary-500 text-white'
+                                    : 'bg-dark-100 dark:bg-dark-800 text-dark-900 dark:text-white'
+                                    }`}
+                            >
+                                {message.role === 'user' ? (
+                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                ) : (
+                                    <div className="text-sm prose prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-code:bg-dark-200 dark:prose-code:bg-dark-700 prose-code:px-1 prose-code:py-0.5 prose-code:rounded max-w-none">
+                                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                                    </div>
+                                )}
+
+                                {/* Entry Cards */}
+                                {message.entries && message.entries.length > 0 && (
+                                    <div className="mt-3 space-y-2">
+                                        {message.entries.map((entry) => (
+                                            <button
+                                                key={entry.id}
+                                                onClick={() => {
+                                                    onEntryClick(entry);
+                                                    handleClose();
+                                                }}
+                                                className="w-full text-left bg-white dark:bg-dark-700 rounded-xl p-3 hover:bg-dark-50 dark:hover:bg-dark-600 transition-colors border border-dark-200/50 dark:border-dark-600/50"
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    {/* Thumbnail */}
+                                                    {entry.thumbnail && (
+                                                        <div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-dark-200 dark:bg-dark-600">
+                                                            <img
+                                                                src={entry.thumbnail}
+                                                                alt=""
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="font-medium text-dark-900 dark:text-white text-sm line-clamp-1">
+                                                            {entry.title || 'Untitled'}
+                                                        </h4>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span
+                                                                className="text-xs font-medium"
+                                                                style={{ color: getPlatformColor(entry.platform) }}
+                                                            >
+                                                                {formatPlatform(entry.platform)}
+                                                            </span>
+                                                            {entry.channel && (
+                                                                <span className="text-xs text-dark-500 dark:text-dark-400 truncate">
+                                                                    • {entry.channel}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <ExternalLink size={14} className="text-dark-400 flex-shrink-0 mt-1" />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* Streaming response */}
+                    {isLoading && streamingContent && (
+                        <div className="flex justify-start">
+                            <div className="max-w-[85%] bg-dark-100 dark:bg-dark-800 rounded-2xl px-4 py-3 text-dark-900 dark:text-white">
+                                <div className="text-sm prose prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-code:bg-dark-200 dark:prose-code:bg-dark-700 prose-code:px-1 prose-code:py-0.5 prose-code:rounded max-w-none">
+                                    <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                                    <span className="inline-block w-2 h-4 ml-0.5 bg-primary-500 animate-pulse align-middle" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Loading indicator (before any content) */}
+                    {isLoading && !streamingContent && (
+                        <div className="flex justify-start">
+                            <div className="bg-dark-100 dark:bg-dark-800 rounded-2xl px-4 py-3">
+                                <span className="text-sm font-medium animate-shimmer">
+                                    Thinking...
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error message */}
+                    {error && (
+                        <div className="text-center py-2">
+                            <p className="text-sm text-red-500">{error}</p>
+                        </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input Area */}
+                <form onSubmit={handleSubmit} className="p-5 border-t border-dark-200/50 dark:border-dark-700/50 bg-dark-50/50 dark:bg-dark-800/30">
+                    <div className="flex items-center gap-3">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            placeholder="Ask anything about your saved content..."
+                            className="flex-1 bg-white dark:bg-dark-800 border border-dark-200/80 dark:border-dark-700/60 rounded-full px-5 py-3 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500/50 text-sm"
+                            disabled={isLoading}
+                        />
+                        <button
+                            type="submit"
+                            disabled={isLoading || !inputValue.trim()}
+                            className="p-3 rounded-full bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-primary-500/25"
+                        >
+                            <Send size={20} />
                         </button>
                     </div>
-
-                    {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {messages.length === 0 && !isLoading && (
-                            <div className="text-center py-8">
-                                <Sparkles size={32} className="text-primary-500 mx-auto mb-3" />
-                                <p className="text-dark-600 dark:text-dark-300 mb-2">
-                                    Ask me to find anything in your vault
-                                </p>
-                                <p className="text-sm text-dark-500 dark:text-dark-400">
-                                    Try: "Find that cooking video" or "What did I save from TikTok last week?"
-                                </p>
-                            </div>
-                        )}
-
-                        {messages.map((message, index) => (
-                            <div
-                                key={index}
-                                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                            >
-                                <div
-                                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${message.role === 'user'
-                                            ? 'bg-primary-500 text-white'
-                                            : 'bg-dark-100 dark:bg-dark-800 text-dark-900 dark:text-white'
-                                        }`}
-                                >
-                                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-
-                                    {/* Entry Cards */}
-                                    {message.entries && message.entries.length > 0 && (
-                                        <div className="mt-3 space-y-2">
-                                            {message.entries.map((entry) => (
-                                                <button
-                                                    key={entry.id}
-                                                    onClick={() => onEntryClick(entry)}
-                                                    className="w-full text-left bg-white dark:bg-dark-700 rounded-xl p-3 hover:bg-dark-50 dark:hover:bg-dark-600 transition-colors border border-dark-200/50 dark:border-dark-600/50"
-                                                >
-                                                    <div className="flex items-start gap-3">
-                                                        {/* Thumbnail */}
-                                                        {entry.thumbnail && (
-                                                            <div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-dark-200 dark:bg-dark-600">
-                                                                <img
-                                                                    src={entry.thumbnail}
-                                                                    alt=""
-                                                                    className="w-full h-full object-cover"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                        <div className="flex-1 min-w-0">
-                                                            <h4 className="font-medium text-dark-900 dark:text-white text-sm line-clamp-1">
-                                                                {entry.title || 'Untitled'}
-                                                            </h4>
-                                                            <div className="flex items-center gap-2 mt-1">
-                                                                <span
-                                                                    className="text-xs font-medium"
-                                                                    style={{ color: getPlatformColor(entry.platform) }}
-                                                                >
-                                                                    {formatPlatform(entry.platform)}
-                                                                </span>
-                                                                {entry.channel && (
-                                                                    <span className="text-xs text-dark-500 dark:text-dark-400 truncate">
-                                                                        • {entry.channel}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <ExternalLink size={14} className="text-dark-400 flex-shrink-0 mt-1" />
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-
-                        {/* Loading indicator */}
-                        {isLoading && (
-                            <div className="flex justify-start">
-                                <div className="bg-dark-100 dark:bg-dark-800 rounded-2xl px-4 py-3">
-                                    <Loader2 size={18} className="animate-spin text-primary-500" />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Error message */}
-                        {error && (
-                            <div className="text-center py-2">
-                                <p className="text-sm text-red-500">{error}</p>
-                            </div>
-                        )}
-
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input Area */}
-                    <form onSubmit={handleSubmit} className="p-4 border-t border-dark-200/50 dark:border-dark-700/50">
-                        <div className="flex items-center gap-2">
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                placeholder="Ask anything about your saved content..."
-                                className="flex-1 bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full px-4 py-2.5 text-dark-900 dark:text-white placeholder-dark-500 dark:placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-                                disabled={isLoading}
-                            />
-                            <button
-                                type="submit"
-                                disabled={isLoading || !inputValue.trim()}
-                                className="p-2.5 rounded-full bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <Send size={18} />
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
+                    <p className="text-xs text-dark-400 dark:text-dark-500 mt-3 text-center">
+                        Press <Kbd className="text-xs">{isMac ? '⌘' : 'Ctrl'}+K</Kbd> to open • <Kbd className="text-xs">Esc</Kbd> to close
+                    </p>
+                </form>
+            </div>
         </div>
+    );
+
+    return (
+        <>
+            {/* Collapsed State - Search Bar Trigger */}
+            <div
+                onClick={handleExpand}
+                className="relative bg-dark-100/50 dark:bg-dark-800/50 border border-dark-200/80 dark:border-dark-700/60 rounded-full shadow-lg flex items-center pr-4 cursor-pointer hover:bg-dark-200/50 dark:hover:bg-dark-700/50 transition-colors"
+            >
+                <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 text-dark-500 dark:text-dark-400" size={20} />
+                <div className="w-full py-3 pl-12 sm:pl-14 pr-16 text-dark-500 dark:text-dark-400">
+                    Ask AI to find anything...
+                </div>
+                <Kbd className="hidden sm:block">{isMac ? '⌘' : 'Ctrl'}+K</Kbd>
+            </div>
+
+            {/* Full-Screen Overlay - Rendered via Portal to document.body */}
+            {isExpanded && createPortal(overlayContent, document.body)}
+        </>
     );
 };
 

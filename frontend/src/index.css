@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-html, body {
+html,
+body {
   overscroll-behavior: none;
   scroll-behavior: smooth;
 }
@@ -33,23 +34,25 @@ html, body {
 
 /* Mobile-specific improvements */
 @media (max-width: 640px) {
+
   /* Improve touch targets */
-  button, [role="button"] {
+  button,
+  [role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* Better text readability on mobile */
   .text-sm {
     font-size: 0.875rem;
     line-height: 1.25rem;
   }
-  
+
   /* Improve card spacing on mobile */
   .grid {
     gap: 1rem;
   }
-  
+
   /* Better modal sizing on mobile */
   .max-w-md {
     max-width: calc(100vw - 2rem);
@@ -61,8 +64,10 @@ html:not(.dark) input:-webkit-autofill,
 html:not(.dark) input:-webkit-autofill:hover,
 html:not(.dark) input:-webkit-autofill:focus,
 html:not(.dark) input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #e2e8f0 inset !important; /* Corresponds to dark-200 */
-  -webkit-text-fill-color: #0f172a !important; /* Corresponds to dark-900 */
+  -webkit-box-shadow: 0 0 0 30px #e2e8f0 inset !important;
+  /* Corresponds to dark-200 */
+  -webkit-text-fill-color: #0f172a !important;
+  /* Corresponds to dark-900 */
   caret-color: #0f172a !important;
 }
 
@@ -71,63 +76,85 @@ html.dark input:-webkit-autofill,
 html.dark input:-webkit-autofill:hover,
 html.dark input:-webkit-autofill:focus,
 html.dark input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #1e293b inset !important; /* Corresponds to dark-800 */
-  -webkit-text-fill-color: #e2e8f0 !important; /* Corresponds to dark-200 */
+  -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
+  /* Corresponds to dark-800 */
+  -webkit-text-fill-color: #e2e8f0 !important;
+  /* Corresponds to dark-200 */
   caret-color: #e2e8f0 !important;
 }
 
 /* Custom scrollbar for modern browsers */
 ::-webkit-scrollbar {
-    width: 8px;
+  width: 8px;
 }
+
 ::-webkit-scrollbar-track {
-    background-color: #f1f5f9; /* A light gray for light mode */
+  background-color: #f1f5f9;
+  /* A light gray for light mode */
 }
+
 html.dark ::-webkit-scrollbar-track {
-    background-color: #0f172a; /* A dark color matching the theme for dark mode */
+  background-color: #0f172a;
+  /* A dark color matching the theme for dark mode */
 }
+
 html.dark ::-webkit-scrollbar-thumb {
-    background-color: #334155; /* dark-700 */
-    border-radius: 4px;
+  background-color: #334155;
+  /* dark-700 */
+  border-radius: 4px;
 }
+
 html:not(.dark) ::-webkit-scrollbar-thumb {
-    background-color: #94a3b8; /* dark-400 */
-    border-radius: 4px;
+  background-color: #94a3b8;
+  /* dark-400 */
+  border-radius: 4px;
 }
+
 html.dark ::-webkit-scrollbar-thumb:hover {
-    background-color: #475569; /* dark-600 */
+  background-color: #475569;
+  /* dark-600 */
 }
+
 html:not(.dark) ::-webkit-scrollbar-thumb:hover {
-    background-color: #64748b; /* dark-500 */
+  background-color: #64748b;
+  /* dark-500 */
 }
 
 /* Hide scrollbar but keep scroll functionality */
 .hide-scrollbar {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE 10+ */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE 10+ */
 }
+
 .hide-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 /* Premium modal scrollbar for category reassignment modal */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
   border-radius: 8px;
-  background: #232b36; /* Match dark modal bg */
+  background: #232b36;
+  /* Match dark modal bg */
   transition: opacity 0.2s;
   opacity: 0;
 }
+
 .custom-scrollbar:hover::-webkit-scrollbar,
 .custom-scrollbar:active::-webkit-scrollbar,
 .custom-scrollbar:focus::-webkit-scrollbar {
   opacity: 1;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #374151;
   border-radius: 8px;
   margin: 4px;
 }
+
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #374151 #232b36;
@@ -139,6 +166,7 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -148,6 +176,7 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(-100%);
   }
@@ -155,16 +184,20 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
 
 /* Improve mobile touch interactions */
 @media (max-width: 640px) {
+
   /* Prevent zoom on input focus */
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     font-size: 16px;
   }
-  
+
   /* Better touch feedback */
-  button:active, [role="button"]:active {
+  button:active,
+  [role="button"]:active {
     transform: scale(0.95);
   }
-  
+
   /* Improve modal backdrop on mobile */
   .fixed.inset-0 {
     backdrop-filter: blur(4px);
@@ -177,6 +210,7 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -193,6 +227,7 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
     opacity: 0;
     transform: translateX(100%);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -208,6 +243,7 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
     opacity: 1;
     transform: translateX(0);
   }
+
   100% {
     opacity: 0;
     transform: translateX(100%);
@@ -222,6 +258,7 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
   0% {
     width: 100%;
   }
+
   100% {
     width: 0%;
   }
@@ -233,8 +270,10 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
 
 /* Custom dropdown option styling - more aggressive override */
 select option {
-  background-color: #1e293b !important; /* dark-800 */
-  color: #e2e8f0 !important; /* dark-200 */
+  background-color: #1e293b !important;
+  /* dark-800 */
+  color: #e2e8f0 !important;
+  /* dark-200 */
   padding: 8px 12px !important;
 }
 
@@ -242,22 +281,27 @@ select option:hover,
 select option:focus,
 select option:active,
 select option:checked {
-  background-color: #334155 !important; /* dark-700 */
-  color: #f1f5f9 !important; /* dark-100 */
+  background-color: #334155 !important;
+  /* dark-700 */
+  color: #f1f5f9 !important;
+  /* dark-100 */
 }
 
 /* Light theme dropdown options */
 html:not(.dark) select option {
   background-color: #ffffff !important;
-  color: #0f172a !important; /* dark-900 */
+  color: #0f172a !important;
+  /* dark-900 */
 }
 
 html:not(.dark) select option:hover,
 html:not(.dark) select option:focus,
 html:not(.dark) select option:active,
 html:not(.dark) select option:checked {
-  background-color: #e2e8f0 !important; /* dark-200 */
-  color: #0f172a !important; /* dark-900 */
+  background-color: #e2e8f0 !important;
+  /* dark-200 */
+  color: #0f172a !important;
+  /* dark-900 */
 }
 
 /* Additional override for webkit browsers */
@@ -315,6 +359,7 @@ html:not(.dark) select:focus option {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -328,16 +373,15 @@ html:not(.dark) select:focus option {
 @keyframes fadeOut {
   0% {
     opacity: 1;
-    transform: translateY(0);
   }
+
   100% {
     opacity: 0;
-    transform: translateY(-10px);
   }
 }
 
 .animate-fade-out {
-  animation: fadeOut 0.5s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
+  animation: fadeOut 0.3s ease-out forwards;
 }
 
 @keyframes slideUp {
@@ -345,6 +389,7 @@ html:not(.dark) select:focus option {
     opacity: 0;
     transform: translateY(20px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -352,13 +397,32 @@ html:not(.dark) select:focus option {
 }
 
 .animate-slide-up {
-  animation: slideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s cubic-bezier(0.55, 0.055, 0.675, 0.19) forwards;
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -366,4 +430,38 @@ html:not(.dark) select:focus option {
 
 .animate-pulse-slow {
   animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg,
+      rgba(107, 114, 128, 1) 0%,
+      rgba(255, 255, 255, 1) 50%,
+      rgba(107, 114, 128, 1) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2s infinite linear;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(90deg,
+      rgba(156, 163, 175, 1) 0%,
+      rgba(255, 255, 255, 1) 50%,
+      rgba(156, 163, 175, 1) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2s infinite linear;
 }

@@ -1619,3 +1619,66 @@ async def chat_with_ai(
         tool_used=result.get("tool_used")
     )
 
+
+@router.post("/api/chat/stream")
+async def chat_with_ai_stream(
+    request: ChatRequest,
+    authorization: Optional[str] = Header(None),
+):
+    """
+    AI-powered semantic search chat endpoint with streaming responses.
+    Uses Server-Sent Events to stream the response in real-time.
+    """
+    from fastapi.responses import StreamingResponse
+    from backend.chat import process_chat_message_streaming
+    
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authorization scheme")
+    except ValueError:
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization header format"
+        )
+    
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token["uid"]
+    except Exception as e:
+        raise HTTPException(
+            status_code=401, detail=f"Token verification failed: {str(e)}"
+        )
+    
+    # Fetch user's entries and categories
+    entries_result = get_entries_firebase(uid)
+    if not entries_result["success"]:
+        raise HTTPException(status_code=400, detail=entries_result["error"])
+    entries = entries_result["entries"]
+    
+    categories_result = get_categories_firebase(uid)
+    if not categories_result["success"]:
+        raise HTTPException(status_code=400, detail=categories_result["error"])
+    categories = categories_result["categories"]
+    
+    # Convert history to list of dicts
+    history = [{"role": msg.role, "content": msg.content} for msg in request.history]
+    
+    # Return streaming response
+    return StreamingResponse(
+        process_chat_message_streaming(
+            user_message=request.message,
+            conversation_history=history,
+            entries=entries,
+            categories=categories
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
+

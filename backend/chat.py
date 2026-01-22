@@ -118,14 +118,23 @@ Your job is to help users find content they've saved. You have access to tools t
 
 Guidelines:
 - Be concise and friendly
-- When you find entries, briefly describe what you found
+- When you find entries, briefly describe what you found in 1-2 sentences
+- List the found items as a simple bullet list with just the **title** and channel/source
+- Do NOT include thumbnails, images, URLs, or lengthy descriptions in your text response
+- The UI will show clickable entry cards with thumbnails separately - your text should just summarize
 - If no results are found, suggest alternative searches
 - Use the search_entries tool for semantic/natural language queries
 - Use filter_by_category for category-specific requests
 - Use get_recent_entries when users ask about recent saves
 - Use get_favorites when users ask about their favorites
 
-When presenting results, format them clearly but briefly. The UI will display the actual entry cards.
+Example format when presenting results:
+"I found 3 videos about cooking for you:
+- **Perfect Pasta Technique** by Gordon Ramsay
+- **Easy Weeknight Dinners** by Tasty
+- **Italian Grandma's Secrets** by Pasta Grannies
+
+Let me know if you'd like more details on any of these!"
 """
 
 
@@ -580,3 +589,125 @@ async def process_chat_message(
             "entries": [],
             "tool_used": None
         }
+
+
+async def process_chat_message_streaming(
+    user_message: str,
+    conversation_history: List[Dict[str, str]],
+    entries: List[Dict[str, Any]],
+    categories: List[Dict[str, Any]]
+):
+    """
+    Process a chat message with streaming response.
+    Yields SSE events as they become available.
+    
+    Event types:
+        - entries: Entries found by tool calling (sent first)
+        - token: Individual text tokens as they stream
+        - done: Final signal when complete
+        - error: If an error occurs
+    """
+    
+    # Build messages array
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    
+    # Add conversation history
+    for msg in conversation_history[-10:]:
+        messages.append({
+            "role": msg.get("role", "user"),
+            "content": msg.get("content", "")
+        })
+    
+    # Add current user message
+    messages.append({"role": "user", "content": user_message})
+    
+    referenced_entries = []
+    tool_used = None
+    
+    try:
+        # First API call - may trigger tool use (non-streaming to get tool calls)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=CHAT_TOOLS,
+            tool_choice="auto",
+            max_tokens=500
+        )
+        
+        assistant_message = response.choices[0].message
+        
+        # Check if the model wants to use tools
+        if assistant_message.tool_calls:
+            # Add the assistant's message with tool calls
+            messages.append(assistant_message)
+            
+            # Execute each tool call
+            for tool_call in assistant_message.tool_calls:
+                tool_name = tool_call.function.name
+                tool_used = tool_name
+                
+                try:
+                    arguments = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError:
+                    arguments = {}
+                
+                # Execute the tool
+                tool_result = execute_tool(tool_name, arguments, entries, categories)
+                
+                # Collect referenced entries
+                if 'entries' in tool_result:
+                    referenced_entries.extend(tool_result['entries'])
+                
+                # Sanitize tool result for JSON serialization
+                sanitized_result = {
+                    "found": tool_result.get("found", 0),
+                    "entries": sanitize_entries_for_json(tool_result.get("entries", []))
+                }
+                
+                # Add tool result to messages
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(sanitized_result)
+                })
+            
+            # Send entries event FIRST before streaming text
+            if referenced_entries:
+                sanitized_entries = sanitize_entries_for_json(referenced_entries[:10])
+                yield f"data: {json.dumps({'type': 'entries', 'entries': sanitized_entries, 'tool_used': tool_used})}\n\n"
+            
+            # Second API call - stream the response
+            stream = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                max_tokens=500,
+                stream=True
+            )
+            
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    token = chunk.choices[0].delta.content
+                    yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+        else:
+            # No tool use - stream direct response
+            # First, make a streaming call
+            messages_for_stream = messages.copy()
+            
+            stream = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages_for_stream,
+                max_tokens=500,
+                stream=True
+            )
+            
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    token = chunk.choices[0].delta.content
+                    yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+        
+        # Send done event
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        
+    except Exception as e:
+        print(f"Error in streaming chat: {e}")
+        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
